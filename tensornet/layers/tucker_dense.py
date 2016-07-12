@@ -6,7 +6,7 @@
 import tensorflow as tf
 import numpy as np
 def tucker_dense(inputs, inp_modes, out_modes, mat_ranks, 
-                 init=2.0, scope="tt", use_biases=True, init_params=None):
+                 init=2.0, scope="tucker_dense", use_biases=True, init_params=None):
     ''' Tucker model fully connected layer.
     
     Y = WX + b, where tensor(W) follows a Tucker(R_1,...R_D) model
@@ -26,9 +26,8 @@ def tucker_dense(inputs, inp_modes, out_modes, mat_ranks,
     with tf.name_scope(scope):
         dim = inp_modes.size
         # allocate memory for parameters: [{U},S]
-        mat_ps = np.cumsum( np.concatenate( ([0],inp_modes * out_modes * mat_ranks, np.prod(mat_ranks)))
-
-        mat_size = np.prod(inp_modes)   
+        mat_ps = np.cumsum( np.concatenate( ([0],inp_modes * out_modes * mat_ranks, [np.prod(mat_ranks)])))
+        mat_size = mat_ps[-1]   
         
         if type(init) == float:
             for i in range(dim):
@@ -41,6 +40,7 @@ def tucker_dense(inputs, inp_modes, out_modes, mat_ranks,
                     mat = mat_proj
                 else:
                     mat = tf.concat(0, [mat, mat_proj])
+            i = i + 1
             tucker_core = tf.truncated_normal([mat_ps[i + 1] - mat_ps[i]],
                                                0.0,
                                                init / n_in,
@@ -51,7 +51,7 @@ def tucker_dense(inputs, inp_modes, out_modes, mat_ranks,
             init_params['inp_modes'] = inp_modes
             init_params['out_modes'] = out_modes
             init_params['ranks'] = mat_ranks 
-            mat = init(init_params)
+            mat = init(init_params) 
                     
         mat = tf.Variable(mat, name="weights")  #optimize over the entire weight matrix - TBD
         out = tf.reshape(inputs, [-1, np.prod(inp_modes)])
@@ -62,18 +62,30 @@ def tucker_dense(inputs, inp_modes, out_modes, mat_ranks,
             out = tf.reshape(out, [inp_modes[i], -1])
                       
             mat_proj = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]]) # projection matrix
-            mat_proj = tf.reshape(mat_proj, [  mat_ranks[i]*out_modes[i], inp_modes[i]])
-            mat_proj = tf.transpose(mat_proj, [1, 0])
-                           
+            mat_proj = tf.reshape(mat_proj, [out_modes[i] * mat_ranks[i], inp_modes[i]])
+   
             out = tf.matmul(mat_proj, out)
+
+            '''
+            try:            
+                out = tf.matmul(mat_proj, out)
+            except ValueError:
+                init = tf.initialize_all_variables()
+                sess = tf.InteractiveSession()
+                sess.run(init)
+                print(sess.run(tf.shape(mat_proj), feed_dict = {out: np.ones((inp_modes[i], 28*28)) }))
+
+                sess.close()
+            '''
+      
             out = tf.reshape(out, [out_modes[i], -1])
             out = tf.transpose(out, [1, 0])
-                           
-        tucker_core = tf.slice(mat, [mat_ps[i], [mat_ps[i+1] - mat_ps[i]]])
-        mat_core = tf.reshape(tucker_core, [np.prod(inp_modes), -1])
-        mat_core = tf.transpose(mat_core, [1, 0])
-
-        out = tf.matmul(mat_core,out)
+        i = i + 1
+        tucker_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i+1] - mat_ps[i]])
+        tucker_core = tf.reshape(tucker_core, [np.prod(mat_ranks),-1])
+     
+        out = tf.reshape(out, [-1, np.prod(mat_ranks)])
+        out = tf.matmul(out,tucker_core)
                         
         if use_biases:
             biases = tf.Variable(tf.zeros([np.prod(out_modes)]), name="biases")

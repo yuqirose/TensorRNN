@@ -5,6 +5,9 @@
 
 import tensorflow as tf
 import numpy as np
+import sys
+from math_utils import n_mode_product
+
 def tucker_dense(inputs, inp_modes, out_modes, mat_ranks, 
                  init=2.0, scope="tucker_dense", use_biases=True, init_params=None):
     ''' Tucker model fully connected layer.
@@ -26,25 +29,26 @@ def tucker_dense(inputs, inp_modes, out_modes, mat_ranks,
     with tf.name_scope(scope):
         dim = inp_modes.size
         # allocate memory for parameters: [{U},S]
-        mat_ps = np.cumsum( np.concatenate( ([0],inp_modes * out_modes * mat_ranks, [np.prod(mat_ranks)])))
+        mat_ps = np.cumsum( np.concatenate( ([0], inp_modes * out_modes * mat_ranks, [np.prod(mat_ranks)])))
         mat_size = mat_ps[-1]   
         
         if type(init) == float:
+ 
             for i in range(dim):
                 n_in = mat_ranks[i] * inp_modes[i]
                 mat_proj = tf.truncated_normal([mat_ps[i + 1] - mat_ps[i]],
                                                0.0,
                                                init / n_in,
-                                               tf.float32)
-                if (i == 0):
+                                               tf.float32)  
+                if i == 0:
                     mat = mat_proj
                 else:
                     mat = tf.concat(0, [mat, mat_proj])
             i = i + 1
             tucker_core = tf.truncated_normal([mat_ps[i + 1] - mat_ps[i]],
-                                               0.0,
-                                               init / n_in,
-                                               tf.float32)
+                                              0.0,
+                                              init / n_in,
+                                              tf.float32)
             mat = tf.concat(0, [mat, tucker_core])
 
         else:
@@ -56,16 +60,19 @@ def tucker_dense(inputs, inp_modes, out_modes, mat_ranks,
         mat = tf.Variable(mat, name="weights")  #optimize over the entire weight matrix - TBD
         out = tf.reshape(inputs, [-1, np.prod(inp_modes)])
         out = tf.transpose(out, [1, 0])
-        # implement n-mode product 
-        # http://www.mathworks.com/matlabcentral/fileexchange/24268-n-mode-tensor-matrix-product/content/nmodeproduct.m
-        for i in range(dim):
-            out = tf.reshape(out, [inp_modes[i], -1])
-                      
-            mat_proj = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]]) # projection matrix
-            mat_proj = tf.reshape(mat_proj, [out_modes[i] * mat_ranks[i], inp_modes[i]])
-   
-            out = tf.matmul(mat_proj, out)
+        # efficient implement n-mode product:
+        tucker_core = tf.slice(mat, [mat_ps[-2]], [mat_ps[-1]- mat_ps[-2]])
 
+        tucker_core = tf.reshape(tucker_core, mat_ranks)
+        
+        # iteratively compute tucker product
+        weights = tucker_core
+        weights_shape = mat_ranks
+        for i in range(dim):
+            mat_proj = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]]) # projection matrix
+            mat_proj = tf.reshape(mat_proj, [inp_modes[i]*out_modes[i],mat_ranks[i]])
+            weights = n_mode_product(weights,mat_proj,i, weights_shape, [inp_modes[i]*out_modes[i],mat_ranks[i]] )
+            weights_shape[i] = inp_modes[i]*out_modes[i]
             '''
             try:            
                 out = tf.matmul(mat_proj, out)
@@ -77,15 +84,8 @@ def tucker_dense(inputs, inp_modes, out_modes, mat_ranks,
 
                 sess.close()
             '''
-      
-            out = tf.reshape(out, [out_modes[i], -1])
-            out = tf.transpose(out, [1, 0])
-        i = i + 1
-        tucker_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i+1] - mat_ps[i]])
-        tucker_core = tf.reshape(tucker_core, [np.prod(mat_ranks),-1])
-     
-        out = tf.reshape(out, [-1, np.prod(mat_ranks)])
-        out = tf.matmul(out,tucker_core)
+        weights = tf.reshape(weights, [-1, np.prod(inp_modes)])
+        out = tf.matmul(weights,out)
                         
         if use_biases:
             biases = tf.Variable(tf.zeros([np.prod(out_modes)]), name="biases")

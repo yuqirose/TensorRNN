@@ -1,2 +1,2 @@
 from . import layers
-from . import tt
+from . import tt_decomp

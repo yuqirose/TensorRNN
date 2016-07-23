@@ -1,3 +1,14 @@
+
+# coding: utf-8
+
+# In[1]:
+
+'''
+MNIST script modified from TensorNet
+Github URL: https://github.com/timgaripov/TensorNet-TF
+Local: lisbon:/home/roseyu/Python/TensorNet-TF
+'''
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -10,53 +21,32 @@ import numpy as np
 import tensorflow.python.platform
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
-
-import input_data
 import net
-
-tf.set_random_seed(12345)
-np.random.seed(12345)
+import sys
+sys.path.append('../../')
+from utils.train_utils import *
 
 # Basic model parameters as external flags.
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_integer('max_steps', 10000, 'Number of steps to run trainer.')
+flags.DEFINE_integer('max_steps', 50000, 'Number of steps to run trainer.')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.  '
                      'Must divide evenly into the dataset sizes.')
 flags.DEFINE_integer('overview_steps', 100, 'Overview period')
 flags.DEFINE_integer('evaluation_steps', 1000, 'Overview period')
-flags.DEFINE_string('data_dir', '../../data/CIFAR_data', 'Directory to put the training data.')
+flags.DEFINE_string('data_dir', '../../data', 'Directory to put the training data.')
 flags.DEFINE_string('log_dir', '../../log', 'Directory to put log files.')
 
-def fill_feed_dict(batch, train_phase=True):
-    """Fills the feed_dict for training the given step.
-    A feed_dict takes the form of:
-    feed_dict = {
-        <placeholder>: <tensor of values to be passed for placeholder>,
-        ....
-    }
-    Args:
-        batch: Tuple (Images, labels)
-        evaluation: boolean, used to set dropout_rate to 1 in case of evaluation          
-    Returns:
-        feed_dict: The feed dictionary mapping from placeholders to values.
-    """
-    # Create the feed_dict for the placeholders filled with the next
-    # `batch size ` examples.
-    graph = tf.get_default_graph()
-    images_ph = graph.get_tensor_by_name('placeholder/images:0')
-    labels_ph = graph.get_tensor_by_name('placeholder/labels:0')
-    train_phase_ph = graph.get_tensor_by_name('placeholder/train_phase:0')
-    
-    images_feed, labels_feed = batch    
-    feed_dict = {
-        images_ph: images_feed,
-        labels_ph: labels_feed,
-        train_phase_ph: train_phase
-    }    
-    return feed_dict
 
-def do_eval(sess,            
+# In[2]:
+
+'''
+MNIST dataset
+'''
+from tensorflow.examples.tutorials.mnist import input_data
+mnist = input_data.read_data_sets(FLAGS.data_dir+'/MNIST_data', one_hot=False)
+
+def evaluation(sess,            
             eval_correct,
             loss,
             data_set):
@@ -86,10 +76,15 @@ def do_eval(sess,
           (num_examples, true_count, precision, avg_loss))
     return precision, avg_loss
 
+
 def run_training(extra_opts={}):
     start = datetime.datetime.now()
     start_str = start.strftime('%d-%m-%Y_%H_%M')
-    train, validation = input_data.read_data_sets(FLAGS.data_dir)
+    #train, validation = input_data.read_data_sets(FLAGS.data_dir)
+
+    train = mnist.train
+    validation = mnist.test#mnist.validation
+
     # Tell TensorFlow that the model will be built into the default Graph.
     with tf.Graph().as_default():
         net.build(extra_opts)
@@ -100,7 +95,7 @@ def run_training(extra_opts={}):
         precision_train_summary = tf.scalar_summary('precision/train',
                                                     precision_train,
                                                     name='summary/precision/train')
-                                                    
+
         precision_validation_summary = tf.scalar_summary('precision/validation',
                                                          precision_validation,
                                                          name='summary/precision/validation')                                                                
@@ -138,8 +133,8 @@ def run_training(extra_opts={}):
             # inspect the values of your Ops or variables, you may include them
             # in the list passed to sess.run() and the value tensors will be
             # returned in the tuple from the call.            
-                
-            
+
+
             _, loss_value = sess.run([train_op, loss],
                                      feed_dict=feed_dict)
             duration = time.time() - start_time
@@ -152,21 +147,21 @@ def run_training(extra_opts={}):
                 # Update the events file.
                 summary_str = sess.run(regular_summaries, feed_dict=feed_dict)
                 summary_writer.add_summary(summary_str, step)
-                
+
             # Save a checkpoint and evaluate the model periodically.
             if (step) % FLAGS.evaluation_steps == 0 or step == FLAGS.max_steps:
                 saver.save(sess, FLAGS.log_dir +'/checkpoint', global_step=step)
                 # Evaluate against the training set.
                 print('Training Data Eval:')
-                precision_t, obj_t = do_eval(sess,
+                precision_t, obj_t = evaluation(sess,
                                              correct_count,
                                              loss,
                                              train)
                 sess.run(precision_train.assign(precision_t))                
-                
+
                 # Evaluate against the validation set.
                 print('Validation Data Eval:')
-                precision_v, obj_v = do_eval(sess,
+                precision_v, obj_v = evaluation(sess,
                                              correct_count,
                                              loss,
                                              validation)
@@ -175,8 +170,7 @@ def run_training(extra_opts={}):
                 summary_str_0, summary_str_1 = sess.run([precision_train_summary, precision_validation_summary])                                
                 summary_writer.add_summary(summary_str_0, step)
                 summary_writer.add_summary(summary_str_1, step)
-                
-		if not os.path.exists('./results'):
+                if not os.path.exists('./results'):
                     os.makedirs('./results')
                 res_file = open('./results/res_' + str(start_str), 'w')
 
@@ -194,9 +188,22 @@ def run_training(extra_opts={}):
                 shutil.copyfileobj(net_file, res_file)
                 net_file.close()
                 res_file.close()
-
+        return {'precision':precision_v}
+    
 def main(_):
-    run_training()
+    err_rslt = []
+    for rank_val in range(1,6):
+        extra_opts={}
+        cp_layer_ranks = [rank_val,rank_val]
+        extra_opts['ranks_1'] = cp_layer_ranks[0]
+        extra_opts['ranks_2'] = cp_layer_ranks[1] 
+        rslt = run_training(extra_opts)
+        err_rslt.append(1.0-rslt['precision'])
+    with open('./results/res_cp','w') as f:
+        for i in range(len(err_rslt)):
+            f.write('{0:.5f}\t'.format(err_rslt[i]))
+    
 
 if __name__ == '__main__':
     tf.app.run()
+

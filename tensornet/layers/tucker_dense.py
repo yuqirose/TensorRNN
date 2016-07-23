@@ -2,9 +2,8 @@
 # coding: utf-8
 
 # In[ ]:
-
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 import sys
 from math_utils import n_mode_product
 
@@ -59,7 +58,6 @@ def tucker_dense(inputs, inp_modes, out_modes, mat_ranks,
                     
         mat = tf.Variable(mat, name="weights")  #optimize over the entire weight matrix - TBD
         out = tf.reshape(inputs, [-1, np.prod(inp_modes)])
-        out = tf.transpose(out, [1, 0])
         # efficient implement n-mode product:
         tucker_core = tf.slice(mat, [mat_ps[-2]], [mat_ps[-1]- mat_ps[-2]])
 
@@ -84,8 +82,8 @@ def tucker_dense(inputs, inp_modes, out_modes, mat_ranks,
 
                 sess.close()
             '''
-        weights = tf.reshape(weights, [-1, np.prod(inp_modes)])
-        out = tf.matmul(weights,out)
+        weights = tf.reshape(weights, [np.prod(inp_modes), -1])
+        out = tf.matmul(out, weights)
                         
         if use_biases:
             biases = tf.Variable(tf.zeros([np.prod(out_modes)]), name="biases")

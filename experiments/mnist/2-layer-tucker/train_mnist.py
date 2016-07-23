@@ -17,8 +17,8 @@ import os.path
 import datetime
 import shutil
 import time
-import tensorflow.python.platform
 import numpy as np
+import tensorflow.python.platform
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 import net
@@ -29,7 +29,7 @@ from utils.train_utils import *
 # Basic model parameters as external flags.
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_integer('max_steps', 40000, 'Number of steps to run trainer.')
+flags.DEFINE_integer('max_steps', 50000, 'Number of steps to run trainer.')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.  '
                      'Must divide evenly into the dataset sizes.')
 flags.DEFINE_integer('overview_steps', 100, 'Overview period')
@@ -83,7 +83,7 @@ def run_training(extra_opts={}):
     #train, validation = input_data.read_data_sets(FLAGS.data_dir)
 
     train = mnist.train
-    validation = mnist.validation
+    validation = mnist.test#mnist.validation
 
     # Tell TensorFlow that the model will be built into the default Graph.
     with tf.Graph().as_default():
@@ -188,8 +188,21 @@ def run_training(extra_opts={}):
                 shutil.copyfileobj(net_file, res_file)
                 net_file.close()
                 res_file.close()
+        return {'precision':precision_v}
+    
 def main(_):
-    run_training()
+    err_rslt = []
+    for rank_val in range(1,6):
+        extra_opts={}
+        tucker_layer_ranks = [np.ones(4, dtype='int32')*rank_val, np.ones(4, dtype='int32')*rank_val]
+        extra_opts['ranks_1'] = tucker_layer_ranks[0]
+        extra_opts['ranks_2'] = tucker_layer_ranks[1] 
+        rslt = run_training(extra_opts)
+        err_rslt.append(1.0-rslt['precision'])
+    with open('./results/res_tucker','w') as f:
+        for i in range(len(err_rslt)):
+            f.write('{0:.5f}\t'.format(err_rslt[i]))
+    
 
 if __name__ == '__main__':
     tf.app.run()

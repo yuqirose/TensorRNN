@@ -1,16 +1,7 @@
-Iterations: 2000
-Learning time: 1.17 minutes
-Train precision: 0.11342
-Train loss: 2.30113
-Validation precision: 0.11200
-Validation loss: 2.30153
-Extra opts: {}
-Code:
+import numpy as np
 import tensorflow as tf
 import math
-import numpy as np
 import sys
-
 
 sys.path.append('../../../')
 import tensornet
@@ -23,21 +14,21 @@ IMAGE_PIXELS = IMAGE_SIZE * IMAGE_SIZE * IMAGE_DEPTH
 opts = {}
 opts['inp_modes_1'] = np.array([4, 7, 4, 7], dtype='int32')
 opts['out_modes_1'] = np.array([5, 5, 8, 4], dtype='int32')
-opts['ranks_1'] = np.array([3, 3, 3, 3], dtype='int32')
+#opts['ranks_1'] = np.array([3, 3, 3, 3], dtype='int32')
 #opts['inp_modes_1'] = np.array([4, 4, 4, 4, 4, 3], dtype='int32')
 #opts['out_modes_1'] = np.array([8, 8, 8, 8, 8, 8], dtype='int32')
 #opts['ranks_1'] = np.array([1, 3, 3, 3, 3, 3, 1], dtype='int32')
 
 opts['inp_modes_2'] = opts['out_modes_1']
 opts['out_modes_2'] = np.array([4, 4, 4, 4], dtype='int32')
-opts['ranks_2'] = np.array([3, 3, 3, 3], dtype='int32')
+#opts['ranks_2'] = np.array([3, 3, 3, 3], dtype='int32')
 #opts['inp_modes_2'] = opts['out_modes_1']
 #opts['out_modes_2'] = np.array([4, 4, 4, 4, 4, 4], dtype='int32')
 #opts['ranks_2'] = np.array([1, 3, 3, 3, 3, 3, 1], dtype='int32')
 
 
 opts['use_dropout'] = True
-opts['learning_rate_init'] = 0.06
+opts['learning_rate_init'] = 0.01
 opts['learning_rate_decay_steps'] = 2000
 opts['learning_rate_decay_weight'] = 0.64
 
@@ -57,7 +48,7 @@ def placeholder_inputs():
     train_phase_ph = tf.placeholder(tf.bool, name='placeholder/train_phase')
     return images_ph, labels_ph, train_phase_ph
 
-def inference(images, train_phase):
+def inference(images, train_phase, new_opts):
     """Build the model up to where it may be used for inference.
     Args:
         images: Images placeholder.
@@ -75,12 +66,12 @@ def inference(images, train_phase):
     layers.append(images)    
 
     
-    layers.append(tensornet.layers.tucker_dense(layers[-1],
+    layers.append(tensornet.layers.cp_dense(layers[-1],
                                      opts['inp_modes_1'],
                                      opts['out_modes_1'],
-                                     opts['ranks_1'],
-                                     3.0, #0.1
-                                     'tucker_dense_' + str(len(layers)),
+                                     new_opts['ranks_1'],
+                                     10.0, #0.1
+                                     'cp_dense_' + str(len(layers)),
                                      use_biases=False))
 
     layers.append(tensornet.layers.batch_normalization(layers[-1],
@@ -98,12 +89,12 @@ def inference(images, train_phase):
  
 ##########################################
     # from 2-layer tucker 
-    layers.append(tensornet.layers.tucker_dense(layers[-1],
+    layers.append(tensornet.layers.cp_dense(layers[-1],
                                      opts['inp_modes_2'],
                                      opts['out_modes_2'],
-                                     opts['ranks_2'],
-                                     3.0, #0.07
-                                     'tucker_dense_' + str(len(layers)),
+                                     new_opts['ranks_2'],
+                                     10.0, #0.07
+                                     'cp_dense_' + str(len(layers)),
                                      use_biases=False))
 
     layers.append(tensornet.layers.batch_normalization(layers[-1],
@@ -209,7 +200,7 @@ def build(new_opts={}):
     """
     opts.update(new_opts)
     images_ph, labels_ph, train_phase_ph = placeholder_inputs()
-    logits = inference(images_ph, train_phase_ph)
+    logits = inference(images_ph, train_phase_ph, new_opts)
     loss_out = loss(logits, labels_ph)
     train = training(loss_out)
     eval_out = evaluation(logits, labels_ph)

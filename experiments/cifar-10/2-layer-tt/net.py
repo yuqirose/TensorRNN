@@ -1,6 +1,6 @@
+import numpy as np
 import tensorflow as tf
 import math
-import numpy as np
 import sys
 
 

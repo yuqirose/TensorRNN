@@ -13,11 +13,11 @@ Core tensor compression layer. Implemented with different tensor models
 
 1. layers: tensor reformuation of neural network layer
 
-..* CP\_dense.py: dense layer with CP compression
+  * CP\_dense.py: dense layer with CP compression
 
-..* Tucker\_dense.py: dense layer with Tucker compression
+  * Tucker\_dense.py: dense layer with Tucker compression
 
-..* Mf\_dense.py: dense layer with Matrix factorization
+  * Mf\_dense.py: dense layer with Matrix factorization
 
 2. tt\_decomp: deprecated tensor train operations
 
@@ -26,7 +26,7 @@ Example applications demonstrating the tensor compression
 
 1. [mnist](http://yann.lecun.com/exdb/mnist/): hand-written digit recognition, demo for dense layer
 
-..* 2-layer-cp: 2-layer dense layer with CP compress model
+  * 2-layer-cp: 2-layer dense layer with CP compress model
 
 2. [ptb](https://www.cis.upenn.edu/~treebank/): text annotation, demo for recurrent layer
 

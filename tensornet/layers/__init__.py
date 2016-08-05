@@ -4,4 +4,5 @@ from .tt import *
 from .tucker_dense import *
 from .cp_dense import *
 from .mf_dense import *
+from .mf_rnn import *
 from .math_utils import *

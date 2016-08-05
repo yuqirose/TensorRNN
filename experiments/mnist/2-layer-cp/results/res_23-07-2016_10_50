@@ -1,10 +1,10 @@
 Iterations: 50000
-Learning time: 13.75 minutes
-Train precision: 0.85396
-Train loss: 0.47025
-Validation precision: 0.86180
-Validation loss: 0.44642
-Extra opts: {'ranks_2': 3, 'ranks_1': 3}
+Learning time: 17.16 minutes
+Train precision: 0.88665
+Train loss: 0.38959
+Validation precision: 0.88470
+Validation loss: 0.38311
+Extra opts: {'ranks_2': 5, 'ranks_1': 5}
 Code:
 import numpy as np
 import tensorflow as tf

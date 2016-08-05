@@ -192,14 +192,14 @@ def run_training(extra_opts={}):
     
 def main(_):
     err_rslt = []
-    for rank_val in range(1,6):
+    for rank_val in range(15,16):
         extra_opts={}
         cp_layer_ranks = [rank_val,rank_val]
         extra_opts['ranks_1'] = cp_layer_ranks[0]
         extra_opts['ranks_2'] = cp_layer_ranks[1] 
         rslt = run_training(extra_opts)
         err_rslt.append(1.0-rslt['precision'])
-    with open('./results/res_cp','w') as f:
+    with open('./results/res_cp','a') as f:
         for i in range(len(err_rslt)):
             f.write('{0:.5f}\t'.format(err_rslt[i]))
     

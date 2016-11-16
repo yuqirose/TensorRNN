@@ -14,14 +14,14 @@ IMAGE_PIXELS = IMAGE_SIZE * IMAGE_SIZE * IMAGE_DEPTH
 
 opts = {}
 opts['inp_modes_1'] = np.array([4, 7, 4, 7], dtype='int32')
-opts['out_modes_1'] = np.array([5, 5, 8, 4], dtype='int32')
+opts['out_modes_1'] = np.array([3, 4, 5, 5], dtype='int32')
 #opts['ranks_1'] = np.array([3, 3, 3, 3], dtype='int32')
 #opts['inp_modes_1'] = np.array([4, 4, 4, 4, 4, 3], dtype='int32')
 #opts['out_modes_1'] = np.array([8, 8, 8, 8, 8, 8], dtype='int32')
 #opts['ranks_1'] = np.array([1, 3, 3, 3, 3, 3, 1], dtype='int32')
 
 opts['inp_modes_2'] = opts['out_modes_1']
-opts['out_modes_2'] = np.array([4, 4, 4, 4], dtype='int32')
+opts['out_modes_2'] = np.array([2, 2, 5, 5], dtype='int32')
 #opts['ranks_2'] = np.array([3, 3, 3, 3], dtype='int32')
 #opts['inp_modes_2'] = opts['out_modes_1']
 #opts['out_modes_2'] = np.array([4, 4, 4, 4, 4, 4], dtype='int32')

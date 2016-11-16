@@ -1,56 +1,35 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-import numpy as np
-import tensorflow as tf
-import sys
-sys.path.append('../../../')
-import tensornet
 
+# coding: utf-8
 
-flags = tf.flags
-flags.DEFINE_bool("use_fp16", False,
-                  "Train using 16-bit floats instead of 32bit floats")
-
-FLAGS = flags.FLAGS
-
-def data_type():
-    return tf.float16 if FLAGS.use_fp16 else tf.float32
-
+# In[ ]:
 
 class PTBModel(object):
-    """The PTB model with matrix factorization compression."""
+    """The PTB model."""
 
-    def __init__(self, is_training, config):
-        self.batch_size = batch_size = config.batch_size
-        self.num_steps = num_steps = config.num_steps
+    def __init__(self, is_training, config, input_):
+        self._input = input_
+
+        batch_size = input_.batch_size
+        num_steps = input_.num_steps
         size = config.hidden_size
         vocab_size = config.vocab_size
-
-        self._input_data = tf.placeholder(tf.int32, [batch_size, num_steps])
-        self._targets = tf.placeholder(tf.int32, [batch_size, num_steps])
 
         # Slightly better results can be obtained with forget gate biases
         # initialized to 1 but the hyperparameters of the model would need to be
         # different than reported in the paper.
-        
-        # factorize the RNN cell
-        #lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(size, forget_bias=0.0)
-        mf_rnn_cell = tensornet.layers.MfRNNCell(size,forget_bias=0.0)
-        
-        
-       
+        """change to factorized version of lstm cell"""
+        lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(size, forget_bias=0.0, state_is_tuple=True)
         if is_training and config.keep_prob < 1:
-            rnn_cell = tf.nn.rnn_cell.DropoutWrapper(
-              rnn_cell, output_keep_prob=config.keep_prob)
-        cell = tf.nn.rnn_cell.MultiRNNCell([rnn_cell] * config.num_layers)
+            lstm_cell = tf.nn.rnn_cell.DropoutWrapper(
+                lstm_cell, output_keep_prob=config.keep_prob)
+        cell = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * config.num_layers, state_is_tuple=True)
 
         self._initial_state = cell.zero_state(batch_size, data_type())
 
-        with tf.device("/gpu:0"):
+        with tf.device("/cpu:0"):
             embedding = tf.get_variable(
-              "embedding", [vocab_size, size], dtype=data_type())
-            inputs = tf.nn.embedding_lookup(embedding, self._input_data)
+                "embedding", [vocab_size, size], dtype=data_type())
+            inputs = tf.nn.embedding_lookup(embedding, input_.input_data)
 
         if is_training and config.keep_prob < 1:
             inputs = tf.nn.dropout(inputs, config.keep_prob)
@@ -61,10 +40,9 @@ class PTBModel(object):
         #
         # The alternative version of the code below is:
         #
-        # from tensorflow.models.rnn import rnn
-        # inputs = [tf.squeeze(input_, [1])
-        #           for input_ in tf.split(1, num_steps, inputs)]
-        # outputs, state = rnn.rnn(cell, inputs, initial_state=self._initial_state)
+        # inputs = [tf.squeeze(input_step, [1])
+        #           for input_step in tf.split(1, num_steps, inputs)]
+        # outputs, state = tf.nn.rnn(cell, inputs, initial_state=self._initial_state)
         outputs = []
         state = self._initial_state
         with tf.variable_scope("RNN"):
@@ -80,7 +58,7 @@ class PTBModel(object):
         logits = tf.matmul(output, softmax_w) + softmax_b
         loss = tf.nn.seq2seq.sequence_loss_by_example(
             [logits],
-            [tf.reshape(self._targets, [-1])],
+            [tf.reshape(input_.targets, [-1])],
             [tf.ones([batch_size * num_steps], dtype=data_type())])
         self._cost = cost = tf.reduce_sum(loss) / batch_size
         self._final_state = state
@@ -92,19 +70,21 @@ class PTBModel(object):
         tvars = tf.trainable_variables()
         grads, _ = tf.clip_by_global_norm(tf.gradients(cost, tvars),
                                           config.max_grad_norm)
-        optimizer = tf.train.GradientDescentOptimizer(self.lr)
-        self._train_op = optimizer.apply_gradients(zip(grads, tvars))
+        optimizer = tf.train.GradientDescentOptimizer(self._lr)
+        self._train_op = optimizer.apply_gradients(
+            zip(grads, tvars),
+            global_step=tf.contrib.framework.get_or_create_global_step())
+
+        self._new_lr = tf.placeholder(
+            tf.float32, shape=[], name="new_learning_rate")
+        self._lr_update = tf.assign(self._lr, self._new_lr)
 
     def assign_lr(self, session, lr_value):
-        session.run(tf.assign(self.lr, lr_value))
+        session.run(self._lr_update, feed_dict={self._new_lr: lr_value})
 
     @property
-    def input_data(self):
-        return self._input_data
-
-    @property
-    def targets(self):
-        return self._targets
+    def input(self):
+        return self._input
 
     @property
     def initial_state(self):
@@ -125,3 +105,4 @@ class PTBModel(object):
     @property
     def train_op(self):
         return self._train_op
+

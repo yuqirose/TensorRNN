@@ -3,12 +3,15 @@
 
 # In[1]:
 
+# %load train_mnist.py
+
+
+# In[1]:
 '''
 MNIST script modified from TensorNet
 Github URL: https://github.com/timgaripov/TensorNet-TF
 Local: lisbon:/home/roseyu/Python/TensorNet-TF
 '''
-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -29,16 +32,13 @@ from utils.train_utils import *
 # Basic model parameters as external flags.
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_integer('max_steps', 50000, 'Number of steps to run trainer.')
+flags.DEFINE_integer('max_steps', int(1e5), 'Number of steps to run trainer.')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.  '
                      'Must divide evenly into the dataset sizes.')
 flags.DEFINE_integer('overview_steps', 100, 'Overview period')
 flags.DEFINE_integer('evaluation_steps', 1000, 'Overview period')
 flags.DEFINE_string('data_dir', '../../data', 'Directory to put the training data.')
 flags.DEFINE_string('log_dir', '../../log', 'Directory to put log files.')
-
-
-# In[2]:
 
 '''
 MNIST dataset
@@ -76,6 +76,7 @@ def evaluation(sess,
           (num_examples, true_count, precision, avg_loss))
     return precision, avg_loss
 
+    
 
 def run_training(extra_opts={}):
     start = datetime.datetime.now()
@@ -188,20 +189,44 @@ def run_training(extra_opts={}):
                 shutil.copyfileobj(net_file, res_file)
                 net_file.close()
                 res_file.close()
+                
+            summary_writer.close()
         return {'precision':precision_v}
+    
 def main(_):
+#     layer_ranks = []
+#     layer_ranks.append(np.array([1, 7, 7, 7, 1], dtype='int32'))
+#     layer_ranks.append(np.array([1, 6, 6, 6 ,1], dtype='int32'))
+    """
+    LeNet 2 FC
+    """
+    layers = []
+    layer = {}
+    layer['inp_modes'] = np.array([4, 7, 4, 7], dtype='int32') # 28 * 28
+    layer['out_modes'] = np.array([3, 4, 5, 5], dtype='int32') # 300
+    layers.append(layer) #300
+
+    layer['inp_modes'] = layer['out_modes']
+    layer['out_modes'] = np.array([2, 2, 5, 5], dtype='int32') # 100
+    layers.append(layer) #100
+    
+
+    
     err_rslt = []
-    for rank_val in range(1,6):
+    compres_rate = []
+    for rank_val in range(4,12,1):# 8 points
         extra_opts={}
         tt_layer_ranks = [np.hstack(([1],np.ones(3, dtype='int32')*rank_val,[1])),
                               np.hstack(([1],np.ones(3, dtype='int32')*rank_val,[1]))]
         extra_opts['ranks_1'] = tt_layer_ranks[0]
         extra_opts['ranks_2'] = tt_layer_ranks[1] 
+        rate = compres_ratio_tt(layers, tt_layer_ranks)
+        compres_rate.append(rate)
         rslt = run_training(extra_opts)
-        err_rslt.append(1.0-rslt['precision'])
-    with open('./results/res_tt','w') as f:
+        err_rslt.append(rslt['precision'])
+    with open('./results/res_tt_LeNet300','w') as f:
         for i in range(len(err_rslt)):
-            f.write('{0:.5f}\t'.format(err_rslt[i]))
+            f.write('{0:3}:{1:.5f}\t'.format(compres_rate[i],err_rslt[i]))
 
 if __name__ == '__main__':
     tf.app.run()

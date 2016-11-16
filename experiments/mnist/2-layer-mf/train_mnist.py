@@ -29,7 +29,7 @@ from utils.train_utils import *
 # Basic model parameters as external flags.
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_integer('max_steps', 50000, 'Number of steps to run trainer.')
+flags.DEFINE_integer('max_steps', int(1e5), 'Number of steps to run trainer.')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.  '
                      'Must divide evenly into the dataset sizes.')
 flags.DEFINE_integer('overview_steps', 100, 'Overview period')
@@ -191,17 +191,30 @@ def run_training(extra_opts={}):
         return {'precision':precision_v}
     
 def main(_):
+    layers = []
+    layer = {}
+    layer['inp_modes'] = np.array([4, 7, 4, 7], dtype='int32') # 28 * 28
+    layer['out_modes'] = np.array([3, 4, 5, 5], dtype='int32') # 300
+    layers.append(layer) #300
+
+    layer['inp_modes'] = layer['out_modes']
+    layer['out_modes'] = np.array([2, 2, 5, 5], dtype='int32') # 100
+    layers.append(layer) #100
+    
     err_rslt = []
-    for rank_val in range(6,7):
+    compres_rate = []
+    for rank_val in range(1,16,2): # 8 points
         extra_opts={}
         mf_layer_ranks = [rank_val, rank_val]
         extra_opts['ranks_1'] = mf_layer_ranks[0]
         extra_opts['ranks_2'] = mf_layer_ranks[1] 
+        rate = compres_ratio_mf(layers, mf_layer_ranks)
+        compres_rate.append(rate)
         rslt = run_training(extra_opts)
-        err_rslt.append(1.0-rslt['precision'])
-    with open('./results/res_mf2','w') as f:
+        err_rslt.append(rslt['precision'])
+    with open('./results/res_mf_LeNet300','w') as f:
         for i in range(len(err_rslt)):
-            f.write('{0:.5f}\t'.format(err_rslt[i]))
+            f.write('{0:3}:{1:.5f}\t'.format(compres_rate[i], err_rslt[i]))
 
 
 if __name__ == '__main__':

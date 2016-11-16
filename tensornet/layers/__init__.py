@@ -1,6 +1,7 @@
 from .linear import *
 from .batch_normalization import *
 from .tt import *
+from .tt_cnn import *
 from .tucker_dense import *
 from .cp_dense import *
 from .mf_dense import *

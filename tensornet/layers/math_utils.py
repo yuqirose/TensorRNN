@@ -53,7 +53,7 @@ def test_n_mode_product():
     with tf.Session():
         print out.eval()
         print 
-    
+
 if __name__=='__main__':
     test_n_mode_product()
 

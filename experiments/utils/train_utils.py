@@ -1,5 +1,5 @@
 import tensorflow as tf
-
+import numpy as np
 def fill_feed_dict(batch, train_phase=True):
     """Fills the feed_dict for training the given step.
     A feed_dict takes the form of:
@@ -27,3 +27,47 @@ def fill_feed_dict(batch, train_phase=True):
         train_phase_ph: train_phase
     }    
     return feed_dict
+
+
+def compres_ratio_tt(layers,ranks):
+    full_sz = 0.0
+    compres_sz = 0.0
+    for layer,rank in zip(layers, ranks):
+        inp_modes = layer['inp_modes']
+        out_modes = layer['out_modes']
+        full_sz += np.prod(inp_modes*out_modes)
+        compres_sz += np.sum((rank[:-1]*inp_modes*out_modes*rank[1:]))
+    return full_sz/compres_sz 
+
+def compres_ratio_tucker(layers,ranks):
+    full_sz = 0.0
+    compres_sz = 0.0
+    for layer,rank in zip(layers, ranks):
+        inp_modes = layer['inp_modes']
+        out_modes = layer['out_modes']
+        full_sz += np.prod(inp_modes*out_modes)
+        compres_sz += np.sum(inp_modes*out_modes*rank)+np.prod(rank)
+    return full_sz/compres_sz 
+
+def compres_ratio_cp(layers,ranks):
+    full_sz = 0.0
+    compres_sz = 0.0
+    for layer,rank in zip(layers, ranks):
+        inp_modes = layer['inp_modes']
+        out_modes = layer['out_modes']
+        full_sz += np.prod(inp_modes*out_modes)
+        compres_sz += np.sum(inp_modes*out_modes)*rank+ 1
+    return full_sz/compres_sz 
+
+def compres_ratio_mf(layers, ranks):
+    full_sz = 0.0
+    compres_sz = 0.0
+    for layer,rank in zip(layers, ranks):
+        inp_modes = layer['inp_modes']
+        out_modes = layer['out_modes']
+        full_sz += np.prod(inp_modes*out_modes)
+        compres_sz += np.sum(np.prod(inp_modes)+np.prod(out_modes)) * rank
+    return  full_sz/compres_sz
+    
+    
+    

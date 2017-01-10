@@ -1,2 +1,4 @@
 ./experiments/data
 ./experiments/log
+.ipynb_checkpoints
+

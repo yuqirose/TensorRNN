@@ -43,8 +43,8 @@ class TensorBasicLSTMCell(LSTMCell):
     """
     def __init__(self, num_units, **kwargs):
         super(TensorBasicLSTMCell, self).__init__(num_units)
-        self._inp_modes = kwargs['inp_modes']
-        self._out_modes = kwargs['out_modes']
+#         self._inp_modes = kwargs['inp_modes']
+#         self._out_modes = kwargs['out_modes']
         self._mat_ranks = kwargs['mat_ranks']
             
     def __call__(self, inputs, state, scope=None):
@@ -56,10 +56,10 @@ class TensorBasicLSTMCell(LSTMCell):
             else:
                 c, h = array_ops.split(1, 2, state)     
         
-            i = linear_tt([inputs, h], self._num_units, self._inp_modes, self._out_modes, self._mat_ranks, bias =True, scope = "i")  
-            j = linear_tt([inputs, h], self._num_units, self._inp_modes, self._out_modes, self._mat_ranks, bias =True, scope = "j")   
-            f = linear_tt([inputs, h], self._num_units, self._inp_modes, self._out_modes, self._mat_ranks, bias =True, scope = "f")   
-            o = linear_tt([inputs, h], self._num_units, self._inp_modes, self._out_modes, self._mat_ranks, bias =True, scope = "o")   
+            i = linear_tt([inputs, h], self._num_units, self._mat_ranks, bias =True, scope = "i")  
+            j = linear_tt([inputs, h], self._num_units, self._mat_ranks, bias =True, scope = "j")   
+            f = linear_tt([inputs, h], self._num_units, self._mat_ranks, bias =True, scope = "f")   
+            o = linear_tt([inputs, h], self._num_units, self._mat_ranks, bias =True, scope = "o")   
         
 #             concat = _linear([inputs, h], 4 * self._num_units, True)
 #             # i = input_gate, j = new_input, f = forget_gate, o = output_gate
@@ -75,7 +75,7 @@ class TensorBasicLSTMCell(LSTMCell):
                 new_state = array_ops.concat(1, [new_c, new_h])
             return new_h, new_state
 
-def linear_tt(args, output_size, inp_modes, out_modes, mat_ranks, bias, bias_start=0.0, scope=None):
+def linear_tt(args, output_size,  mat_ranks, bias, bias_start=0.0, scope=None):
     """wrapper for factorization layer"""
     # args = [x, h] solve y = Wx + Uh + b
     if args is None or (nest.is_sequence(args) and not args):
@@ -102,8 +102,8 @@ def linear_tt(args, output_size, inp_modes, out_modes, mat_ranks, bias, bias_sta
 #         res_x = math_ops.matmul(args[0], matrix_x) #tensornet.layers.tt(args[0], inp_modes['x'], out_modes['x'], mat_ranks['x'])
 #         res_h = math_ops.matmul(args[1], matrix_h)#tensornet.layers.tt(args[1], inp_modes['h'], out_modes['h'], mat_ranks['h'])
 #         res = res_x +  res_h #batch_size*out_size
-        res_x = tensornet.layers.mf_rnn(args[0],  inp_modes['x'], out_modes['x'], mat_ranks['x'], scope ="x")
-        res_h = tensornet.layers.mf_rnn(args[1],  inp_modes['h'], out_modes['h'], mat_ranks['h'], scope ="h")
+        res_x = tensornet.layers.mf_rnn(args[0], [shapes[0][1]], [output_size], mat_ranks['x'], scope ="x")
+        res_h = tensornet.layers.mf_rnn(args[1], [shapes[1][1]], [output_size], mat_ranks['h'], scope ="h")
         res = res_x +  res_h
         if not bias:
             return res
@@ -111,58 +111,4 @@ def linear_tt(args, output_size, inp_modes, out_modes, mat_ranks, bias, bias_sta
                 bias_start, dtype=dtype))
       
     return res + bias_term
-
-
-    
-def _linear(args, output_size, bias, bias_start=0.0, scope=None):
-    """Linear map: sum_i(args[i] * W[i]), where W[i] is a variable.
-
-    Args:
-      args: a 2D Tensor or a list of 2D, batch x n, Tensors.
-      output_size: int, second dimension of W[i].
-      bias: boolean, whether to add a bias term or not.
-      bias_start: starting value to initialize the bias; 0 by default.
-      scope: VariableScope for the created subgraph; defaults to "Linear".
-
-    Returns:
-      A 2D Tensor with shape [batch x output_size] equal to
-      sum_i(args[i] * W[i]), where W[i]s are newly created matrices.
-
-    Raises:
-      ValueError: if some of the arguments has unspecified or wrong shape.
-    """
-    if args is None or (nest.is_sequence(args) and not args):
-        raise ValueError("`args` must be specified")
-    if not nest.is_sequence(args):
-        args = [args]
-
-    # Calculate the total size of arguments on dimension 1.
-    total_arg_size = 0
-    shapes = [a.get_shape().as_list() for a in args]
-    for shape in shapes:
-        if len(shape) != 2:
-            raise ValueError("Linear is expecting 2D arguments: %s" % str(shapes))
-        if not shape[1]:
-            raise ValueError("Linear expects shape[1] of arguments: %s" % str(shapes))
-        else:
-            total_arg_size += shape[1]
-    dtype = [a.dtype for a in args][0]
-
-    # Now the computation.
-    with vs.variable_scope(scope or "Linear"):
-        matrix = vs.get_variable(
-            "Matrix", [total_arg_size, output_size], dtype=dtype)
-        if len(args) == 1:
-            res = math_ops.matmul(args[0], matrix)
-        else:
-            res = math_ops.matmul(array_ops.concat(1, args), matrix)
-        if not bias:
-            return res
-        bias_term = vs.get_variable(
-            "Bias", [output_size],
-            dtype=dtype,
-            initializer=init_ops.constant_initializer(
-                bias_start, dtype=dtype))
-    return res + bias_term
-
 

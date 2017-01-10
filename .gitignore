@@ -1,4 +1,4 @@
-./experiments/data
-./experiments/log
+experiments/data
+experiments/log
 .ipynb_checkpoints
 

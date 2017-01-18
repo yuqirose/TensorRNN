@@ -30,6 +30,8 @@ Example applications demonstrating the tensor compression
 
 2. [ptb](https://www.cis.upenn.edu/~treebank/): text annotation, demo for recurrent layer
 
+  * LSTM network: higher order temporal correlation
+    $$x(t)$$
 3. [cifar-10](https://www.cs.toronto.edu/~kriz/cifar.html): image classification, demo for convolutional layer
 
 4. [data](../experiments/data): raw as well as processed data

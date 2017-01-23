@@ -7,7 +7,7 @@ import pandas as pd
 import tensorflow as tf
 from tensorflow.models.rnn.ptb import reader
 import sys, os
-from seq_model import *
+from seq_model_tensor import *
 from seq_input import * 
   
 flags = tf.flags

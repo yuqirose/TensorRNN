@@ -32,14 +32,14 @@ class TestConfig(object):
     init_scale = 0.1
     learning_rate = 1.0
     max_grad_norm = 1
-    num_layers = 2
+    num_layers = 3
     num_steps =12 
     hidden_size = 64
     max_epoch =1e2 
     max_max_epoch = 10
     keep_prob = 1.0
     lr_decay = 0.8
-    batch_size =1 
+    batch_size = 5 
     vocab_size = 1340
 
 def run_epoch(session, model, eval_op=None, verbose=False):

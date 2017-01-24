@@ -24,9 +24,15 @@ class PTBModel(object):
             lstm_cell = tf.nn.rnn_cell.DropoutWrapper(
                 lstm_cell, output_keep_prob=config.keep_prob)
         cell = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * config.num_layers, state_is_tuple=True)
-
-        self._initial_state = cell.zero_state(batch_size, dtype= tf.float32)
-
+        num_lags = 2
+        initial_states = []
+        for lag in range(num_lags):
+            # initial_state: tuple of len num_layers, each element state_size(2 for lstm,c,h) x batch_size x input_size
+            initial_state =  cell.zero_state(batch_size, dtype= tf.float32) 
+            print("initial state:", tf.pack(initial_state[0]).get_shape())
+            initial_states.append(initial_state)
+        self._initial_states = initial_states
+        
         with tf.device("/cpu:0"):
             inputs = input_.input_data
             """
@@ -54,8 +60,7 @@ class PTBModel(object):
                 # if time_step > 0: tf.get_variable_scope().reuse_variables()
                 # (cell_output, state) = cell(inputs[:, time_step, :], state)
                 # outputs.append(cell_output)
-        num_lags = 1
-        outputs, state  = tensor_rnn(cell, inputs, num_steps, num_lags, self._initial_state)
+        outputs, state  = tensor_rnn(cell, inputs, num_steps, num_lags, self._initial_states)
         output = tf.reshape(tf.concat(1, outputs), [-1, size])
         softmax_w = tf.get_variable(
             "softmax_w", [size, vocab_size], dtype= tf.float32)
@@ -90,8 +95,8 @@ class PTBModel(object):
         return self._input
 
     @property
-    def initial_state(self):
-        return self._initial_state
+    def initial_states(self):
+        return self._initial_states
 
     @property
     def cost(self):

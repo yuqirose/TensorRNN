@@ -32,7 +32,7 @@ class TestConfig(object):
     init_scale = 0.1
     learning_rate = 1.0
     max_grad_norm = 1
-    num_layers = 3
+    num_layers = 2
     num_steps =12 
     hidden_size = 64
     max_epoch =1e2 

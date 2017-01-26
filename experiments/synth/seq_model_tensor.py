@@ -1,5 +1,5 @@
 import tensorflow as tf
-from high_order_rnn import tensor_rnn
+from high_order_rnn import TensorRNNCell, tensor_rnn
 class PTBModel(object):
     """The PTB model."""
 
@@ -10,6 +10,7 @@ class PTBModel(object):
         num_steps = input_.num_steps
         size = config.hidden_size
         vocab_size = config.vocab_size
+        num_lags = 3
    
         # Slightly better results can be obtained with forget gate biases
         # initialized to 1 but the hyperparameters of the model would need to be
@@ -17,14 +18,13 @@ class PTBModel(object):
         
          
         initializer = tf.random_uniform_initializer(-1,1)
-        lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(size, forget_bias=0.0, state_is_tuple=True)
-       
+        #lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(size, forget_bias=0.0, state_is_tuple=True)
+        rnn_cell = TensorRNNCell(size, num_lags)
 
         if is_training and config.keep_prob < 1:
             lstm_cell = tf.nn.rnn_cell.DropoutWrapper(
                 lstm_cell, output_keep_prob=config.keep_prob)
-        cell = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * config.num_layers, state_is_tuple=True)
-        num_lags = 2
+        cell = tf.nn.rnn_cell.MultiRNNCell([rnn_cell] * config.num_layers, state_is_tuple=True)
         initial_states = []
         for lag in range(num_lags):
             # initial_state: tuple of len num_layers, each element state_size(2 for lstm,c,h) x batch_size x input_size

@@ -1,16 +1,19 @@
+import copy
 import tensorflow as tf
 from collections import deque
 from tensorflow.python.util import nest
 from tensorflow.python.ops.rnn_cell import RNNCell
 from tensorflow.python.ops.math_ops import tanh
 from tensorflow.python.ops import variable_scope as vs
-
-
+from tensorflow.python.ops import math_ops
+from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import nn_ops
 class TensorRNNCell(RNNCell):
     """RNN cell with high order correlations"""
-    def __init__(self, num_units, num_lags, input_size=None, activation=tanh):
+    def __init__(self, num_units, num_lags, input_size=None, state_is_tuple=True, activation=tanh):
         self._num_units = num_units
         self._num_lags = num_lags
+        self._state_is_tuple= state_is_tuple
         self._activation = activation
 
     @property
@@ -23,17 +26,42 @@ class TensorRNNCell(RNNCell):
     
     def __call__(self, inputs, states, scope=None):
         """Now we have multiple states, state->states"""
+        
         with vs.variable_scope(scope or "tensor_rnn_cell"):
-            output = tensor_network( inputs, states, self._num_units, self._num_lags, True, scope=scope)
-            output = self._activation(output)
-        return output, output
+            output = tensor_network( inputs, states, self._num_units, True, scope=scope)
+            new_state = self._activation(output)
+        if self._state_is_tuple:
+            new_state = (new_state)
+        return new_state, new_state
+            
 
 def tensor_network(inputs, states, output_size, bias, bias_start=0.0, scope=None):
     """tensor network [inputs, states]-> output with tensor models"""
-    print(type(states))
-    return states 
+    # each coordinate of hidden state is independent- parallel
+    states_tensor  = nest.flatten(states)
+    total_inputs = [inputs]
+    total_inputs.extend(states)
+    output = _linear(total_inputs, output_size, True, scope=scope) 
+    return output
 
+def _linear(args, output_size, bias, bias_start=0.0, scope=None):
+    total_arg_size = 0
+    shapes= [a.get_shape() for a in args]
+    for shape in shapes:
+        total_arg_size += shape[1].value
+    dtype = [a.dtype for a in args][0]
 
+    scope = vs.get_variable_scope()
+
+    with vs.variable_scope(scope) as outer_scope:
+        weights = vs.get_variable("weights", [total_arg_size, output_size], dtype=dtype)
+        """y = [batch_size x total_arg_size] * [total_arg_size x output_size]"""
+        res = math_ops.matmul(tf.concat(1, args), weights)
+        if not bias:
+            return res
+        with vs.variable_scope(outer_scope) as inner_scope:
+            biases = vs.get_variable("biases", [output_size], dtype=dtype)
+    return  nn_ops.bias_add(res,biases)
 
 def tensor_rnn(cell, inputs, num_steps, num_lags, initial_states):
     """High Order Recurrent Neural Network Layer
@@ -44,10 +72,11 @@ def tensor_rnn(cell, inputs, num_steps, num_lags, initial_states):
     with tf.variable_scope("tensor_rnn"):
         for time_step in range(num_steps):
             # take num_lags history
-            if time_step > num_lags:
-                tf.get_variable_scope().reuse_variable()
+            if time_step > 0:
+                tf.get_variable_scope().reuse_variables()
             states = _list_to_states(states_list) 
-            input_slice = tf.slice(inputs, [0,time_step, 0], [-1,num_lags, -1])
+            """input tensor is [batch_size, num_steps, input_size]"""
+            input_slice = inputs[:, time_step, :]#tf.slice(inputs, [0,time_step, 0], [-1,num_lags, -1])
             (cell_output, state)=cell(input_slice, states)
             outputs.append(cell_output)
             states_list = _shift(states_list, state)
@@ -55,11 +84,11 @@ def tensor_rnn(cell, inputs, num_steps, num_lags, initial_states):
 
 def _shift (input_list, new_item):
     """Update lag number of states"""
-    input_list = deque(input_list)
-    input_list.append(new_item) 
-    input_list.rotate(1) # The deque is now: [3, 1, 2]
-    input_list.rotate(-1) # Returns deque to original state: [1, 2, 3]
-    output_list = list(input_list.popleft()) # deque == [2, 3]
+    output_list = copy.copy(input_list)
+    output_list = deque(output_list)
+    output_list.append(new_item) 
+    output_list.rotate(1) # The deque is now: [3, 1, 2]
+    output_list.popleft() # deque == [2, 3]
     return output_list
 
 def _list_to_states(states_list):
@@ -74,5 +103,4 @@ def _list_to_states(states_list):
             output_state += (states[layer],)
         output_states += (output_state,)
         # new cell has s*num_lags states 
-        print("layer %d"%layer, len(output_states[layer]))
     return output_states

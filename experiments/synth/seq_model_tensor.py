@@ -22,17 +22,15 @@ class PTBModel(object):
         rnn_cell = TensorRNNCell(size, num_lags)
 
         if is_training and config.keep_prob < 1:
-            lstm_cell = tf.nn.rnn_cell.DropoutWrapper(
-                lstm_cell, output_keep_prob=config.keep_prob)
+            rnn_cell = tf.nn.rnn_cell.DropoutWrapper(
+                rnn_cell, output_keep_prob=config.keep_prob)
         cell = tf.nn.rnn_cell.MultiRNNCell([rnn_cell] * config.num_layers, state_is_tuple=True)
         initial_states = []
         for lag in range(num_lags):
             # initial_state: tuple of len num_layers, each element state_size(2 for lstm,c,h) x batch_size x input_size
             initial_state =  cell.zero_state(batch_size, dtype= tf.float32) 
-            print("initial state:", tf.pack(initial_state[0]).get_shape())
             initial_states.append(initial_state)
-        self._initial_states = initial_states
-        
+        self._initial_states = initial_states         
         with tf.device("/cpu:0"):
             inputs = input_.input_data
             """

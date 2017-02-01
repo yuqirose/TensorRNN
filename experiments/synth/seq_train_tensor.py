@@ -18,7 +18,7 @@ flags.DEFINE_string(
     "A type of model. Possible options are: small, medium, large.")
 flags.DEFINE_string("data_path", "../data/PTB_data/",
                     "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "../log/",
+flags.DEFINE_string("save_path", "../log/tensor_rnn/",
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
@@ -35,8 +35,8 @@ class TestConfig(object):
     num_layers = 2
     num_steps =12 
     hidden_size = 64
-    max_epoch =1e2 
-    max_max_epoch = 10
+    max_epoch = 20
+    max_max_epoch = int(1e2)
     keep_prob = 1.0
     lr_decay = 0.8
     batch_size = 5 

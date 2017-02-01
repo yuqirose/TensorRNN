@@ -16,13 +16,13 @@ class PTBModel(object):
         
          
         initializer = tf.random_uniform_initializer(-1,1)
-        lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(size, forget_bias=0.0, state_is_tuple=True)
+        rnn_cell = tf.nn.rnn_cell.BasicRNNCell(size)
         
         
         if is_training and config.keep_prob < 1:
-            lstm_cell = tf.nn.rnn_cell.DropoutWrapper(
-                lstm_cell, output_keep_prob=config.keep_prob)
-        cell = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * config.num_layers, state_is_tuple=True)
+            rnn_cell = tf.nn.rnn_cell.DropoutWrapper(
+                rnn_cell, output_keep_prob=config.keep_prob)
+        cell = tf.nn.rnn_cell.MultiRNNCell([rnn_cell] * config.num_layers, state_is_tuple=True)
 
         self._initial_state = cell.zero_state(batch_size, dtype= tf.float32)
 

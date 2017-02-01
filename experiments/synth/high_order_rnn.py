@@ -1,3 +1,4 @@
+import numpy as np
 import copy
 import tensorflow as tf
 from collections import deque
@@ -35,7 +36,7 @@ class TensorRNNCell(RNNCell):
         return new_state, new_state
             
 
-def tensor_network(inputs, states, output_size, bias, bias_start=0.0, scope=None):
+def tensor_network_linear(inputs, states, output_size, bias, bias_start=0.0, scope=None):
     """tensor network [inputs, states]-> output with tensor models"""
     # each coordinate of hidden state is independent- parallel
     states_tensor  = nest.flatten(states)
@@ -43,6 +44,58 @@ def tensor_network(inputs, states, output_size, bias, bias_start=0.0, scope=None
     total_inputs.extend(states)
     output = _linear(total_inputs, output_size, True, scope=scope) 
     return output
+
+def tensor_network(inputs, states, output_size, bias, bias_start=0.0, scope=None):
+    """decomposition for the full tenosr """
+    num_orders = 3 #rank of the tensor, tensor-train model is order+1
+    num_lags = len(states) 
+    state_size = output_size #hidden layer size
+    input_shape= inputs.get_shape()
+    
+    with vs.variable_scope(scope or "tensor_network"):
+        states_size =( state_size * num_lags + 1 )
+        mat_dims = np.ones((num_orders,)) * states_size
+        mat_ranks = np.asarray([output_size,2,2,1])
+        mat_ps = np.cumsum(np.concatenate(([0], mat_ranks[:-1] * mat_dims * mat_ranks[1:])))
+        mat_size = mat_ps[-1]
+        
+        weights_x = vs.get_variable("weights_x", [input_shape[1].value, output_size] )
+        res = tf.matmul(inputs, weights_x)
+        mat = vs.get_variable("weights_h", mat_size)  
+
+        #mat = tf.Variable(mat, name="weights")
+    
+        """form high order state tensor"""
+        states_vector = tf.ones((num_orders,)) 
+        for state in states:
+            for order in range(num_orders):
+                state_tensor = math_ops.matmul(states_vector[order+1,:], state)
+            states_tensor = _outer_product(states_tensor, state_vector) 
+        
+        res = states_tensor
+        out = tf.reshape(states_tensor, [1,-1])
+        
+        for i in range(num_orders):
+            out = tf.reshape(out, [mat_ranks[i] * states_size, -1])
+            
+            mat_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]])
+            mat_core = tf.reshape(mat_core, [mat_ranks[i] * states_size, output_size * mat_ranks[i + 1]])
+            mat_core = tf.transpose(mat_core, [1, 0])
+
+            out = tf.matmul(mat_core, out)
+            out = tf.reshape(out, [output_size, -1])
+            out = tf.transpose(out, [1, 0])
+
+        if use_biases:
+            biases = tf.Variable(tf.zeros([output_size]), name="biases")
+            out = tf.add(tf.reshape(res, [-1, output_size]), biases, name="out")
+        else:
+            out = tf.reshape(out, [-1, np.prod(out_modes)], name="out")
+    return out
+
+def _outer_product(tensor, vector):
+    """tensor-vector outer-product"""
+    pass
 
 def _linear(args, output_size, bias, bias_start=0.0, scope=None):
     total_arg_size = 0

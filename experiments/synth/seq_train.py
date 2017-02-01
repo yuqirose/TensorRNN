@@ -7,7 +7,7 @@ import pandas as pd
 import tensorflow as tf
 from tensorflow.models.rnn.ptb import reader
 import sys, os
-from seq_model_tensor import *
+from seq_model import *
 from seq_input import * 
   
 flags = tf.flags
@@ -18,7 +18,7 @@ flags.DEFINE_string(
     "A type of model. Possible options are: small, medium, large.")
 flags.DEFINE_string("data_path", "../data/PTB_data/",
                     "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "../log/",
+flags.DEFINE_string("save_path", "../log/basic_rnn/",
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
@@ -35,8 +35,8 @@ class TestConfig(object):
     num_layers = 2
     num_steps =12 
     hidden_size = 64
-    max_epoch =1e2 
-    max_max_epoch = 10
+    max_epoch = 20
+    max_max_epoch =int(1e2)
     keep_prob = 1.0
     lr_decay = 0.8
     batch_size = 5 
@@ -58,9 +58,11 @@ def run_epoch(session, model, eval_op=None, verbose=False):
 
     for step in range(model.input.epoch_size):
         feed_dict = {}
-        for i, (c, h) in enumerate(model.initial_state):
-            feed_dict[c] = state[i].c
-            feed_dict[h] = state[i].h
+       #  for i, (c, h) in enumerate(model.initial_state):
+            # feed_dict[c] = state[i].c
+            # feed_dict[h] = state[i].h
+        for i, s in enumerate(model.initial_state):
+            feed_dict[s] = state[i]
 
         vals = session.run(fetches, feed_dict)
         cost = vals["cost"]

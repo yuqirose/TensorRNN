@@ -19,7 +19,7 @@ class TensorRNNCell(RNNCell):
 
     @property
     def state_size(self):
-        return self._num_units * self._num_lags
+        return self._num_units 
 
     @property
     def output_size(self):
@@ -49,53 +49,60 @@ def tensor_network(inputs, states, output_size, bias, bias_start=0.0, scope=None
     """decomposition for the full tenosr """
     num_orders = 3 #rank of the tensor, tensor-train model is order+1
     num_lags = len(states) 
+    batch_size = inputs.get_shape()[0].value
     state_size = output_size #hidden layer size
-    input_shape= inputs.get_shape()
+    input_size= inputs.get_shape()[1].value
     
     with vs.variable_scope(scope or "tensor_network"):
-        states_size =( state_size * num_lags + 1 )
-        mat_dims = np.ones((num_orders,)) * states_size
-        mat_ranks = np.asarray([output_size,2,2,1])
-        mat_ps = np.cumsum(np.concatenate(([0], mat_ranks[:-1] * mat_dims * mat_ranks[1:])))
+        total_state_size = (state_size * num_lags + 1 )
+        mat_dims = np.ones((num_orders,)) * total_state_size
+        mat_ranks = np.asarray([1,2,2,output_size])
+        mat_ps = np.cumsum(np.concatenate(([0], mat_ranks[:-1] * mat_dims * mat_ranks[1:])),dtype=np.int32)
         mat_size = mat_ps[-1]
         
-        weights_x = vs.get_variable("weights_x", [input_shape[1].value, output_size] )
+        weights_x = vs.get_variable("weights_x", [input_size, output_size] )
         res = tf.matmul(inputs, weights_x)
-        mat = vs.get_variable("weights_h", mat_size)  
+        mat = vs.get_variable("weights_h", mat_size) # h_z x h_z... x output_size 
 
         #mat = tf.Variable(mat, name="weights")
-    
+        states_vector = tf.concat(1, states)
+        states_vector = tf.concat(1, [states_vector, tf.ones([batch_size, 1])])
         """form high order state tensor"""
-        states_vector = tf.ones((num_orders,)) 
-        for state in states:
-            for order in range(num_orders):
-                state_tensor = math_ops.matmul(states_vector[order+1,:], state)
-            states_tensor = _outer_product(states_tensor, state_vector) 
-        
-        res = states_tensor
-        out = tf.reshape(states_tensor, [1,-1])
+        states_tensor = states_vector
+        for order in range(num_orders-1):
+            states_tensor = _outer_product(batch_size, states_tensor, states_vector) 
+        out = tf.reshape(states_tensor, [batch_size,-1]) # batch_size x hidden_size
         
         for i in range(num_orders):
-            out = tf.reshape(out, [mat_ranks[i] * states_size, -1])
-            
+            out = tf.reshape(out, [mat_ranks[i], -1])
             mat_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]])
-            mat_core = tf.reshape(mat_core, [mat_ranks[i] * states_size, output_size * mat_ranks[i + 1]])
+            mat_core = tf.reshape(mat_core, [mat_ranks[i], total_state_size* mat_ranks[i + 1]])
             mat_core = tf.transpose(mat_core, [1, 0])
 
             out = tf.matmul(mat_core, out)
-            out = tf.reshape(out, [output_size, -1])
-            out = tf.transpose(out, [1, 0])
+            #out = tf.reshape(out, [output_size, -1])
+            #out = tf.transpose(out, [1, 0])
 
-        if use_biases:
+        if bias:
             biases = tf.Variable(tf.zeros([output_size]), name="biases")
             out = tf.add(tf.reshape(res, [-1, output_size]), biases, name="out")
         else:
             out = tf.reshape(out, [-1, np.prod(out_modes)], name="out")
     return out
 
-def _outer_product(tensor, vector):
+def _outer_product(batch_size, tensor, vector):
     """tensor-vector outer-product"""
-    pass
+    tensor_flat= tf.expand_dims(tf.reshape(tensor, [batch_size,-1]), 2)
+    vector_flat = tf.expand_dims(vector, 1)
+    res = tf.batch_matmul(tensor_flat, vector_flat)
+    new_shape =  [batch_size]+_shape_value(tensor)[1:]+_shape_value(vector)[1:]
+    res = tf.reshape(res, new_shape )
+    return res
+
+def _shape_value(tensor):
+    shape = tensor.get_shape()
+    return [s.value for s in shape]
+
 
 def _linear(args, output_size, bias, bias_start=0.0, scope=None):
     total_arg_size = 0

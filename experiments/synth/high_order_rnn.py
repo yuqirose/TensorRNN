@@ -56,7 +56,7 @@ def tensor_network(inputs, states, output_size, bias, bias_start=0.0, scope=None
     with vs.variable_scope(scope or "tensor_network"):
         total_state_size = (state_size * num_lags + 1 )
         mat_dims = np.ones((num_orders,)) * total_state_size
-        mat_ranks = np.asarray([1,2,2,output_size])
+        mat_ranks = np.asarray([1,10,10,output_size])
         mat_ps = np.cumsum(np.concatenate(([0], mat_ranks[:-1] * mat_dims * mat_ranks[1:])),dtype=np.int32)
         mat_size = mat_ps[-1]
         

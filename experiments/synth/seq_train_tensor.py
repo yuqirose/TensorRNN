@@ -35,11 +35,11 @@ class TestConfig(object):
     num_layers = 2
     num_steps =12 
     hidden_size = 64
-    max_epoch = 20
-    max_max_epoch = int(1e2)
+    max_epoch = 1
+    max_max_epoch = int(2)
     keep_prob = 1.0
     lr_decay = 0.8
-    batch_size = 5 
+    batch_size = 5
     vocab_size = 1340
 
 def run_epoch(session, model, eval_op=None, verbose=False):
@@ -47,11 +47,13 @@ def run_epoch(session, model, eval_op=None, verbose=False):
     start_time = time.time()
     costs = 0.0
     iters = 0
+    predicts = []
     states_val = session.run(model.initial_states)
 
     fetches = {
         "cost": model.cost,
         "final_state": model.final_state,
+        "predict": model.predict
     }
     if eval_op is not None:
         fetches["eval_op"] = eval_op
@@ -64,6 +66,9 @@ def run_epoch(session, model, eval_op=None, verbose=False):
 
         vals = session.run(fetches, feed_dict)
         cost = vals["cost"]
+        predict = vals["predict"]
+        predicts += [predict[0]]
+        #print("step {0}: predict{1}, cost {2}".format(step, predict, cost))
         ##print("cost at step {0}: {1}".format(step, cost))
         state = vals["final_state"]
 
@@ -75,7 +80,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
                   (step * 1.0 / model.input.epoch_size, costs / iters,
                    iters * model.input.batch_size / (time.time() - start_time)))
 
-    return costs / iters
+    return costs / iters, predicts
 
 
 def main(_):
@@ -90,6 +95,7 @@ def main(_):
     eval_config.batch_size = 1
     eval_config.num_steps = 1
     eval_config.vocab_size = config.vocab_size
+    print("vocab_size", config.vocab_size)
     with tf.Graph().as_default():
         initializer = tf.random_uniform_initializer(-config.init_scale,
                                                     config.init_scale)
@@ -111,6 +117,8 @@ def main(_):
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
                 mtest = PTBModel(is_training=False, config=eval_config,
                                  input_=test_input)
+            tf.summary.scalar("Test_Loss", mtest.cost)
+            tf.summary.scalar("Test_Predict", mtest.predict[0][0])
 
         sv = tf.train.Supervisor(logdir=FLAGS.save_path)
         with sv.managed_session() as session:
@@ -119,15 +127,17 @@ def main(_):
                 m.assign_lr(session, config.learning_rate * lr_decay)
 
                 print("Epoch: %d Learning rate: %.3f" % (i + 1, session.run(m.lr)))
-                train_err = run_epoch(session, m, eval_op=m.train_op,
+                train_err, _ = run_epoch(session, m, eval_op=m.train_op,
                                              verbose=True)
                 print("Epoch: %d Train Error: %.3f" % (i + 1, train_err))
-                valid_err = run_epoch(session, mvalid)
+                valid_err, _ = run_epoch(session, mvalid)
                 print("Epoch: %d Valid Error: %.3f" % (i + 1, valid_err))
 
-            test_err = run_epoch(session, mtest)
+            test_err, predicts = run_epoch(session, mtest)
             print("Test Error: %.3f" % test_err)
-
+            targets = test_data[1:]
+            np.save(FLAGS.save_path+"predict.npy", [targets, predicts])
+            
             if FLAGS.save_path:
                 print("Saving model to %s." % FLAGS.save_path)
                 sv.saver.save(session, FLAGS.save_path, global_step=sv.global_step)

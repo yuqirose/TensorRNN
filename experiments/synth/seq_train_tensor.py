@@ -34,9 +34,11 @@ class TestConfig(object):
     max_grad_norm = 1
     num_layers = 2
     num_steps =12 
-    hidden_size = 64
-    max_epoch = 1
-    max_max_epoch = int(2)
+    num_lags = 3
+    num_orders = 2
+    hidden_size = 526
+    max_epoch = 20
+    max_max_epoch = int(1e3)
     keep_prob = 1.0
     lr_decay = 0.8
     batch_size = 5

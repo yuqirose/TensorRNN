@@ -11,9 +11,11 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import nn_ops
 class TensorRNNCell(RNNCell):
     """RNN cell with high order correlations"""
-    def __init__(self, num_units, num_lags, input_size=None, state_is_tuple=True, activation=tanh):
+    def __init__(self, num_units, num_lags, num_orders, input_size=None, state_is_tuple=True, activation=tanh):
         self._num_units = num_units
         self._num_lags = num_lags
+    #rank of the tensor, tensor-train model is order+1
+        self._num_orders = num_orders
         self._state_is_tuple= state_is_tuple
         self._activation = activation
 
@@ -29,7 +31,7 @@ class TensorRNNCell(RNNCell):
         """Now we have multiple states, state->states"""
         
         with vs.variable_scope(scope or "tensor_rnn_cell"):
-            output = tensor_network( inputs, states, self._num_units, True, scope=scope)
+            output = tensor_network( inputs, states, self._num_units,self._num_orders, True, scope=scope)
             new_state = self._activation(output)
         if self._state_is_tuple:
             new_state = (new_state)
@@ -45,9 +47,8 @@ def tensor_network_linear(inputs, states, output_size, bias, bias_start=0.0, sco
     output = _linear(total_inputs, output_size, True, scope=scope) 
     return output
 
-def tensor_network(inputs, states, output_size, bias, bias_start=0.0, scope=None):
+def tensor_network(inputs, states, output_size, num_orders, bias, bias_start=0.0, scope=None):
     """decomposition for the full tenosr """
-    num_orders = 3 #rank of the tensor, tensor-train model is order+1
     num_lags = len(states) 
     batch_size = inputs.get_shape()[0].value
     state_size = output_size #hidden layer size
@@ -56,7 +57,8 @@ def tensor_network(inputs, states, output_size, bias, bias_start=0.0, scope=None
     with vs.variable_scope(scope or "tensor_network"):
         total_state_size = (state_size * num_lags + 1 )
         mat_dims = np.ones((num_orders,)) * total_state_size
-        mat_ranks = np.asarray([1,10,10,output_size])
+        rank_val = 10
+        mat_ranks = np.concatenate(([1],np.ones((num_orders-1), dtype=np.int32)*rank_val, [output_size]))
         mat_ps = np.cumsum(np.concatenate(([0], mat_ranks[:-1] * mat_dims * mat_ranks[1:])),dtype=np.int32)
         mat_size = mat_ps[-1]
         

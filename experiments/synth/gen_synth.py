@@ -9,7 +9,7 @@ class Config(object):
 
 def gen_chaotic_ts():
     config = Config()   
-    data_path = "/home/roseyu/"
+    data_path = "/tmp/stephan/"
     file_name = "chaotic_ts.pkl"
     x = np.ndarray((config.num_time) )
     x[0]  = config.init_val 

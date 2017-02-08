@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.python.ops.math_ops import sigmoid
-from high_order_rnn import TensorRNNCell, tensor_rnn
+from high_order_rnn import MatrixRNNCell, tensor_rnn
 class PTBModel(object):
   """The PTB model."""
 
@@ -12,7 +12,6 @@ class PTBModel(object):
     size = config.hidden_size
     vocab_size = config.vocab_size
     num_lags = config.num_lags
-    num_orders = config.num_orders
     # Slightly better results can be obtained with forget gate biases
     # initialized to 1 but the hyperparameters of the model would need to be
     # different than reported in the paper.
@@ -20,7 +19,7 @@ class PTBModel(object):
 
     initializer = tf.random_uniform_initializer(-1,1)
     #lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(size, forget_bias=0.0, state_is_tuple=True)
-    rnn_cell = TensorRNNCell(size, num_lags, num_orders)
+    rnn_cell = MatrixRNNCell(size, num_lags)
 
     if is_training and config.keep_prob < 1:
       rnn_cell = tf.nn.rnn_cell.DropoutWrapper(

@@ -9,6 +9,35 @@ from tensorflow.python.ops import variable_scope as vs
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import nn_ops
+
+class MatrixRNNCell(RNNCell):
+    """RNN cell with first order concatenation of hidden states"""
+    def __init__(self, num_units, num_lags, input_size=None, state_is_tuple=True, activation=tanh):
+        self._num_units = num_units
+        self._num_lags = num_lags
+    #rank of the tensor, tensor-train model is order+1
+        self._state_is_tuple= state_is_tuple
+        self._activation = activation
+
+    @property
+    def state_size(self):
+        return self._num_units 
+
+    @property
+    def output_size(self):
+        return self._num_units
+    
+    def __call__(self, inputs, states, scope=None):
+        """Now we have multiple states, state->states"""
+        
+        with vs.variable_scope(scope or "tensor_rnn_cell"):
+            output = tensor_network_linear( inputs, states, self._num_units, True, scope=scope)
+            new_state = self._activation(output)
+        if self._state_is_tuple:
+            new_state = (new_state)
+        return new_state, new_state
+            
+
 class TensorRNNCell(RNNCell):
     """RNN cell with high order correlations"""
     def __init__(self, num_units, num_lags, num_orders, input_size=None, state_is_tuple=True, activation=tanh):

@@ -30,18 +30,18 @@ FLAGS = flags.FLAGS
 class TestConfig(object):
   """Tiny config, for testing."""
   init_scale = 0.1
-  learning_rate = 1.0
-  max_grad_norm = 10.
-  num_layers = 1
+  learning_rate = 0.5
+  max_grad_norm = 10
+  num_layers = 2
   num_steps = 12 # stops gradients after num_steps
-  num_lags = 3 # num prev hiddens
+  num_lags = 1 # num prev hiddens
   num_orders = 2 # tensor prod order
-  hidden_size = 500 # dim of h
-  max_epoch = 20 # keep lr fixed
-  max_max_epoch = int(1e3) # decaying lr
-  keep_prob = 1.0 # dropout
+  hidden_size = 64 # dim of h
+  max_epoch = 10 # keep lr fixed
+  max_max_epoch = int(100) # decaying lr
+  keep_prob = 0.8 # dropout
   lr_decay = 0.8
-  batch_size = 2
+  batch_size = 20
   vocab_size = 1340
 
 def run_epoch(session, model, eval_op=None, verbose=False):
@@ -73,19 +73,20 @@ def run_epoch(session, model, eval_op=None, verbose=False):
 
     cost = vals["cost"]
     predict = vals["predict"]
-    predicts = []
-    predicts += [predict]
-    #print("step {0}: predict{1}, cost {2}".format(step, predict, cost))
-    ##print("cost at step {0}: {1}".format(step, cost))
+    predicts += [predict[:]]
+
+
+    # print("step {0}: predict{1}, cost {2}".format(step, predict, cost))
+    # print("cost at step {0}: {1}".format(step, cost))
     state = vals["final_state"]
 
-    # if step % 500 == 0:
-    #   for i in vals["input"]:
-    #     print("step", step, "input", i.shape, i)
-    #   for i in vals["target"]:
-    #     print("step", step, "target", i.shape, i)
-    #   pp = np.stack(predicts)
-    #   print("step", step, "predicts", pp.shape, pp)
+    if step % 500 == 0:
+      #for i in vals["input"]:
+          print("step", step, "input\n", vals["input"][0,0:5])
+      #for i in vals["target"]:
+          print("step", step, "target\n", vals["target"][0,0:5])
+      #for i in predict
+          print("step", step, "predicts\n", predict[0:5])
 
     costs += cost
     iters += model.input.num_steps
@@ -115,20 +116,20 @@ def main(_):
     initializer = tf.random_uniform_initializer(-config.init_scale,
                           config.init_scale)
     with tf.name_scope("Train"):
-      train_input = PTBInput(config=config, data=train_data, name="TrainInput")
+      train_input = PTBInput(is_training=True, config=config, data=train_data, name="TrainInput")
       with tf.variable_scope("Model", reuse=None, initializer=initializer):
         m = PTBModel(is_training=True, config=config, input_=train_input)
       tf.summary.scalar("Training_Loss", m.cost)
       tf.summary.scalar("Learning_Rate", m.lr)
 
     with tf.name_scope("Valid"):
-      valid_input = PTBInput(config=config, data=valid_data, name="ValidInput")
+      valid_input = PTBInput(is_training=False, config=config, data=valid_data, name="ValidInput")
       with tf.variable_scope("Model", reuse=True, initializer=initializer):
         mvalid = PTBModel(is_training=False, config=config, input_=valid_input)
       tf.summary.scalar("Validation_Loss", mvalid.cost)
 
     with tf.name_scope("Test"):
-      test_input = PTBInput(config=eval_config, data=test_data, name="TestInput")
+      test_input = PTBInput(is_training=False, config=eval_config, data=test_data, name="TestInput")
       with tf.variable_scope("Model", reuse=True, initializer=initializer):
         mtest = PTBModel(is_training=False, config=eval_config,
                  input_=test_input)
@@ -152,7 +153,7 @@ def main(_):
           test_err, predicts = run_epoch(session, mtest)
           print("Test Error: %.3f" % test_err)
           targets = test_data[1:]
-          np.save(FLAGS.save_path+"predict.npy", [targets, predicts])
+          np.save(FLAGS.save_path+"predict_epoch_"+str(i)+".npy", [targets, predicts])
 
       if FLAGS.save_path:
         print("Saving model to %s." % FLAGS.save_path)

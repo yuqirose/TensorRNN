@@ -60,6 +60,7 @@ class PTBModel(object):
         softmax_b = tf.get_variable("softmax_b", [vocab_size], dtype=tf.float32)
         logits = tf.matmul(output, softmax_w) + softmax_b
   
+        self._predict = logits
         self._cost = cost = tf.reduce_mean(tf.squared_difference(
             logits, tf.reshape(input_.targets, [batch_size*num_steps,-1]) ))
         self._final_state = state
@@ -94,6 +95,9 @@ class PTBModel(object):
     @property
     def cost(self):
         return self._cost
+    @property
+    def predict(self):
+        return self._predict
 
     @property
     def final_state(self):

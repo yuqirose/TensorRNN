@@ -9,6 +9,7 @@ from tensorflow.models.rnn.ptb import reader
 import sys, os
 from seq_model_tensor import *
 from seq_input import *
+os.environ["CUDA_VISIBLE_DEVICES"]=""
 
 flags = tf.flags
 logging = tf.logging
@@ -22,7 +23,8 @@ flags.DEFINE_string("save_path", "../log/tensor_rnn/",
           "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
           "Train using 16-bit floats instead of 32bit floats")
-
+flags.DEFINE_integer("hidden_size","128", "hidden layer size")
+flags.DEFINE_float("learning_rate", "0.01", "learning rate")
 FLAGS = flags.FLAGS
 
 
@@ -37,10 +39,10 @@ class TestConfig(object):
   num_lags = 1 # num prev hiddens
   num_orders = 2 # tensor prod order
   hidden_size = 64 # dim of h
-  max_epoch = 10 # keep lr fixed
-  max_max_epoch = int(100) # decaying lr
-  keep_prob = 0.8 # dropout
-  lr_decay = 0.8
+  max_epoch = 1 # keep lr fixed
+  max_max_epoch = int(2) # decaying lr
+  keep_prob = 1.0 # dropout
+  lr_decay = 0.99
   batch_size = 20
   vocab_size = 1340
 
@@ -72,22 +74,18 @@ def run_epoch(session, model, eval_op=None, verbose=False):
     vals = session.run(fetches, feed_dict)
 
     cost = vals["cost"]
-    predict = vals["predict"]
-    predicts += [predict[:]]
-
-
+    predict = vals["predict"]#batch_size x num_step x vocab_size
+    predicts += [predict]
     # print("step {0}: predict{1}, cost {2}".format(step, predict, cost))
     # print("cost at step {0}: {1}".format(step, cost))
     state = vals["final_state"]
-
     if step % 500 == 0:
       #for i in vals["input"]:
-          print("step", step, "input\n", vals["input"][0,0:5])
+         # print("step", step, "input\n", vals["input"][0,0:5])
       #for i in vals["target"]:
           print("step", step, "target\n", vals["target"][0,0:5])
       #for i in predict
           print("step", step, "predicts\n", predict[0:5])
-
     costs += cost
     iters += model.input.num_steps
 
@@ -107,9 +105,12 @@ def main(_):
   train_data, valid_data, test_data = raw_data
   config = TestConfig()
   config.vocab_size = train_data.shape[1]
+  config.learning_rate = FLAGS.learning_rate
+  config.hidden_size = FLAGS.hidden_size
   eval_config = TestConfig()
   eval_config.batch_size = 1
   eval_config.num_steps = 1
+  eval_config.hidden_size = FLAGS.hidden_size
   eval_config.vocab_size = config.vocab_size
   print("vocab_size", config.vocab_size)
   with tf.Graph().as_default():
@@ -143,17 +144,17 @@ def main(_):
         m.assign_lr(session, config.learning_rate * lr_decay)
 
         print("Epoch: %d Learning rate: %.3f" % (i + 1, session.run(m.lr)))
-        train_err, _ = run_epoch(session, m, eval_op=m.train_op,
+        train_err, _= run_epoch(session, m, eval_op=m.train_op,
                        verbose=True)
         print("Epoch: %d Train Error: %.3f" % (i + 1, train_err))
         valid_err, _ = run_epoch(session, mvalid)
         print("Epoch: %d Valid Error: %.3f" % (i + 1, valid_err))
 
-        if i and i % 10 == 0:
-          test_err, predicts = run_epoch(session, mtest)
-          print("Test Error: %.3f" % test_err)
-          targets = test_data[1:]
-          np.save(FLAGS.save_path+"predict_epoch_"+str(i)+".npy", [targets, predicts])
+  #  if i and i % 10 == 0:
+      test_err, test_pred = run_epoch(session, mtest)
+      print("Test Error: %.3f" % test_err)
+      test_targets = test_data[1:]
+      np.save(FLAGS.save_path+"predict.npy", [test_targets, test_pred]) 
 
       if FLAGS.save_path:
         print("Saving model to %s." % FLAGS.save_path)

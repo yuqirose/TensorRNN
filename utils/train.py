@@ -10,9 +10,9 @@ parser.add_argument('-w', '--num-workers', default=1, type=int,
 parser.add_argument('-r', '--remotes', default=None,
           help='The address of pre-existing VNC servers and '
              'rewarders to use (e.g. -r vnc://localhost:5900+15900,vnc://localhost:5901+15901).')
-parser.add_argument('-e', '--env-id', type=str, default="Pixelshow-v0",
+parser.add_argument('-e', '--env-id', type=str, default="tensor_rnn_v0",
           help="Environment id")
-parser.add_argument('-l', '--log-dir', type=str, default="/tmp/pixelshow",
+parser.add_argument('-l', '--log-dir', type=str, default="../log/tensor_rnn",
           help="Log directory path")
 parser.add_argument('-n', '--dry-run', action='store_true',
           help="Print out commands rather than executing them")
@@ -98,7 +98,7 @@ def run():
     "will load that by default and skip our custom init ops.", args.log_dir)
   maybe_create_dir(args.log_dir)
 
-  cmds, notes = create_commands("a3c", args.num_workers, args.remotes, args.env_id, args.log_dir, mode=args.mode)
+  cmds, notes = create_commands("train_seq.py", args.num_workers, args.remotes, args.env_id, args.log_dir, mode=args.mode)
   if args.dry_run:
     print("Dry-run mode due to -n flag, otherwise the following commands would be executed:")
   else:

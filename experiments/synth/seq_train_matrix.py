@@ -22,6 +22,8 @@ flags.DEFINE_string("save_path", "../log/matrix_rnn/",
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
+flags.DEFINE_integer('hidden_size', 256, "number of hidden unit")
+flags.DEFINE_float('learning_rate', 1e-3, "learning rate of trainig")
 
 FLAGS = flags.FLAGS
 
@@ -53,6 +55,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
 
     fetches = {
         "cost": model.cost,
+        "target":model.input.targets,
         "predict":model.predict,
         "final_state": model.final_state,
     }
@@ -72,6 +75,13 @@ def run_epoch(session, model, eval_op=None, verbose=False):
         predict = vals["predict"]
         ##print("cost at step {0}: {1}".format(step, cost))
         state = vals["final_state"]
+        if step % 500 == 0:
+          #for i in vals["input"]:
+              #print("step", step, "input\n", vals["input"][0,0:5])
+          #for i in vals["target"]:
+              print("step", step, "target\n", vals["target"][0,0:5])
+          #for i in predict
+              print("step", step, "predicts\n", predict[0:5])
 
         costs += cost
         predicts += [predict]
@@ -92,8 +102,11 @@ def main(_):
     raw_data = seq_raw_data()#seq raw data
     train_data, valid_data, test_data = raw_data
     config = TestConfig()
+    config.hidden_size = FLAGS.hidden_size
+    config.learning_rate = FLAGS.learning_rate
     config.vocab_size = train_data.shape[1]
     eval_config = TestConfig()
+    eval_config.hidden_size = FLAGS.hidden_size
     eval_config.batch_size = 1
     eval_config.num_steps = 1
     eval_config.vocab_size = config.vocab_size

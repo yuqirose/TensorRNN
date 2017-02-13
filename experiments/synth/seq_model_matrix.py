@@ -68,8 +68,8 @@ class PTBModel(object):
 
     self._predict = logits
 
-    self._cost = cost = tf.reduce_mean(tf.squared_difference(
-      logits, tf.reshape(input_.targets, [batch_size*num_steps,-1]) ))
+    self._cost = cost = tf.sqrt(tf.reduce_mean(tf.squared_difference(
+      logits, tf.reshape(input_.targets, [batch_size*num_steps,-1]) )))
     self._final_state = state
 
     if not is_training:

@@ -61,8 +61,8 @@ class PTBModel(object):
         logits = tf.matmul(output, softmax_w) + softmax_b
   
         self._predict = logits
-        self._cost = cost = tf.reduce_mean(tf.squared_difference(
-            logits, tf.reshape(input_.targets, [batch_size*num_steps,-1]) ))
+        self._cost = cost = tf.sqrt(tf.reduce_mean(tf.squared_difference(
+            logits, tf.reshape(input_.targets, [batch_size*num_steps,-1]) )))
         self._final_state = state
 
         if not is_training:
@@ -72,7 +72,7 @@ class PTBModel(object):
         tvars = tf.trainable_variables()
         grads, _ = tf.clip_by_global_norm(tf.gradients(cost, tvars),
                                           config.max_grad_norm)
-        optimizer = tf.train.GradientDescentOptimizer(self._lr)
+        optimizer = tf.train.AdamOptimizer(self._lr)
         self._train_op = optimizer.apply_gradients(
             zip(grads, tvars),
             global_step=tf.contrib.framework.get_or_create_global_step())

@@ -7,10 +7,8 @@ class Config(object):
     alpha = 4.0
     init_val = 0.1
 
-def gen_chaotic_ts():
-    config = Config()   
-    data_path = "/tmp/stephan/"
-    file_name = "chaotic_ts.pkl"
+def gen_chaotic_ts(config,file_name="chaotic_ts.pkl"):
+    data_path = "/home/roseyu/"
     x = np.ndarray((config.num_time) )
     x[0]  = config.init_val 
     f = lambda  x ,t: config.alpha* x[t] * (1.0 - x[t]) 
@@ -19,7 +17,8 @@ def gen_chaotic_ts():
     pickle.dump(x,open(data_path+file_name,"wb"))
     
 def main():
-    gen_chaotic_ts()
+    train_config = Config()
+    gen_chaotic_ts("train_ts.pkl")
 
 if __name__== "__main__":
     main()

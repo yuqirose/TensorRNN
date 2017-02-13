@@ -68,9 +68,12 @@ class PTBModel(object):
     logits = tf.matmul(output, softmax_w) + softmax_b
 
     self._predict = logits
-
-    self._cost = cost = tf.reduce_mean(tf.squared_difference(
-      logits, tf.reshape(input_.targets, [batch_size*num_steps,-1]) ))
+    
+    beta = 1e-4
+    self._cost = cost = tf.sqrt(tf.reduce_mean(tf.squared_difference(
+      logits, tf.reshape(input_.targets, [batch_size*num_steps,-1]) )
+      + beta*tf.nn.l2_loss(output) 
+      + beta*tf.nn.l2_loss(softmax_w) + beta*tf.nn.l2_loss(softmax_b)))
     self._final_state = state
 
     if not is_training:

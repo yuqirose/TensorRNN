@@ -7,9 +7,12 @@ import pandas as pd
 import tensorflow as tf
 from tensorflow.models.rnn.ptb import reader
 import sys, os
+import argparse
+
 from seq_model import *
 from seq_input import * 
-  
+
+#os.environ["CUDA_VISIBLE_DEVICES"]=""
 flags = tf.flags
 logging = tf.logging
 
@@ -22,23 +25,24 @@ flags.DEFINE_string("save_path", "../log/basic_rnn/",
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
-
+flags.DEFINE_integer('hidden_size', 256, "number of hidden unit")
+flags.DEFINE_float('learning_rate', 1e-2, "learning rate of trainig")
 FLAGS = flags.FLAGS
 
 
 
 class TestConfig(object):
     """Tiny config, for testing."""
-    init_scale = 0.1
+    init_scale = 1.0
     learning_rate = 1.0
     max_grad_norm = 1
     num_layers = 2
     num_steps =12 
     hidden_size = 64
-    max_epoch = 5
-    max_max_epoch = 20
+    max_epoch = 20
+    max_max_epoch = 50
     keep_prob = 1.0
-    lr_decay = 0.8
+    lr_decay = 0.9
     batch_size = 5 
     vocab_size = 1340
 
@@ -47,12 +51,15 @@ def run_epoch(session, model, eval_op=None, verbose=False):
     start_time = time.time()
     costs = 0.0
     predicts = []
+    targets = []
     iters = 0
     state = session.run(model.initial_state)
 
     fetches = {
         "cost": model.cost,
         "predict":model.predict,
+        "input":model.input.input_data,
+        "target":model.input.targets,
         "final_state": model.final_state,
     }
     if eval_op is not None:
@@ -68,12 +75,23 @@ def run_epoch(session, model, eval_op=None, verbose=False):
 
         vals = session.run(fetches, feed_dict)
         cost = vals["cost"]
+        target = vals["target"]
         predict = vals["predict"]
+
         ##print("cost at step {0}: {1}".format(step, cost))
         state = vals["final_state"]
 
         costs += cost
-        predicts += [predict]
+        predicts.append(predict)
+        if step % 500 == 0:
+          #for i in vals["input"]:
+              #print("step", step, "input\n", vals["input"][0,0:5])
+          #for i in vals["target"]:
+              print("step", step, "target\n", vals["target"][0,0:5])
+          #for i in predict
+              print("step", step, "predicts\n", predict[0:5])
+
+        costs += cost
         iters += model.input.num_steps
 
         if verbose and step % (model.input.epoch_size // 10) == 10:
@@ -91,8 +109,12 @@ def main(_):
     raw_data = seq_raw_data()#seq raw data
     train_data, valid_data, test_data = raw_data
     config = TestConfig()
+
+    config.learning_rate = FLAGS.learning_rate
+    config.hidden_size = FLAGS.hidden_size
     config.vocab_size = train_data.shape[1]
     eval_config = TestConfig()
+    eval_config.hidden_size = FLAGS.hidden_size
     eval_config.batch_size = 1
     eval_config.num_steps = 1
     eval_config.vocab_size = config.vocab_size
@@ -117,7 +139,7 @@ def main(_):
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
                 mtest = PTBModel(is_training=False, config=eval_config,
                                  input_=test_input)
-
+            tf.summary.scalar("Test_Loss", mtest.cost)
         sv = tf.train.Supervisor(logdir=FLAGS.save_path)
         with sv.managed_session() as session:
             for i in range(config.max_max_epoch):
@@ -128,13 +150,13 @@ def main(_):
                 train_err, _ = run_epoch(session, m, eval_op=m.train_op,
                                              verbose=True)
                 print("Epoch: %d Train Error: %.3f" % (i + 1, train_err))
-                valid_err, _ = run_epoch(session, mvalid)
+                valid_err,_ = run_epoch(session, mvalid)
                 print("Epoch: %d Valid Error: %.3f" % (i + 1, valid_err))
 
-            test_err, predicts = run_epoch(session, mtest)
+            test_err, test_pred= run_epoch(session, mtest)
             print("Test Error: %.3f" % test_err)
-            targets = test_data[1:]
-            np.save(FLAGS.save_path+"predict.npy", [targets, predicts])
+            test_true = test_data[1:]
+            np.save(FLAGS.save_path+"predict.npy", [test_true, test_pred])
 
 
 

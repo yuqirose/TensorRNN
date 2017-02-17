@@ -60,7 +60,7 @@ class TensorRNNCell(RNNCell):
         """Now we have multiple states, state->states"""
         
         with vs.variable_scope(scope or "tensor_rnn_cell"):
-            output = tensor_network( inputs, states, self._num_units,self._num_orders, True, scope=scope)
+            output = tensor_network_tt( inputs, states, self._num_units,self._num_orders, True, scope=scope)
             new_state = self._activation(output)
         if self._state_is_tuple:
             new_state = (new_state)
@@ -77,7 +77,7 @@ def tensor_network_linear(inputs, states, output_size, bias, bias_start=0.0, sco
     return output
 
 def tensor_network(inputs, states, output_size, num_orders, bias, bias_start=0.0, scope=None):
-    """decomposition for the full tenosr """
+    """form a high-order full tenosr """
     num_lags = len(states) 
     batch_size = inputs.get_shape()[0].value
     state_size = output_size #hidden layer size
@@ -86,13 +86,46 @@ def tensor_network(inputs, states, output_size, num_orders, bias, bias_start=0.0
     with vs.variable_scope(scope or "tensor_network"):
         total_state_size = (state_size * num_lags + 1 )
         mat_dims = np.ones((num_orders,)) * total_state_size
-        rank_val = 10
+        mat_size = np.power(total_state_size, num_orders)
+        
+        weights_x = vs.get_variable("weights_x", [input_size, output_size] )
+        out_x = tf.matmul(inputs, weights_x)
+        weights_h = vs.get_variable("weights_h", [mat_size, output_size]) # h_z x h_z... x output_size 
+
+        #mat = tf.Variable(mat, name="weights")
+        states_vector = tf.concat(1, states)
+        states_vector = tf.concat(1, [states_vector, tf.ones([batch_size, 1])])
+        """form high order state tensor"""
+        states_tensor = states_vector
+        for order in range(num_orders-1):
+            states_tensor = _outer_product(batch_size, states_tensor, states_vector) 
+        out_h = tf.reshape(states_tensor, [batch_size,-1]) # batch_size x hidden_size
+        out_h = tf.matmul(out_h, weights_h)
+        res = tf.reshape(tf.add(out_x, out_h) ,[-1, output_size],name="res")
+        if not bias:
+            return 
+        biases = vs.get_variable("biases", [output_size])
+        return  nn_ops.bias_add(res,biases)
+
+
+
+def tensor_network_tt(inputs, states, output_size, num_orders, bias, bias_start=0.0, scope=None):
+    """tensor train decomposition for the full tenosr """
+    num_lags = len(states) 
+    batch_size = inputs.get_shape()[0].value
+    state_size = output_size #hidden layer size
+    input_size= inputs.get_shape()[1].value
+    
+    with vs.variable_scope(scope or "tensor_network_tt"):
+        total_state_size = (state_size * num_lags + 1 )
+        mat_dims = np.ones((num_orders,)) * total_state_size
+        rank_val = 2
         mat_ranks = np.concatenate(([1],np.ones((num_orders-1), dtype=np.int32)*rank_val, [output_size]))
         mat_ps = np.cumsum(np.concatenate(([0], mat_ranks[:-1] * mat_dims * mat_ranks[1:])),dtype=np.int32)
         mat_size = mat_ps[-1]
         
         weights_x = vs.get_variable("weights_x", [input_size, output_size] )
-        res = tf.matmul(inputs, weights_x)
+        out_x = tf.matmul(inputs, weights_x)
         mat = vs.get_variable("weights_h", mat_size) # h_z x h_z... x output_size 
 
         #mat = tf.Variable(mat, name="weights")
@@ -102,24 +135,24 @@ def tensor_network(inputs, states, output_size, num_orders, bias, bias_start=0.0
         states_tensor = states_vector
         for order in range(num_orders-1):
             states_tensor = _outer_product(batch_size, states_tensor, states_vector) 
-        out = tf.reshape(states_tensor, [batch_size,-1]) # batch_size x hidden_size
+        out_h = tf.reshape(states_tensor, [batch_size,-1]) # batch_size x hidden_size
         
         for i in range(num_orders):
-            out = tf.reshape(out, [mat_ranks[i], -1])
+            out_h = tf.reshape(out_h, [mat_ranks[i] * total_state_size, -1])
             mat_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]])
-            mat_core = tf.reshape(mat_core, [mat_ranks[i], total_state_size* mat_ranks[i + 1]])
+            mat_core = tf.reshape(mat_core, [mat_ranks[i] * total_state_size, mat_ranks[i + 1]])
             mat_core = tf.transpose(mat_core, [1, 0])
 
-            out = tf.matmul(mat_core, out)
-            #out = tf.reshape(out, [output_size, -1])
-            #out = tf.transpose(out, [1, 0])
+            out_h = tf.matmul(mat_core, out_h)
+        out_h = tf.reshape(out_h, [output_size, -1])
+        out_h = tf.transpose(out_h, [1, 0])
+        res = tf.reshape(tf.add(out_x, out_h) ,[-1, output_size],name="res")
+        if not bias:
+            return 
+        biases = vs.get_variable("biases", [output_size])
+        return  nn_ops.bias_add(res,biases)
 
-        if bias:
-            biases = tf.Variable(tf.zeros([output_size]), name="biases")
-            out = tf.add(tf.reshape(res, [-1, output_size]), biases, name="out")
-        else:
-            out = tf.reshape(out, [-1, np.prod(out_modes)], name="out")
-    return out
+
 
 def _outer_product(batch_size, tensor, vector):
     """tensor-vector outer-product"""

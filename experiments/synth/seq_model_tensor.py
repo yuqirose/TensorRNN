@@ -66,10 +66,14 @@ class PTBModel(object):
     softmax_b = tf.get_variable("softmax_b", [vocab_size], dtype=tf.float32)
     """logits: batch_size x num_steps"""
     logits = tf.matmul(output, softmax_w) + softmax_b
-
+    #rescale y = scale_w x  + scale_b 
+    #scale_w = tf.get_variable("scale_w", [vocab_size], dtype=tf.float32)
+    #scale_b = tf.get_variable("scale_b", [vocab_size], dtype=tf.float32)
+    #logits = tf.mul(logits, scale_w) + scale_b
+    
     self._predict = logits
     
-    beta = 1e-4
+    beta = 0.0
     self._cost = cost = tf.sqrt(tf.reduce_mean(tf.squared_difference(
       logits, tf.reshape(input_.targets, [batch_size*num_steps,-1]) )
       + beta*tf.nn.l2_loss(output) 

@@ -19,7 +19,7 @@ flags.DEFINE_string(
   "A type of model. Possible options are: small, medium, large.")
 flags.DEFINE_string("data_path", "../data/PTB_data/",
           "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "../log/tensor_rnn/",
+flags.DEFINE_string("save_path", "../log/tt_rnn/",
           "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
           "Train using 16-bit floats instead of 32bit floats")
@@ -31,16 +31,16 @@ FLAGS = flags.FLAGS
 
 class TestConfig(object):
   """Tiny config, for testing."""
-  init_scale = 0.1
+  init_scale = 1.0
   learning_rate = 0.5
   max_grad_norm = 10
   num_layers = 2
   num_steps = 12 # stops gradients after num_steps
-  num_lags = 1 # num prev hiddens
+  num_lags = 2 # num prev hiddens
   num_orders = 2 # tensor prod order
   hidden_size = 64 # dim of h
-  max_epoch = 1 # keep lr fixed
-  max_max_epoch = int(2) # decaying lr
+  max_epoch = 10 # keep lr fixed
+  max_max_epoch = int(20) # decaying lr
   keep_prob = 1.0 # dropout
   lr_decay = 0.99
   batch_size = 20

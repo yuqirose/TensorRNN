@@ -11,7 +11,6 @@ import sys, os
 import argparse
 
 os.sys.path.append("../../")
-
 from models.seq_model import *
 from models.seq_input import * 
 
@@ -22,9 +21,9 @@ logging = tf.logging
 flags.DEFINE_string(
     "model", "small",
     "A type of model. Possible options are: small, medium, large.")
-flags.DEFINE_string("data_path", "../../../traffic_9sensors.pkl",
+flags.DEFINE_string("data_path", "../../../lorenz_series.pkl",
                     "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "../log/traffic_exp/basic_rnn/",
+flags.DEFINE_string("save_path", "../log/lorenz_exp/basic_rnn/",
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
@@ -127,20 +126,20 @@ def main(_):
         initializer = tf.random_uniform_initializer(-config.init_scale,
                                                     config.init_scale)
         with tf.name_scope("Train"):
-            train_input = PTBInputRnd(is_training=True, config=config, data=train_data, name="TrainInput")
+            train_input = PTBInput(is_training=True, config=config, data=train_data, name="TrainInput")
             with tf.variable_scope("Model", reuse=None, initializer=initializer):
                 m = PTBModel(is_training=True, config=config, input_=train_input)
             tf.summary.scalar("Training_Loss", m.cost)
             tf.summary.scalar("Learning_Rate", m.lr)
 
         with tf.name_scope("Valid"):
-            valid_input = PTBInputRnd(is_training=False, config=config, data=valid_data, name="ValidInput")
+            valid_input = PTBInput(is_training=False, config=config, data=valid_data, name="ValidInput")
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
                 mvalid = PTBModel(is_training=False, config=config, input_=valid_input)
             tf.summary.scalar("Validation_Loss", mvalid.cost)
 
         with tf.name_scope("Test"):
-            test_input = PTBInputRnd(is_training=False, config=eval_config, data=test_data, name="TestInput")
+            test_input = PTBInput(is_training=False, config=eval_config, data=test_data, name="TestInput")
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
                 mtest = PTBModel(is_training=False, config=eval_config,
                                  input_=test_input)
@@ -167,6 +166,8 @@ def main(_):
             print("Test Error: %.3f" % test_err)
             test_true = np.squeeze(np.asarray(test_data[1:]))
             test_pred = np.squeeze(test_pred)
+            rmse = np.sqrt(mean_squared_error (test_true, test_pred))
+            print("RMSE: %.3f" % rmse)
             np.save(FLAGS.save_path+"predict.npy", [test_true, test_pred, test_err])
 
 

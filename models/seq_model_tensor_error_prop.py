@@ -46,7 +46,7 @@ class PTBModel(object):
 
     prev = None
     outputs = []
-    state = self._initial_state
+    states = self._initial_states
 
     if not is_training:
       print("Creating model @ not training --> Feeding output back into input.")
@@ -71,7 +71,7 @@ class PTBModel(object):
           inp = _hidden_to_data(prev)
 
 
-        (cell_output, state) = cell(inp, state)
+        (cell_output, state) = cell(inp, states)
 
         if not is_training:
           prev = cell_output

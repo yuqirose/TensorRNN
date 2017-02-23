@@ -12,7 +12,7 @@ import argparse
 
 os.sys.path.append("../../")
 from models.seq_model import *
-from models.seq_input import * 
+from models.seq_input import *
 
 #os.environ["CUDA_VISIBLE_DEVICES"]=""
 flags = tf.flags
@@ -39,14 +39,14 @@ class TestConfig(object):
     learning_rate = 1.0
     max_grad_norm = 1
     num_layers = 2
-    num_steps =12 
+    num_steps =12
     horizon =1
     hidden_size = 256
     max_epoch = 0
-    max_max_epoch = 1
+    max_max_epoch = 50
     keep_prob = 1.0
     lr_decay = 0.9
-    batch_size = 5 
+    batch_size = 5
     vocab_size = 1340
 
 def run_epoch(session, model, eval_op=None, verbose=False):
@@ -100,7 +100,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
             print("%.3f error: %.3f speed: %.0f wps" %
                   (step * 1.0 / model.input.epoch_size, np.sqrt(costs / step),
                    iters * model.input.batch_size / (time.time() - start_time)))
-    final_cost = np.sqrt(costs/model.input.epoch_size) 
+    final_cost = np.sqrt(costs/model.input.epoch_size)
     return final_cost, predicts
 
 def run_epoch_eval(session, model, eval_config, verbose=False):
@@ -129,7 +129,7 @@ def run_epoch_eval(session, model, eval_config, verbose=False):
         inputs = vals["inputs"]
         predict = vals["predict"]
         state = vals["final_state"]
-        
+
         # new model
         with tf.name_scope("Test_Model_S"+str(step)):
             print(inputs.shape, predict.shape)
@@ -137,7 +137,7 @@ def run_epoch_eval(session, model, eval_config, verbose=False):
             test_input = PTBInput(is_training=False, config=eval_config, data=test_data, name="TestInput")
             mtest = PTBModel(is_training=False, config=eval_config,
                                  input_=test_input)
-            model = mtest 
+            model = mtest
 
         predicts = np.vstack([predicts, predict]) # predict: matrix batch_size x vocab_size
 #         if step % 500 == 0:
@@ -154,7 +154,7 @@ def run_epoch_eval(session, model, eval_config, verbose=False):
             print("%.3f error: %.3f speed: %.0f wps" %
                   (step * 1.0 / model.input.epoch_size, np.sqrt(costs / step),
                    iters * model.input.batch_size / (time.time() - start_time)))
-    final_cost = np.sqrt(costs/model.input.epoch_size) 
+    final_cost = np.sqrt(costs/model.input.epoch_size)
     return final_cost, predicts
 
 
@@ -195,9 +195,10 @@ def main(_):
         with tf.name_scope("Test"):
             test_input = PTBInput(is_training=False, config=eval_config, data=test_data, name="TestInput")
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
-                mtest = PTBModel(is_training=False, config=eval_config,
-                                 input_=test_input, loop_function=feed_pred)
+                mtest = PTBModel(is_training=False, config=eval_config, input_=test_input)
             tf.summary.scalar("Test_Loss", mtest.cost)
+
+
         sv = tf.train.Supervisor(logdir=FLAGS.save_path)
         with sv.managed_session() as session:
             valid_err_old = float("inf")
@@ -210,7 +211,7 @@ def main(_):
                 print("Epoch: %d Train Error: %.3f" % (i + 1, train_err))
                 valid_err,_ = run_epoch(session, mvalid)
                 print("Epoch: %d Valid Error: %.3f" % (i + 1, valid_err))
-                
+
                 # early stopping
                 if abs(valid_err_old - valid_err) < epsilon:
                     break

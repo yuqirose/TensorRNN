@@ -107,7 +107,7 @@ def main(_):
   if not FLAGS.data_path:
     raise ValueError("Must set --data_path to PTB data directory")
 
-  raw_data = seq_raw_data()#seq raw data
+  raw_data = seq_raw_data(FLAGS.data_path)#seq raw data
   train_data, valid_data, test_data = raw_data
   config = TestConfig()
   config.vocab_size = train_data.shape[1]
@@ -142,8 +142,7 @@ def main(_):
     with tf.name_scope("Test"):
       test_input = PTBInput(is_training=False, config=eval_config, data=test_data, name="TestInput")
       with tf.variable_scope("Model", reuse=True, initializer=initializer):
-        mtest = PTBModel(is_training=False, config=eval_config,
-                 input_=test_input)
+        mtest = PTBModel(is_training=False, config=eval_config, input_=test_input)
       tf.summary.scalar("Test_Loss", mtest.cost)
       tf.summary.scalar("Test_Predict", mtest.predict[0][0])
 
@@ -164,7 +163,7 @@ def main(_):
       test_err, test_pred = run_epoch(session, mtest)
       print("Test Error: %.3f" % test_err)
       test_targets = test_data[1:]
-      np.save(FLAGS.save_path+"predict.npy", [test_targets, test_pred, test_err]) 
+      np.save(FLAGS.save_path+"predict.npy", [test_targets, test_pred, test_err])
 
       if FLAGS.save_path:
         print("Saving model to %s." % FLAGS.save_path)

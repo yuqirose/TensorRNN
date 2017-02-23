@@ -20,7 +20,7 @@ flags.DEFINE_string(
     "A type of model. Possible options are: small, medium, large.")
 flags.DEFINE_string("data_path", "../../../chaotic_ts_mat.pkl",
                     "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "/tmp/tensorcompress/log/ts_exp/matrix_rnn_mat/",
+flags.DEFINE_string("save_path", "/tmp/tensorcompress/log/ts_error_exp/matrix_rnn_mat/",
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")

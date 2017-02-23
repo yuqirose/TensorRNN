@@ -8,6 +8,7 @@ import tensorflow as tf
 from tensorflow.models.rnn.ptb import reader
 import sys, os
 os.sys.path.append("../../")
+
 from models.seq_model_matrix import *
 from models.seq_input import *
 
@@ -17,9 +18,9 @@ logging = tf.logging
 flags.DEFINE_string(
     "model", "small",
     "A type of model. Possible options are: small, medium, large.")
-flags.DEFINE_string("data_path", "../../../lorenz_series.pkl",
+flags.DEFINE_string("data_path", "../../../traffic_9sensors.pkl",
                     "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "/tmp/tensorcompress/log/lorenz_exp/matrix_rnn/",
+flags.DEFINE_string("save_path", "/tmp/tensorcompress/log/traffic_exp/matrix_rnn/",
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
@@ -43,7 +44,7 @@ class TestConfig(object):
     num_lags = 3
     hidden_size = 64
     max_epoch = 20
-    max_max_epoch = 50
+    max_max_epoch = 100
     keep_prob = 1.0
     lr_decay = 0.9
     batch_size = 5
@@ -114,27 +115,32 @@ def main(_):
     eval_config.batch_size = 1
     eval_config.num_steps = 1
     eval_config.vocab_size = config.vocab_size
+
+    if FLAGS.use_error_prop:
+        print("Using error prop in RNN!")
+
+
     with tf.Graph().as_default():
         initializer = tf.random_uniform_initializer(-config.init_scale,
                                                     config.init_scale)
         with tf.name_scope("Train"):
             train_input = PTBInput(is_training=True, config=config, data=train_data, name="TrainInput")
             with tf.variable_scope("Model", reuse=None, initializer=initializer):
-                m = PTBModel(is_training=True, config=config, input_=train_input)
+                m = PTBModel(is_training=True, config=config, input_=train_input, use_error_prop=False)
             tf.summary.scalar("Training_Loss", m.cost)
             tf.summary.scalar("Learning_Rate", m.lr)
 
         with tf.name_scope("Valid"):
             valid_input = PTBInput(is_training=False, config=config, data=valid_data, name="ValidInput")
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
-                mvalid = PTBModel(is_training=False, config=config, input_=valid_input)
+                mvalid = PTBModel(is_training=False, config=config, input_=valid_input, use_error_prop=FLAGS.use_error_prop)
             tf.summary.scalar("Validation_Loss", mvalid.cost)
 
         with tf.name_scope("Test"):
             test_input = PTBInput(is_training=False, config=eval_config, data=test_data, name="TestInput")
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
                 mtest = PTBModel(is_training=False, config=eval_config,
-                                 input_=test_input)
+                                 input_=test_input, use_error_prop=FLAGS.use_error_prop)
 
         sv = tf.train.Supervisor(logdir=FLAGS.save_path)
         with sv.managed_session() as session:

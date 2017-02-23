@@ -22,6 +22,8 @@ flags.DEFINE_string("save_path", "/tmp/tensorcompress/log/matrix_rnn/",
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
+flags.DEFINE_bool("use_error_prop", False,
+                  "Feed previous output as input in RNN")
 flags.DEFINE_integer('hidden_size', 256, "number of hidden unit")
 flags.DEFINE_float('learning_rate', 1e-3, "learning rate of trainig")
 

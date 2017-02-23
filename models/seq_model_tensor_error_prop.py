@@ -44,6 +44,10 @@ class PTBModel(object):
       inputs = tf.nn.dropout(inputs, config.keep_prob)
 
 
+    prev = None
+    outputs = []
+    state = self._initial_state
+
     if not is_training:
       print("Creating model @ not training --> Feeding output back into input.")
     else:

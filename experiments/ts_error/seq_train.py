@@ -10,8 +10,8 @@ from tensorflow.models.rnn.ptb import reader
 import sys, os
 import argparse
 
-from seq_model import *
-from seq_input import *
+from models.seq_model import *
+from models.seq_input import *
 
 #os.environ["CUDA_VISIBLE_DEVICES"]=""
 flags = tf.flags

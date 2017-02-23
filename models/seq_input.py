@@ -71,7 +71,6 @@ def ptb_producer(raw_data, is_training, batch_size, num_steps, horizon, name):
         if is_training:
             i = tf.train.range_input_producer(batch_len-num_steps-horizon, shuffle=True).dequeue()
             x = tf.slice(data, [0, i , 0], [batch_size, num_steps, data_dim])
-            print("x shape", x.get_shape())
             y = tf.slice(data, [0, i + horizon, 0], [batch_size, num_steps, data_dim])
         else: 
             i = tf.train.range_input_producer(epoch_size, shuffle=False).dequeue()

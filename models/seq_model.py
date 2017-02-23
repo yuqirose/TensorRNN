@@ -2,7 +2,7 @@ import tensorflow as tf
 class PTBModel(object):
     """The PTB model."""
 
-    def __init__(self, is_training, config, input_):
+    def __init__(self, is_training, config, input_, loop_function=None):
         self._input = input_
 
         batch_size = input_.batch_size
@@ -46,14 +46,20 @@ class PTBModel(object):
         # inputs = [tf.squeeze(input_step, [1])
         #           for input_step in tf.split(1, num_steps, inputs)]
         # outputs, state = tf.nn.rnn(cell, inputs, initial_state=self._initial_state)
+        prev = None
         outputs = []
         state = self._initial_state
         with tf.variable_scope("RNN"):
             for time_step in range(num_steps):
                 if time_step > 0: tf.get_variable_scope().reuse_variables()
-                (cell_output, state) = cell(inputs[:, time_step, :], state)
+                inp = inputs[:,time_step,:]
+                if not is_training and prev is not None:
+                    inp = prev
+                (cell_output, state) = cell(inp, state)
+                if not is_training:
+                    prev = cell_output
+                    
                 outputs.append(cell_output)
-
         output = tf.reshape(tf.concat(1, outputs), [-1, size])
         softmax_w = tf.get_variable(
             "softmax_w", [size, vocab_size], dtype= tf.float32)
@@ -81,8 +87,13 @@ class PTBModel(object):
             tf.float32, shape=[], name="new_learning_rate")
         self._lr_update = tf.assign(self._lr, self._new_lr)
 
+        # self._new_input = self._input
+        # self._new_input.input_data[:,-1] = self._predict
+        # self._input_update = tf.assign(self._input, self._new_input)
     def assign_lr(self, session, lr_value):
         session.run(self._lr_update, feed_dict={self._new_lr: lr_value})
+        #def feed_pred(self, session, predict):
+        # session.run(self._input_update, feed_dict={"predict":predict})
 
     @property
     def input(self):

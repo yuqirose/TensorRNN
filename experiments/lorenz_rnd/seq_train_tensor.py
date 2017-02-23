@@ -18,9 +18,9 @@ logging = tf.logging
 flags.DEFINE_string(
   "model", "small",
   "A type of model. Possible options are: small, medium, large.")
-flags.DEFINE_string("data_path", "../../../traffic_9sensors.pkl",
+flags.DEFINE_string("data_path", "../../../lorenz_series_mat.pkl",
           "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "../log/traffic_exp/tt_rnn/",
+flags.DEFINE_string("save_path", "../log/lorenz_rnd_exp/tt_rnn/",
           "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
           "Train using 16-bit floats instead of 32bit floats")
@@ -43,10 +43,10 @@ class TestConfig(object):
   horizon = 1
   num_orders = 2 # tensor prod order
   hidden_size = 64 # dim of h
-  max_epoch = 10 # keep lr fixed
-  max_max_epoch = int(20) # decaying lr
+  max_epoch = 5# keep lr fixed
+  max_max_epoch = int(10) # decaying lr
   keep_prob = 1.0 # dropout
-  lr_decay = 0.99
+  lr_decay = 0.9
   batch_size = 5
   vocab_size = 1340
 
@@ -108,12 +108,12 @@ def main(_):
   raw_data = seq_raw_data(FLAGS.data_path)#seq raw data
   train_data, valid_data, test_data = raw_data
   config = TestConfig()
-  rank_vals = np.ones((config.num_orders-1,),dtype=np.int32)*FLAGS.rank_val
+  rank_vals = np.ones((config.num_orders-1,),dtype=np.int32) * FLAGS.rank_val
   config.vocab_size = train_data.shape[1]
   config.learning_rate = FLAGS.learning_rate
   config.hidden_size = FLAGS.hidden_size
   config.horizon = FLAGS.horizon
-  config.rank_vals = rank_vals
+  config.rank_vals = rank_vals 
   eval_config = TestConfig()
   eval_config.batch_size = 1
   eval_config.num_steps = 1
@@ -126,30 +126,32 @@ def main(_):
     initializer = tf.random_uniform_initializer(-config.init_scale,
                           config.init_scale)
     with tf.name_scope("Train"):
-      train_input = PTBInput(is_training=True, config=config, data=train_data, name="TrainInput")
+      train_input = PTBInputRnd(is_training=True, config=config, data=train_data, name="TrainInput")
       with tf.variable_scope("Model", reuse=None, initializer=initializer):
         m = PTBModel(is_training=True, config=config, input_=train_input)
       tf.summary.scalar("Training_Loss", m.cost)
       tf.summary.scalar("Learning_Rate", m.lr)
 
     with tf.name_scope("Valid"):
-      valid_input = PTBInput(is_training=False, config=config, data=valid_data, name="ValidInput")
+      valid_input = PTBInputRnd(is_training=False, config=config, data=valid_data, name="ValidInput")
       with tf.variable_scope("Model", reuse=True, initializer=initializer):
         mvalid = PTBModel(is_training=False, config=config, input_=valid_input)
       tf.summary.scalar("Validation_Loss", mvalid.cost)
 
     with tf.name_scope("Test"):
-      test_input = PTBInput(is_training=False, config=eval_config, data=test_data, name="TestInput")
+      test_input = PTBInputRnd(is_training=False, config=eval_config, data=test_data, name="TestInput")
       with tf.variable_scope("Model", reuse=True, initializer=initializer):
         mtest = PTBModel(is_training=False, config=eval_config,
                  input_=test_input)
       tf.summary.scalar("Test_Loss", mtest.cost)
+      tf.summary.scalar("Test_Predict", mtest.predict[0][0])
 
-    sv = tf.train.Supervisor(logdir=FLAGS.save_path)
+    sv = tf.train.Supervisor(logdir=FLAGS.save_path, save_summaries_secs=20)
     sess_config = tf.ConfigProto()
     sess_config.gpu_options.allow_growth = True
     sess_config.gpu_options.per_process_gpu_memory_fraction = 0.2
     with sv.managed_session(config=sess_config) as session:
+      valid_err_old = float("inf")
       for i in range(config.max_max_epoch):
         lr_decay = config.lr_decay ** max(i + 1 - config.max_epoch, 0.0)
         m.assign_lr(session, config.learning_rate * lr_decay)

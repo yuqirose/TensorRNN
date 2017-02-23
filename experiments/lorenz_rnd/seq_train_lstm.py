@@ -7,26 +7,27 @@ import pandas as pd
 import tensorflow as tf
 from tensorflow.models.rnn.ptb import reader
 import sys, os
-os.sys.path.append("../../")
+import argparse
 
-from models.seq_model_matrix import *
+os.sys.path.append("../../")
+from models.seq_model_lstm import *
 from models.seq_input import * 
-  
+
+os.environ["CUDA_VISIBLE_DEVICES"]=""
 flags = tf.flags
 logging = tf.logging
 
 flags.DEFINE_string(
     "model", "small",
     "A type of model. Possible options are: small, medium, large.")
-flags.DEFINE_string("data_path", "../../../traffic_9sensors.pkl",
+flags.DEFINE_string("data_path", "../../../lorenz_series_mat.pkl",
                     "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "../log/traffic_exp/matrix_rnn/",
+flags.DEFINE_string("save_path", "../log/lorenz_rnd_exp/basic_lstm/",
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
 flags.DEFINE_integer('hidden_size', 256, "number of hidden unit")
-flags.DEFINE_float('learning_rate', 1e-3, "learning rate of trainig")
-
+flags.DEFINE_float('learning_rate', 5e-3, "learning rate of trainig")
 FLAGS = flags.FLAGS
 
 
@@ -39,10 +40,9 @@ class TestConfig(object):
     num_layers = 2
     num_steps =12 
     horizon = 1
-    num_lags = 3
     hidden_size = 64
-    max_epoch = 20
-    max_max_epoch = 100
+    max_epoch = 10
+    max_max_epoch = 50
     keep_prob = 1.0
     lr_decay = 0.9
     batch_size = 5 
@@ -52,42 +52,48 @@ def run_epoch(session, model, eval_op=None, verbose=False):
     """Runs the model on the given data."""
     start_time = time.time()
     costs = 0.0
-    predicts = np.array([]).reshape(0,model.input.vocab_size)
+    predicts = np.array([]).reshape(model.input.batch_size,0, model.input.vocab_size)
+    targets = np.array([]).reshape(model.input.batch_size,0,model.input.vocab_size)
     iters = 0
-    states_val = session.run(model.initial_states)
+    state = session.run(model.initial_state)
 
     fetches = {
         "cost": model.cost,
-        "target":model.input.targets,
         "predict":model.predict,
+        "input":model.input.input_data,
+        "target":model.input.targets,
         "final_state": model.final_state,
     }
     if eval_op is not None:
         fetches["eval_op"] = eval_op
 
-
     for step in range(model.input.epoch_size):
         feed_dict = {}
-        for i, states in enumerate(model.initial_states):
-            for j, state in enumerate(states):
-                feed_dict[state] = states_val[i][j]
-
+       #  for i, (c, h) in enumerate(model.initial_state):
+            # feed_dict[c] = state[i].c
+            # feed_dict[h] = state[i].h
+        for i, s in enumerate(model.initial_state):
+            feed_dict[s] = state[i]
 
         vals = session.run(fetches, feed_dict)
         cost = vals["cost"]
+        target = vals["target"]
         predict = vals["predict"]
+
         ##print("cost at step {0}: {1}".format(step, cost))
         state = vals["final_state"]
-        #if step % 500 == 0:
-          #for i in vals["input"]:
-              #print("step", step, "input\n", vals["input"][0,0:5])
-          #for i in vals["target"]:
-              #print("step", step, "target\n", vals["target"][0,0:5])
-          #for i in predict
-              #print("step", step, "predicts\n", predict[0:5])
+        predicts = np.hstack((predicts, predict))
+        targets = np.hstack((targets, target))
+        
+#         if step % 500 == 0:
+          # #for i in vals["input"]:
+              # #print("step", step, "input\n", vals["input"][0,0:5])
+          # #for i in vals["target"]:
+              # print("step", step, "target\n", vals["target"][0,0:5])
+          # #for i in predict
+              # print("step", step, "predicts\n", predict[0:5])
 
         costs += cost
-        predicts = np.vstack([predicts, predict])
         iters += model.input.num_steps
 
         if verbose and step % (model.input.epoch_size // 10) == 10:
@@ -95,6 +101,9 @@ def run_epoch(session, model, eval_op=None, verbose=False):
                   (step * 1.0 / model.input.epoch_size, costs / step,
                    iters * model.input.batch_size / (time.time() - start_time)))
     final_cost = np.sqrt(costs/model.input.epoch_size)
+    predicts = predicts.flatten()
+    targets = targets.flatten()
+    
     return final_cost, predicts
 
 
@@ -105,8 +114,9 @@ def main(_):
     raw_data = seq_raw_data(FLAGS.data_path)#seq raw data
     train_data, valid_data, test_data = raw_data
     config = TestConfig()
-    config.hidden_size = FLAGS.hidden_size
+
     config.learning_rate = FLAGS.learning_rate
+    config.hidden_size = FLAGS.hidden_size
     config.vocab_size = train_data.shape[1]
     eval_config = TestConfig()
     eval_config.hidden_size = FLAGS.hidden_size
@@ -117,25 +127,25 @@ def main(_):
         initializer = tf.random_uniform_initializer(-config.init_scale,
                                                     config.init_scale)
         with tf.name_scope("Train"):
-            train_input = PTBInput(is_training=True, config=config, data=train_data, name="TrainInput")
+            train_input = PTBInputRnd(is_training=True, config=config, data=train_data, name="TrainInput")
             with tf.variable_scope("Model", reuse=None, initializer=initializer):
                 m = PTBModel(is_training=True, config=config, input_=train_input)
             tf.summary.scalar("Training_Loss", m.cost)
             tf.summary.scalar("Learning_Rate", m.lr)
 
         with tf.name_scope("Valid"):
-            valid_input = PTBInput(is_training=False, config=config, data=valid_data, name="ValidInput")
+            valid_input = PTBInputRnd(is_training=False, config=config, data=valid_data, name="ValidInput")
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
                 mvalid = PTBModel(is_training=False, config=config, input_=valid_input)
             tf.summary.scalar("Validation_Loss", mvalid.cost)
 
         with tf.name_scope("Test"):
-            test_input = PTBInput(is_training=False, config=eval_config, data=test_data, name="TestInput")
+            test_input = PTBInputRnd(is_training=False, config=eval_config, data=test_data, name="TestInput")
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
                 mtest = PTBModel(is_training=False, config=eval_config,
                                  input_=test_input)
-
-        sv = tf.train.Supervisor(logdir=FLAGS.save_path)
+            tf.summary.scalar("Test_Loss", mtest.cost)
+        sv = tf.train.Supervisor(logdir=FLAGS.save_path, save_summaries_secs=20)
         sess_config = tf.ConfigProto()
         sess_config.gpu_options.allow_growth = True
         sess_config.gpu_options.per_process_gpu_memory_fraction = 0.2
@@ -148,14 +158,14 @@ def main(_):
                 train_err, _ = run_epoch(session, m, eval_op=m.train_op,
                                              verbose=True)
                 print("Epoch: %d Train Error: %.3f" % (i + 1, train_err))
-                valid_err, _ = run_epoch(session, mvalid)
+                valid_err,_ = run_epoch(session, mvalid)
                 print("Epoch: %d Valid Error: %.3f" % (i + 1, valid_err))
 
-            test_err, test_pred = run_epoch(session, mtest)
+            test_err, test_pred= run_epoch(session, mtest)
             print("Test Error: %.3f" % test_err)
             test_true = np.squeeze(np.asarray(test_data[1:]))
             test_pred = np.squeeze(test_pred)
-            np.save(FLAGS.save_path+"predict.npy", [test_true, test_pred, test_err])
+            np.save(FLAGS.save_path+"predict.npy", [test_true,test_pred, test_err])
 
 
 

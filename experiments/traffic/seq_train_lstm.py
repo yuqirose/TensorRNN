@@ -41,8 +41,8 @@ class TestConfig(object):
     num_steps =12 
     horizon = 1
     hidden_size = 64
-    max_epoch = 10
-    max_max_epoch = 50
+    max_epoch = 20
+    max_max_epoch = 100
     keep_prob = 1.0
     lr_decay = 0.9
     batch_size = 5 
@@ -127,26 +127,29 @@ def main(_):
         initializer = tf.random_uniform_initializer(-config.init_scale,
                                                     config.init_scale)
         with tf.name_scope("Train"):
-            train_input = PTBInputRnd(is_training=True, config=config, data=train_data, name="TrainInput")
+            train_input = PTBInput(is_training=True, config=config, data=train_data, name="TrainInput")
             with tf.variable_scope("Model", reuse=None, initializer=initializer):
                 m = PTBModel(is_training=True, config=config, input_=train_input)
             tf.summary.scalar("Training_Loss", m.cost)
             tf.summary.scalar("Learning_Rate", m.lr)
 
         with tf.name_scope("Valid"):
-            valid_input = PTBInputRnd(is_training=False, config=config, data=valid_data, name="ValidInput")
+            valid_input = PTBInput(is_training=False, config=config, data=valid_data, name="ValidInput")
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
                 mvalid = PTBModel(is_training=False, config=config, input_=valid_input)
             tf.summary.scalar("Validation_Loss", mvalid.cost)
 
         with tf.name_scope("Test"):
-            test_input = PTBInputRnd(is_training=False, config=eval_config, data=test_data, name="TestInput")
+            test_input = PTBInput(is_training=False, config=eval_config, data=test_data, name="TestInput")
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
                 mtest = PTBModel(is_training=False, config=eval_config,
                                  input_=test_input)
             tf.summary.scalar("Test_Loss", mtest.cost)
         sv = tf.train.Supervisor(logdir=FLAGS.save_path, save_summaries_secs=20)
-        with sv.managed_session() as session:
+        sess_config = tf.ConfigProto()
+        sess_config.gpu_options.allow_growth = True
+        sess_config.gpu_options.per_process_gpu_memory_fraction = 0.2
+        with sv.managed_session(config=sess_config) as session:
             for i in range(config.max_max_epoch):
                 lr_decay = config.lr_decay ** max(i + 1 - config.max_epoch, 0.0)
                 m.assign_lr(session, config.learning_rate * lr_decay)

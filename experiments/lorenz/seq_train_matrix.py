@@ -9,8 +9,8 @@ from tensorflow.models.rnn.ptb import reader
 import sys, os
 os.sys.path.append("../../")
 from models.seq_model_matrix import *
-from models.seq_input import * 
-  
+from models.seq_input import *
+
 flags = tf.flags
 logging = tf.logging
 
@@ -19,7 +19,7 @@ flags.DEFINE_string(
     "A type of model. Possible options are: small, medium, large.")
 flags.DEFINE_string("data_path", "../../../lorenz_series.pkl",
                     "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "../log/lorenz_exp/matrix_rnn/",
+flags.DEFINE_string("save_path", "/tmp/tensorcompress/log/lorenz_exp/matrix_rnn/",
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
@@ -36,7 +36,7 @@ class TestConfig(object):
     learning_rate = 1.0
     max_grad_norm = 1
     num_layers = 2
-    num_steps =12 
+    num_steps =12
     horizon = 1
     num_lags = 3
     hidden_size = 64
@@ -44,7 +44,7 @@ class TestConfig(object):
     max_max_epoch = 50
     keep_prob = 1.0
     lr_decay = 0.9
-    batch_size = 5 
+    batch_size = 5
     vocab_size = 1340
 
 def run_epoch(session, model, eval_op=None, verbose=False):

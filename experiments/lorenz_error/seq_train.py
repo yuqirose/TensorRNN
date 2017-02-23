@@ -23,7 +23,7 @@ flags.DEFINE_string(
     "A type of model. Possible options are: small, medium, large.")
 flags.DEFINE_string("data_path", "../../../lorenz_series.pkl",
                     "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "../log/lorenz_error_exp/basic_rnn/",
+flags.DEFINE_string("save_path", "/tmp/tensorcompress/log/lorenz_error_exp/basic_rnn/",
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
@@ -202,7 +202,6 @@ def main(_):
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
                 mtest = PTBModel(is_training=False, config=eval_config, input_=test_input, use_error_prop=FLAGS.use_error_prop)
             tf.summary.scalar("Test_Loss", mtest.cost)
-
 
         sv = tf.train.Supervisor(logdir=FLAGS.save_path)
         with sv.managed_session() as session:

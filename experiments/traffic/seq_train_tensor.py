@@ -20,7 +20,7 @@ flags.DEFINE_string(
   "A type of model. Possible options are: small, medium, large.")
 flags.DEFINE_string("data_path", "../../../traffic_9sensors.pkl",
           "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "../log/traffic_exp/tt_rnn/",
+flags.DEFINE_string("save_path", "/tmp/tensorcompress/log/traffic_exp/tt_rnn/",
           "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
           "Train using 16-bit floats instead of 32bit floats")
@@ -165,7 +165,7 @@ def main(_):
       test_err, test_pred = run_epoch(session, mtest)
       print("Test Error: %.3f" % test_err)
       test_targets = test_data[1:]
-      np.save(FLAGS.save_path+"predict.npy", [test_targets, test_pred, test_err]) 
+      np.save(FLAGS.save_path+"predict.npy", [test_targets, test_pred, test_err])
 
       if FLAGS.save_path:
         print("Saving model to %s." % FLAGS.save_path)

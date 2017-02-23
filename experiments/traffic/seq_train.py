@@ -13,7 +13,7 @@ import argparse
 os.sys.path.append("../../")
 
 from models.seq_model import *
-from models.seq_input import * 
+from models.seq_input import *
 
 #os.environ["CUDA_VISIBLE_DEVICES"]=""
 flags = tf.flags
@@ -24,7 +24,7 @@ flags.DEFINE_string(
     "A type of model. Possible options are: small, medium, large.")
 flags.DEFINE_string("data_path", "../../../traffic_9sensors.pkl",
                     "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "../log/traffic_exp/basic_rnn/",
+flags.DEFINE_string("save_path", "/tmp/tensorcompress/log/traffic_exp/basic_rnn/",
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
@@ -40,14 +40,14 @@ class TestConfig(object):
     learning_rate = 1.0
     max_grad_norm = 1
     num_layers = 2
-    num_steps =12 
+    num_steps =12
     horizon =1
     hidden_size = 256
     max_epoch = 50
     max_max_epoch = 100
     keep_prob = 1.0
     lr_decay = 0.9
-    batch_size = 5 
+    batch_size = 5
     vocab_size = 1340
 
 def run_epoch(session, model, eval_op=None, verbose=False):
@@ -101,7 +101,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
             print("%.3f error: %.3f speed: %.0f wps" %
                   (step * 1.0 / model.input.epoch_size, np.sqrt(costs / step),
                    iters * model.input.batch_size / (time.time() - start_time)))
-    final_cost = np.sqrt(costs/model.input.epoch_size) 
+    final_cost = np.sqrt(costs/model.input.epoch_size)
     return final_cost, predicts
 
 
@@ -161,7 +161,7 @@ def main(_):
                 print("Epoch: %d Train Error: %.3f" % (i + 1, train_err))
                 valid_err,_ = run_epoch(session, mvalid)
                 print("Epoch: %d Valid Error: %.3f" % (i + 1, valid_err))
-                
+
                 # early stopping
                 if abs(valid_err_old - valid_err) < epsilon:
                     break

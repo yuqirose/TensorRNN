@@ -11,7 +11,7 @@ import argparse
 
 os.sys.path.append('../../')
 from models.seq_model_lstm import *
-from models.seq_input import * 
+from models.seq_input import *
 
 #os.environ["CUDA_VISIBLE_DEVICES"]=""
 flags = tf.flags
@@ -22,7 +22,7 @@ flags.DEFINE_string(
     "A type of model. Possible options are: small, medium, large.")
 flags.DEFINE_string("data_path", "../../../lorenz_series.pkl",
                     "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "../log/lorenz_exp/basic_lstm/",
+flags.DEFINE_string("save_path", "/tmp/tensorcompress/log/lorenz_exp/basic_lstm/",
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
@@ -38,14 +38,14 @@ class TestConfig(object):
     learning_rate = 1.0
     max_grad_norm = 1
     num_layers = 2
-    num_steps =12 
+    num_steps =12
     horizon = 1
     hidden_size = 64
     max_epoch = 10
     max_max_epoch = 50
     keep_prob = 1.0
     lr_decay = 0.9
-    batch_size = 5 
+    batch_size = 5
     vocab_size = 1340
 
 def run_epoch(session, model, eval_op=None, verbose=False):
@@ -84,7 +84,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
         state = vals["final_state"]
         predicts = np.hstack((predicts, predict))
         targets = np.hstack((targets, target))
-        
+
 #         if step % 500 == 0:
           # #for i in vals["input"]:
               # #print("step", step, "input\n", vals["input"][0,0:5])
@@ -103,7 +103,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
     final_cost = np.sqrt(costs/model.input.epoch_size)
     predicts = predicts.flatten()
     targets = targets.flatten()
-    
+
     return final_cost, predicts, targets
 
 

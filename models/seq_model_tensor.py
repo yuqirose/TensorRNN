@@ -1,10 +1,10 @@
 import tensorflow as tf
 from tensorflow.python.ops.math_ops import sigmoid
-from high_order_rnn import TensorRNNCell, tensor_rnn
+from high_order_rnn import TensorRNNCell, tensor_rnn, tensor_rnn_with_feed_prev
 class PTBModel(object):
   """The PTB model."""
 
-  def __init__(self, is_training, config, input_):
+  def __init__(self, is_training, config, input_, use_error_prop=False):
     self._input = input_
 
     batch_size = input_.batch_size
@@ -59,24 +59,32 @@ class PTBModel(object):
         # if time_step > 0: tf.get_variable_scope().reuse_variables()
         # (cell_output, state) = cell(inputs[:, time_step, :], state)
         # outputs.append(cell_output)
-    outputs, state  = tensor_rnn(cell, inputs, num_steps, num_lags, self._initial_states)
-    output = tf.reshape(tf.concat(1, outputs), [-1, size]) #(batch_size * num_steps) x hidden_size
-    softmax_w = tf.get_variable(
-      "softmax_w", [size, vocab_size], dtype= tf.float32)
-    softmax_b = tf.get_variable("softmax_b", [vocab_size], dtype=tf.float32)
-    """logits: batch_size x num_steps"""
-    logits = tf.matmul(output, softmax_w) + softmax_b
-    #rescale y = scale_w x  + scale_b 
+    print("Predictions now computed inside cell.")
+    feed_prev = not is_training if use_error_prop else False
+    logits, state, weights  = tensor_rnn_with_feed_prev(cell, inputs, num_steps, size,
+      num_lags, self._initial_states, vocab_size, feed_prev=feed_prev)
+
+    # This happens inside the cell now
+    # output = tf.reshape(tf.concat(1, outputs), [-1, size]) #(batch_size * num_steps) x hidden_size
+    # softmax_w = tf.get_variable(
+    #   "softmax_w", [size, vocab_size], dtype= tf.float32)
+    # softmax_b = tf.get_variable("softmax_b", [vocab_size], dtype=tf.float32)
+    # """logits: batch_size x num_steps"""
+    # logits = tf.matmul(output, softmax_w) + softmax_b
+
+    #rescale y = scale_w x  + scale_b
     #scale_w = tf.get_variable("scale_w", [vocab_size], dtype=tf.float32)
     #scale_b = tf.get_variable("scale_b", [vocab_size], dtype=tf.float32)
     #logits = tf.mul(logits, scale_w) + scale_b
-    
+
+    softmax_w, softmax_b = weights["softmax_w"], weights["softmax_b"]
+
     self._predict = logits
-    
+
     beta = 0.0
     self._cost = cost = tf.reduce_mean(tf.squared_difference(
       logits, tf.reshape(input_.targets, [batch_size*num_steps,-1]) )
-      + beta*tf.nn.l2_loss(output) 
+      + beta*tf.nn.l2_loss(logits)
       + beta*tf.nn.l2_loss(softmax_w) + beta*tf.nn.l2_loss(softmax_b))
     self._final_state = state
 

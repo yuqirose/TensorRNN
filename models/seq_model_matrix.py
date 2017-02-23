@@ -1,10 +1,10 @@
 import tensorflow as tf
 from tensorflow.python.ops.math_ops import sigmoid
-from high_order_rnn import MatrixRNNCell, tensor_rnn
+from high_order_rnn import MatrixRNNCell, tensor_rnn, tensor_rnn_with_feed_prev
 class PTBModel(object):
   """The PTB model."""
 
-  def __init__(self, is_training, config, input_):
+  def __init__(self, is_training, config, input_, use_error_prop=False):
     self._input = input_
 
     batch_size = input_.batch_size
@@ -58,18 +58,25 @@ class PTBModel(object):
         # if time_step > 0: tf.get_variable_scope().reuse_variables()
         # (cell_output, state) = cell(inputs[:, time_step, :], state)
         # outputs.append(cell_output)
-    outputs, state  = tensor_rnn(cell, inputs, num_steps, num_lags, self._initial_states)
-    output = tf.reshape(tf.concat(1, outputs), [-1, size]) #(batch_size * num_steps) x hidden_size
-    softmax_w = tf.get_variable(
-      "softmax_w", [size, vocab_size], dtype= tf.float32)
-    softmax_b = tf.get_variable("softmax_b", [vocab_size], dtype=tf.float32)
-    """logits: batch_size x num_steps"""
-    logits = tf.matmul(output, softmax_w) + softmax_b
+
+    # outputs, state  = tensor_rnn(cell, inputs, num_steps, num_lags, self._initial_states)
+    # output = tf.reshape(tf.concat(1, outputs), [-1, size]) #(batch_size * num_steps) x hidden_size
+    # softmax_w = tf.get_variable(
+    #   "softmax_w", [size, vocab_size], dtype= tf.float32)
+    # softmax_b = tf.get_variable("softmax_b", [vocab_size], dtype=tf.float32)
+    # """logits: batch_size x num_steps"""
+    # logits = tf.matmul(output, softmax_w) + softmax_b
+
+
+    feed_prev = not is_training if use_error_prop else False
+    logits, state, weights  = tensor_rnn_with_feed_prev(cell, inputs, num_steps, size,
+      num_lags, self._initial_states, vocab_size, feed_prev=feed_prev)
+
 
     self._predict = logits
 
-    self._cost = cost = tf.sqrt(tf.reduce_mean(tf.squared_difference(
-      logits, tf.reshape(input_.targets, [batch_size*num_steps,-1]) )))
+    self._cost = cost = tf.reduce_mean(tf.squared_difference(
+      logits, tf.reshape(input_.targets, [batch_size*num_steps,-1]) ))
     self._final_state = state
 
     if not is_training:

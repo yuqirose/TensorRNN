@@ -1,24 +1,27 @@
 import tensorflow as tf
+
+import rnn_with_feed_prev
+
 class PTBModel(object):
     """The PTB model."""
 
-    def __init__(self, is_training, config, input_):
+    def __init__(self, is_training, config, input_, use_error_prop=False):
         self._input = input_
 
         batch_size = input_.batch_size
         num_steps = input_.num_steps
         size = config.hidden_size
         vocab_size = config.vocab_size
-   
+
         # Slightly better results can be obtained with forget gate biases
         # initialized to 1 but the hyperparameters of the model would need to be
         # different than reported in the paper.
-        
-         
+
+
         initializer = tf.random_uniform_initializer(-1,1)
         #rnn_cell = tf.nn.rnn_cell.BasicRNNCell(size)
         rnn_cell = tf.nn.rnn_cell.LSTMCell(size)
-        
+
         if is_training and config.keep_prob < 1:
             rnn_cell = tf.nn.rnn_cell.DropoutWrapper(
                 rnn_cell, output_keep_prob=config.keep_prob)
@@ -46,23 +49,35 @@ class PTBModel(object):
         # inputs = [tf.squeeze(input_step, [1])
         #           for input_step in tf.split(1, num_steps, inputs)]
         # outputs, state = tf.nn.rnn(cell, inputs, initial_state=self._initial_state)
-        outputs = []
-        state = self._initial_state
-        with tf.variable_scope("RNN"):
-            for time_step in range(num_steps):
-                if time_step > 0: tf.get_variable_scope().reuse_variables()
-                (cell_output, state) = cell(inputs[:, time_step, :], state)
-                outputs.append(cell_output)
 
-        output = tf.reshape(tf.concat(1, outputs), [-1, size])
-        softmax_w = tf.get_variable(
-            "softmax_w", [size, vocab_size], dtype= tf.float32)
-        softmax_b = tf.get_variable("softmax_b", [vocab_size], dtype=tf.float32)
-        logits = tf.matmul(output, softmax_w) + softmax_b
-  
+
+
+        # outputs = []
+        # state = self._initial_state
+        # with tf.variable_scope("RNN"):
+        #     for time_step in range(num_steps):
+        #         if time_step > 0: tf.get_variable_scope().reuse_variables()
+        #         (cell_output, state) = cell(inputs[:, time_step, :], state)
+        #         outputs.append(cell_output)
+
+        # output = tf.reshape(tf.concat(1, outputs), [-1, size])
+        # softmax_w = tf.get_variable(
+        #     "softmax_w", [size, vocab_size], dtype= tf.float32)
+        # softmax_b = tf.get_variable("softmax_b", [vocab_size], dtype=tf.float32)
+        # logits = tf.matmul(output, softmax_w) + softmax_b
+
+
+
+        feed_prev = not is_training if use_error_prop else False
+
+        logits, states, weights = rnn_with_feed_prev._rnn_loop(cell, inputs,
+            num_steps, size, self._initial_state, vocab_size, feed_prev=feed_prev)
+        state = states[-1]
+
+
         self._predict = tf.reshape(logits, [batch_size, num_steps, -1])
-        self._cost = cost = tf.sqrt(tf.reduce_mean(tf.squared_difference(
-            logits, tf.reshape(input_.targets, [batch_size*num_steps,-1]) )))
+        self._cost = cost = tf.reduce_mean(tf.squared_difference(
+            logits, tf.reshape(input_.targets, [batch_size*num_steps,-1]) ))
         self._final_state = state
 
         if not is_training:
@@ -112,4 +127,4 @@ class PTBModel(object):
         return self._train_op
 
 
- 
+

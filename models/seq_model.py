@@ -1,11 +1,12 @@
 import tensorflow as tf
 
+import rnn_with_feed_prev
 
 
 class PTBModel(object):
     """The PTB model."""
 
-    def __init__(self, is_training, config, input_, loop_function=None):
+    def __init__(self, is_training, config, input_, use_error_prop=None):
         self._input = input_
 
         batch_size = input_.batch_size
@@ -52,44 +53,11 @@ class PTBModel(object):
         # inputs = [tf.squeeze(input_step, [1])
         #           for input_step in tf.split(1, num_steps, inputs)]
         # outputs, state = tf.nn.rnn(cell, inputs, initial_state=self._initial_state)
-        prev = None
-        outputs = []
-        state = self._initial_state
 
-        if not is_training:
-            print("Creating model @ not training --> Feeding output back into input.")
-        else:
-            print("Creating model @ training --> input = ground truth each timestep.")
-
-        def _hidden_to_data(h):
-            softmax_w = tf.get_variable("softmax_w", [size, vocab_size], dtype= tf.float32)
-            softmax_b = tf.get_variable("softmax_b", [vocab_size], dtype=tf.float32)
-            logits = tf.matmul(h, softmax_w) + softmax_b
-            return logits
-
-        with tf.variable_scope("RNN"):
-            for time_step in range(num_steps):
-
-                if time_step > 0:
-                    tf.get_variable_scope().reuse_variables()
-
-                inp = inputs[:, time_step, :]
-
-                if not is_training and prev is not None:
-                    inp = _hidden_to_data(prev)
-
-
-                (cell_output, state) = cell(inp, state)
-
-                if not is_training:
-                    prev = cell_output
-
-                output = _hidden_to_data(cell_output)
-
-                outputs.append(output)
-
-
-        logits = tf.reshape(tf.concat(1, outputs), [-1, vocab_size])
+        feed_prev = not is_training if use_error_prop else False
+        logits, states, weights = rnn_with_feed_prev._rnn_loop(cell, inputs,
+            num_steps, size, self._initial_state, vocab_size, feed_prev=feed_prev)
+        state = states[-1]
 
         self._predict = logits
         self._cost = cost = tf.reduce_mean(tf.squared_difference(

@@ -27,6 +27,8 @@ flags.DEFINE_string("save_path", "../log/lorenz_error_exp/basic_rnn/",
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
+flags.DEFINE_bool("use_error_prop", False,
+                  "Feed previous output as input in RNN")
 flags.DEFINE_integer('hidden_size', 256, "number of hidden unit")
 flags.DEFINE_float('learning_rate', 5e-3, "learning rate of trainig")
 FLAGS = flags.FLAGS
@@ -176,26 +178,29 @@ def main(_):
     eval_config.vocab_size = config.vocab_size
     epsilon = 1e-6
 
+    if FLAGS.use_error_prop:
+        print("Using error prop in RNN!")
+
     with tf.Graph().as_default():
         initializer = tf.random_uniform_initializer(-config.init_scale,
                                                     config.init_scale)
         with tf.name_scope("Train"):
             train_input = PTBInput(is_training=True, config=config, data=train_data, name="TrainInput")
             with tf.variable_scope("Model", reuse=None, initializer=initializer):
-                m = PTBModel(is_training=True, config=config, input_=train_input)
+                m = PTBModel(is_training=True, config=config, input_=train_input, use_error_prop=False)
             tf.summary.scalar("Training_Loss", m.cost)
             tf.summary.scalar("Learning_Rate", m.lr)
 
         with tf.name_scope("Valid"):
             valid_input = PTBInput(is_training=False, config=config, data=valid_data, name="ValidInput")
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
-                mvalid = PTBModel(is_training=False, config=config, input_=valid_input)
+                mvalid = PTBModel(is_training=False, config=config, input_=valid_input, use_error_prop=FLAGS.use_error_prop)
             tf.summary.scalar("Validation_Loss", mvalid.cost)
 
         with tf.name_scope("Test"):
             test_input = PTBInput(is_training=False, config=eval_config, data=test_data, name="TestInput")
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
-                mtest = PTBModel(is_training=False, config=eval_config, input_=test_input)
+                mtest = PTBModel(is_training=False, config=eval_config, input_=test_input, use_error_prop=FLAGS.use_error_prop)
             tf.summary.scalar("Test_Loss", mtest.cost)
 
 

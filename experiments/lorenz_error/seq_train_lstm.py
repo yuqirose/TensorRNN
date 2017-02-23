@@ -11,7 +11,7 @@ import argparse
 
 os.sys.path.append('../../')
 from models.seq_model_lstm import *
-from models.seq_input import * 
+from models.seq_input import *
 
 #os.environ["CUDA_VISIBLE_DEVICES"]=""
 flags = tf.flags
@@ -26,6 +26,8 @@ flags.DEFINE_string("save_path", "../log/lorenz_exp/basic_lstm/",
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
+flags.DEFINE_bool("use_error_prop", False,
+                  "Feed previous output as input in RNN")
 flags.DEFINE_integer('hidden_size', 256, "number of hidden unit")
 flags.DEFINE_float('learning_rate', 5e-3, "learning rate of trainig")
 FLAGS = flags.FLAGS
@@ -38,14 +40,14 @@ class TestConfig(object):
     learning_rate = 1.0
     max_grad_norm = 1
     num_layers = 2
-    num_steps =12 
+    num_steps =12
     horizon = 1
     hidden_size = 64
     max_epoch = 10
     max_max_epoch = 50
     keep_prob = 1.0
     lr_decay = 0.9
-    batch_size = 5 
+    batch_size = 5
     vocab_size = 1340
 
 def run_epoch(session, model, eval_op=None, verbose=False):
@@ -84,7 +86,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
         state = vals["final_state"]
         predicts = np.hstack((predicts, predict))
         targets = np.hstack((targets, target))
-        
+
 #         if step % 500 == 0:
           # #for i in vals["input"]:
               # #print("step", step, "input\n", vals["input"][0,0:5])
@@ -103,7 +105,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
     final_cost = np.sqrt(costs/model.input.epoch_size)
     predicts = predicts.flatten()
     targets = targets.flatten()
-    
+
     return final_cost, predicts, targets
 
 
@@ -123,27 +125,31 @@ def main(_):
     eval_config.batch_size = 1
     eval_config.num_steps = 1
     eval_config.vocab_size = config.vocab_size
+
+    if FLAGS.use_error_prop:
+        print("Using error prop in RNN!")
+
     with tf.Graph().as_default():
         initializer = tf.random_uniform_initializer(-config.init_scale,
                                                     config.init_scale)
         with tf.name_scope("Train"):
             train_input = PTBInput(is_training=True, config=config, data=train_data, name="TrainInput")
             with tf.variable_scope("Model", reuse=None, initializer=initializer):
-                m = PTBModel(is_training=True, config=config, input_=train_input)
+                m = PTBModel(is_training=True, config=config, input_=train_input, use_error_prop=False)
             tf.summary.scalar("Training_Loss", m.cost)
             tf.summary.scalar("Learning_Rate", m.lr)
 
         with tf.name_scope("Valid"):
             valid_input = PTBInput(is_training=False, config=config, data=valid_data, name="ValidInput")
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
-                mvalid = PTBModel(is_training=False, config=config, input_=valid_input)
+                mvalid = PTBModel(is_training=False, config=config, input_=valid_input, use_error_prop=FLAGS.use_error_prop)
             tf.summary.scalar("Validation_Loss", mvalid.cost)
 
         with tf.name_scope("Test"):
             test_input = PTBInput(is_training=False, config=eval_config, data=test_data, name="TestInput")
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
                 mtest = PTBModel(is_training=False, config=eval_config,
-                                 input_=test_input)
+                                 input_=test_input, use_error_prop=FLAGS.use_error_prop)
             tf.summary.scalar("Test_Loss", mtest.cost)
         sv = tf.train.Supervisor(logdir=FLAGS.save_path, save_summaries_secs = 20)
         with sv.managed_session() as session:

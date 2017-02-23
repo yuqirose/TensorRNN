@@ -10,6 +10,7 @@ from tensorflow.models.rnn.ptb import reader
 import sys, os
 import argparse
 
+os.sys.path.append("../../")
 from models.seq_model import *
 from models.seq_input import *
 

@@ -21,22 +21,22 @@ class MatrixRNNCell(RNNCell):
 
     @property
     def state_size(self):
-        return self._num_units 
+        return self._num_units
 
     @property
     def output_size(self):
         return self._num_units
-    
+
     def __call__(self, inputs, states, scope=None):
         """Now we have multiple states, state->states"""
-        
+
         with vs.variable_scope(scope or "tensor_rnn_cell"):
             output = tensor_network_linear( inputs, states, self._num_units, True, scope=scope)
             new_state = self._activation(output)
         if self._state_is_tuple:
             new_state = (new_state)
         return new_state, new_state
-            
+
 
 class TensorRNNCell(RNNCell):
     """RNN cell with high order correlations"""
@@ -51,22 +51,22 @@ class TensorRNNCell(RNNCell):
 
     @property
     def state_size(self):
-        return self._num_units 
+        return self._num_units
 
     @property
     def output_size(self):
         return self._num_units
-    
+
     def __call__(self, inputs, states, scope=None):
         """Now we have multiple states, state->states"""
-        
+
         with vs.variable_scope(scope or "tensor_rnn_cell"):
             output = tensor_network_tt( inputs, states, self._num_units,self._rank_vals, True, scope=scope)
             new_state = self._activation(output)
         if self._state_is_tuple:
             new_state = (new_state)
         return new_state, new_state
-            
+
 
 def tensor_network_linear(inputs, states, output_size, bias, bias_start=0.0, scope=None):
     """tensor network [inputs, states]-> output with tensor models"""
@@ -74,24 +74,24 @@ def tensor_network_linear(inputs, states, output_size, bias, bias_start=0.0, sco
     states_tensor  = nest.flatten(states)
     total_inputs = [inputs]
     total_inputs.extend(states)
-    output = _linear(total_inputs, output_size, True, scope=scope) 
+    output = _linear(total_inputs, output_size, True, scope=scope)
     return output
 
 def tensor_network(inputs, states, output_size, num_orders, bias, bias_start=0.0, scope=None):
     """form a high-order full tenosr """
-    num_lags = len(states) 
+    num_lags = len(states)
     batch_size = inputs.get_shape()[0].value
     state_size = output_size #hidden layer size
     input_size= inputs.get_shape()[1].value
-    
+
     with vs.variable_scope(scope or "tensor_network"):
         total_state_size = (state_size * num_lags + 1 )
         mat_dims = np.ones((num_orders,)) * total_state_size
         mat_size = np.power(total_state_size, num_orders)
-        
+
         weights_x = vs.get_variable("weights_x", [input_size, output_size] )
         out_x = tf.matmul(inputs, weights_x)
-        weights_h = vs.get_variable("weights_h", [mat_size, output_size]) # h_z x h_z... x output_size 
+        weights_h = vs.get_variable("weights_h", [mat_size, output_size]) # h_z x h_z... x output_size
 
         #mat = tf.Variable(mat, name="weights")
         states_vector = tf.concat(1, states)
@@ -99,12 +99,12 @@ def tensor_network(inputs, states, output_size, num_orders, bias, bias_start=0.0
         """form high order state tensor"""
         states_tensor = states_vector
         for order in range(num_orders-1):
-            states_tensor = _outer_product(batch_size, states_tensor, states_vector) 
+            states_tensor = _outer_product(batch_size, states_tensor, states_vector)
         out_h = tf.reshape(states_tensor, [batch_size,-1]) # batch_size x hidden_size
         out_h = tf.matmul(out_h, weights_h)
         res = tf.reshape(tf.add(out_x, out_h) ,[-1, output_size],name="res")
         if not bias:
-            return 
+            return
         biases = vs.get_variable("biases", [output_size])
         return  nn_ops.bias_add(res,biases)
 
@@ -113,21 +113,21 @@ def tensor_network(inputs, states, output_size, num_orders, bias, bias_start=0.0
 def tensor_network_tt(inputs, states, output_size, rank_vals, bias, bias_start=0.0, scope=None):
     """tensor train decomposition for the full tenosr """
     num_orders = len(rank_vals)+1#alpha_1 to alpha_{K-1}
-    num_lags = len(states) 
+    num_lags = len(states)
     batch_size = inputs.get_shape()[0].value
     state_size = output_size #hidden layer size
     input_size= inputs.get_shape()[1].value
-    
+
     with vs.variable_scope(scope or "tensor_network_tt"):
         total_state_size = (state_size * num_lags + 1 )
         mat_dims = np.ones((num_orders,)) * total_state_size
         mat_ranks = np.concatenate(([1], rank_vals, [output_size]))
         mat_ps = np.cumsum(np.concatenate(([0], mat_ranks[:-1] * mat_dims * mat_ranks[1:])),dtype=np.int32)
         mat_size = mat_ps[-1]
-        
+
         weights_x = vs.get_variable("weights_x", [input_size, output_size] )
         out_x = tf.matmul(inputs, weights_x)
-        mat = vs.get_variable("weights_h", mat_size) # h_z x h_z... x output_size 
+        mat = vs.get_variable("weights_h", mat_size) # h_z x h_z... x output_size
 
         #mat = tf.Variable(mat, name="weights")
         states_vector = tf.concat(1, states)
@@ -135,9 +135,9 @@ def tensor_network_tt(inputs, states, output_size, rank_vals, bias, bias_start=0
         """form high order state tensor"""
         states_tensor = states_vector
         for order in range(num_orders-1):
-            states_tensor = _outer_product(batch_size, states_tensor, states_vector) 
+            states_tensor = _outer_product(batch_size, states_tensor, states_vector)
         out_h = tf.reshape(states_tensor, [batch_size,-1]) # batch_size x hidden_size
-        
+
         for i in range(num_orders):
             out_h = tf.reshape(out_h, [mat_ranks[i] * total_state_size, -1])
             mat_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]])
@@ -149,7 +149,7 @@ def tensor_network_tt(inputs, states, output_size, rank_vals, bias, bias_start=0
         out_h = tf.transpose(out_h, [1, 0])
         res = tf.reshape(tf.add(out_x, out_h) ,[-1, output_size],name="res")
         if not bias:
-            return 
+            return
         biases = vs.get_variable("biases", [output_size])
         return  nn_ops.bias_add(res,biases)
 
@@ -199,7 +199,7 @@ def tensor_rnn(cell, inputs, num_steps, num_lags, initial_states):
             # take num_lags history
             if time_step > 0:
                 tf.get_variable_scope().reuse_variables()
-            states = _list_to_states(states_list) 
+            states = _list_to_states(states_list)
             """input tensor is [batch_size, num_steps, input_size]"""
             input_slice = inputs[:, time_step, :]#tf.slice(inputs, [0,time_step, 0], [-1,num_lags, -1])
             (cell_output, state)=cell(input_slice, states)
@@ -207,11 +207,75 @@ def tensor_rnn(cell, inputs, num_steps, num_lags, initial_states):
             states_list = _shift(states_list, state)
     return outputs, states
 
+
+
+
+def tensor_rnn_with_feed_prev(cell, inputs, num_steps, num_lags, initial_states, vocab_size, is_training=False):
+    """High Order Recurrent Neural Network Layer
+    """
+    #tuple of 2-d tensor (batch_size, s)
+
+    _logits = []
+    _cell_outputs = []
+    _outputs = []
+    weights = {}
+    states_list = initial_states #list of high order states
+
+    prev = None
+    print(cell.state_size)
+    size = cell.state_size[1]
+
+    if not is_training:
+      print("Creating model @ not training --> Feeding output back into input.")
+    else:
+      print("Creating model @ training --> input = ground truth each timestep.")
+
+    def _hidden_to_input(h):
+      softmax_w = tf.get_variable("softmax_w", [size, vocab_size], dtype= tf.float32)
+      softmax_b = tf.get_variable("softmax_b", [vocab_size], dtype=tf.float32)
+      logits = tf.matmul(h, softmax_w) + softmax_b
+      return logits, softmax_w, softmax_b
+
+    with tf.variable_scope("tensor_rnn"):
+      for time_step in range(num_steps):
+
+        if time_step > 0:
+          tf.get_variable_scope().reuse_variables()
+
+        inp = inputs[:, time_step, :]
+
+        if not is_training and prev is not None:
+          inp, _, _ = _hidden_to_input(prev)
+
+        states = _list_to_states(states_list)
+        """input tensor is [batch_size, num_steps, input_size]"""
+        input_slice = inputs[:, time_step, :]#tf.slice(inputs, [0,time_step, 0], [-1,num_lags, -1])
+
+        (cell_output, state)=cell(input_slice, states)
+        _cell_outputs.append(cell_output)
+
+        states_list = _shift(states_list, state)
+
+        if not is_training:
+          prev = cell_output
+
+        output, w, b = _hidden_to_input(cell_output)
+        _outputs.append(output)
+
+      weights["softmax_w"] = w
+      weights["softmax_b"] = b
+
+    logits = tf.reshape(tf.concat(1, _outputs), [-1, vocab_size])
+
+    return logits, states, weights
+
+
+
 def _shift (input_list, new_item):
     """Update lag number of states"""
     output_list = copy.copy(input_list)
     output_list = deque(output_list)
-    output_list.append(new_item) 
+    output_list.append(new_item)
     output_list.rotate(1) # The deque is now: [3, 1, 2]
     output_list.popleft() # deque == [2, 3]
     return output_list
@@ -227,5 +291,5 @@ def _list_to_states(states_list):
             #c,h = states[layer] for LSTM
             output_state += (states[layer],)
         output_states += (output_state,)
-        # new cell has s*num_lags states 
+        # new cell has s*num_lags states
     return output_states

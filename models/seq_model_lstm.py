@@ -71,7 +71,7 @@ class PTBModel(object):
         feed_prev = not is_training if use_error_prop else False
 
         logits, states, weights = rnn_with_feed_prev._rnn_loop(cell, inputs,
-            num_steps, size, self._initial_state, vocab_size, feed_prev=feed_prev)
+            num_steps, size, self._initial_state, vocab_size, feed_prev=feed_prev, burn_in_steps=config.burn_in_steps)
         state = states[-1]
 
 

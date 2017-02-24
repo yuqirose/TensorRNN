@@ -28,6 +28,7 @@ echo $base_dir
 num_steps=50
 
 hidden_size=128
+burn_in_steps=5 # just for naming purposes
 
 save_path=$base_dir/basic_rnn
 python seq_train.py --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_steps=$num_steps $use_error

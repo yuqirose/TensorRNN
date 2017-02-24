@@ -25,6 +25,7 @@ exp=lorenz_mat_error_exp
 
 _num_steps=(12 50)
 hidden_size=128
+burn_in_steps=5 # just for naming purposes
 
 # With error-prop
 
@@ -33,7 +34,7 @@ do
 
 use_error= #--use_error_prop
 use_error_path=/no_feed_prev
-base_dir=/tmp/tensorcompress/log/$start_time/$exp/rollout_$num_steps$use_error_path
+base_dir=/tmp/tensorcompress/log/$start_time/$exp/rollout_$num_steps_burnin_$burn_in_steps$use_error_path
 echo $base_dir
 
 save_path=$base_dir/basic_rnn
@@ -56,7 +57,7 @@ python seq_train_tensor_einsum.py --data_path=$data_path --save_path=$save_path 
 
 use_error=--use_error_prop
 use_error_path=/feed_prev
-base_dir=/tmp/tensorcompress/log/$start_time/$exp/rollout_$num_steps$use_error_path
+base_dir=/tmp/tensorcompress/log/$start_time/$exp/rollout_$num_steps_burnin_$burn_in_steps$use_error_path
 echo $base_dir
 
 save_path=$base_dir/basic_rnn

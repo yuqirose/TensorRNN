@@ -395,7 +395,8 @@ def tensor_rnn(cell, inputs, num_steps, num_lags, initial_states):
     return outputs, states
 
 
-def tensor_rnn_with_feed_prev(cell, inputs, num_steps, size, num_lags, initial_states, vocab_size, feed_prev=False):
+def tensor_rnn_with_feed_prev(cell, inputs, num_steps, size, num_lags,
+    initial_states, vocab_size, feed_prev=False, burn_in_steps=0):
     """High Order Recurrent Neural Network Layer
     """
     #tuple of 2-d tensor (batch_size, s)
@@ -428,8 +429,10 @@ def tensor_rnn_with_feed_prev(cell, inputs, num_steps, size, num_lags, initial_s
 
         inp = inputs[:, time_step, :]
 
-        if feed_prev and prev is not None:
+
+        if feed_prev and prev is not None and timestep >= burn_in_steps:
           inp, _, _ = _hidden_to_input(prev)
+          print("t", timestep, ">=", burn_in_steps, "--> feeding back output into input.")
 
         states = _list_to_states(states_list)
         """input tensor is [batch_size, num_steps, input_size]"""

@@ -138,7 +138,7 @@ def tensor_network_tt(inputs, states, output_size, rank_vals, bias, bias_start=0
         for order in range(num_orders-1):
             states_tensor = _outer_product(batch_size, states_tensor, states_vector)
         out_h = tf.reshape(states_tensor, [batch_size,-1]) # batch_size x hidden_size
-
+        out_h = tf.transpose(out_h, [1,0])
         for i in range(num_orders):
             out_h = tf.reshape(out_h, [mat_ranks[i] * total_state_size, -1])
             mat_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]])
@@ -146,6 +146,9 @@ def tensor_network_tt(inputs, states, output_size, rank_vals, bias, bias_start=0
             mat_core = tf.transpose(mat_core, [1, 0])
 
             out_h = tf.matmul(mat_core, out_h)
+            out_h = tf.reshape(out_h, [1,-1])
+            out_h = tf.transpose(out_h, [1,0])
+            #print(i,out_h.get_shape())
         out_h = tf.reshape(out_h, [output_size, -1])
         out_h = tf.transpose(out_h, [1, 0])
         res = tf.reshape(tf.add(out_x, out_h) ,[-1, output_size],name="res")

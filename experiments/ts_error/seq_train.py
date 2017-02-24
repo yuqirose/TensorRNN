@@ -227,8 +227,8 @@ def main(_):
             print("Test Error: %.3f" % test_err)
             test_true = np.squeeze(np.asarray(test_data[1:]))
             test_pred = np.squeeze(test_pred)
-            rmse = np.sqrt(mean_squared_error (test_true, test_pred))
-            print("RMSE: %.3f" % rmse)
+            # rmse = np.sqrt(mean_squared_error (test_true, test_pred))
+            # print("RMSE: %.3f" % rmse)
             np.save(FLAGS.save_path+"predict.npy", [test_true, test_pred, test_err])
 
 

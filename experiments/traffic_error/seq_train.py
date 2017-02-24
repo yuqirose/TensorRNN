@@ -41,7 +41,7 @@ class TestConfig(object):
     init_scale = 0.1
     learning_rate = 1.0
     max_grad_norm = 1
-    num_layers = 2
+    num_layers = 1
     num_steps =12
     horizon =1
     hidden_size = 256

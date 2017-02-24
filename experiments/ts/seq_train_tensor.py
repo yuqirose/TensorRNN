@@ -47,7 +47,7 @@ class TestConfig(object):
   max_epoch = 20 # keep lr fixed
   max_max_epoch = int(50) # decaying lr
   keep_prob = 1.0 # dropout
-  lr_decay = 0.99
+  lr_decay = 0.9
   batch_size = 5
   vocab_size = 1340
 

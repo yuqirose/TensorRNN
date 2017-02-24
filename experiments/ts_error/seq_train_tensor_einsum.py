@@ -40,7 +40,7 @@ class TestConfig(object):
   init_scale = 0.1
   learning_rate = 1e-3
   max_grad_norm = 10
-  num_layers = 2
+  num_layers = 1
   num_steps = 12 # stops gradients after num_steps
   num_lags = 2 # num prev hiddens
   horizon = 1
@@ -50,7 +50,7 @@ class TestConfig(object):
   max_epoch = 20 # keep lr fixed
   max_max_epoch = int(50) # decaying lr
   keep_prob = 1.0 # dropout
-  lr_decay = 0.99
+  lr_decay = 0.9
   batch_size = 20
   vocab_size = 1340
 

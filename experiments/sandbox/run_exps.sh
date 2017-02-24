@@ -21,7 +21,7 @@ data_path=/cs/ml/datasets/stephan/tensorcompress/lorenz_series.pkl
 
 exp=lorenz_error_exp
 
-base_dir=/tmp/tensorcompress/log/$exp${use_error//--/""}/$start_time
+base_dir=/tmp/tensorcompress/log/$exp_${use_error//--/""}/$start_time
 
 echo $base_dir
 

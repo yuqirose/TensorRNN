@@ -33,6 +33,8 @@ class PTBModel(object):
     if is_training and config.keep_prob < 1:
       inputs = tf.nn.dropout(inputs, config.keep_prob)
 
+    print("num_steps:", num_steps)
+
     print("Predictions now computed inside cell.")
     feed_prev = not is_training if use_error_prop else False
     logits, state, weights  = tensor_rnn_with_feed_prev(cell, inputs, num_steps, size,

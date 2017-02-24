@@ -27,6 +27,8 @@ class PTBModel(object):
 
     self._initial_states = initial_states
 
+    print("num_steps:", num_steps)
+
     with tf.device("/cpu:0"):
       inputs = input_.input_data
 

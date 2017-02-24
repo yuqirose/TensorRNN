@@ -66,7 +66,7 @@ class PTBModel(object):
         # softmax_b = tf.get_variable("softmax_b", [vocab_size], dtype=tf.float32)
         # logits = tf.matmul(output, softmax_w) + softmax_b
 
-
+        print("num_steps:", num_steps)
 
         feed_prev = not is_training if use_error_prop else False
 

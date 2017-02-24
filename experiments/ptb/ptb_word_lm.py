@@ -78,6 +78,9 @@ flags.DEFINE_bool("use_fp16", False,
 flags.DEFINE_bool("use_error_prop", False,
                   "Feed previous output as input in RNN")
 
+
+flags.DEFINE_integer("num_steps", 12,
+                  "Output sequence length")
 FLAGS = flags.FLAGS
 
 
@@ -321,7 +324,7 @@ def main(_):
     config = get_config()
     eval_config = get_config()
     eval_config.batch_size = 1
-    eval_config.num_steps = 1
+    eval_config.num_steps = FLAGS.num_steps
 
     with tf.Graph().as_default():
         initializer = tf.random_uniform_initializer(-config.init_scale,

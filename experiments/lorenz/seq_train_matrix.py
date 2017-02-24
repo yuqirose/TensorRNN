@@ -28,6 +28,9 @@ flags.DEFINE_bool("use_error_prop", False,
 flags.DEFINE_integer('hidden_size', 256, "number of hidden unit")
 flags.DEFINE_float('learning_rate', 1e-3, "learning rate of trainig")
 
+
+flags.DEFINE_integer("num_steps", 12,
+                  "Output sequence length")
 FLAGS = flags.FLAGS
 
 
@@ -112,7 +115,7 @@ def main(_):
     eval_config = TestConfig()
     eval_config.hidden_size = FLAGS.hidden_size
     eval_config.batch_size = 1
-    eval_config.num_steps = 1
+    eval_config.num_steps = FLAGS.num_steps
     eval_config.vocab_size = config.vocab_size
     with tf.Graph().as_default():
         initializer = tf.random_uniform_initializer(-config.init_scale,

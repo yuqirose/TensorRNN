@@ -31,6 +31,9 @@ from utils.train_utils import *
 
 # Basic model parameters as external flags.
 flags = tf.app.flags
+
+flags.DEFINE_integer("num_steps", 12,
+                  "Output sequence length")
 FLAGS = flags.FLAGS
 flags.DEFINE_integer('max_steps', int(1e5), 'Number of steps to run trainer.')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.  '
@@ -46,7 +49,7 @@ MNIST dataset
 from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets(FLAGS.data_dir+'/MNIST_data', one_hot=False)
 
-def evaluation(sess,            
+def evaluation(sess,
             eval_correct,
             loss,
             data_set):
@@ -65,7 +68,7 @@ def evaluation(sess,
     num_examples = steps_per_epoch * FLAGS.batch_size
     sum_loss = 0.0
     for step in xrange(steps_per_epoch):
-        feed_dict = fill_feed_dict(data_set.next_batch(FLAGS.batch_size),                                   
+        feed_dict = fill_feed_dict(data_set.next_batch(FLAGS.batch_size),
                                    train_phase=False)
         res = sess.run([loss, eval_correct], feed_dict=feed_dict)
         sum_loss += res[0]
@@ -76,7 +79,7 @@ def evaluation(sess,
           (num_examples, true_count, precision, avg_loss))
     return precision, avg_loss
 
-    
+
 
 def run_training(extra_opts={}):
     start = datetime.datetime.now()
@@ -99,31 +102,31 @@ def run_training(extra_opts={}):
 
         precision_validation_summary = tf.scalar_summary('precision/validation',
                                                          precision_validation,
-                                                         name='summary/precision/validation')                                                                
+                                                         name='summary/precision/validation')
         graph = tf.get_default_graph()
         loss = graph.get_tensor_by_name('loss:0')
         train_op = graph.get_tensor_by_name('train_op:0')
         correct_count = graph.get_tensor_by_name('correct_count:0')
-        #Create summary stuff        
+        #Create summary stuff
         regular_summaries_names = ['loss', 'learning_rate']
         regular_summaries_list = []
         for name in regular_summaries_names:
-            summary = graph.get_tensor_by_name('summary/' + name + ':0')            
+            summary = graph.get_tensor_by_name('summary/' + name + ':0')
             regular_summaries_list.append(summary)
         regular_summaries = tf.merge_summary(regular_summaries_list, name='summary/regular_summaries')
         # Create a saver for writing training checkpoints.
-        saver = tf.train.Saver()        
-        # Run the Op to initialize the variables.        
+        saver = tf.train.Saver()
+        # Run the Op to initialize the variables.
         init = tf.initialize_all_variables()
 
-        # Create a session for running Ops on the Graph.        
+        # Create a session for running Ops on the Graph.
         sess = tf.Session(graph=graph,
                           config=tf.ConfigProto(intra_op_parallelism_threads=3, inter_op_parallelism_threads = 3))
-        sess.run(init)        
+        sess.run(init)
         # Instantiate a SummaryWriter to output summaries and the Graph.
         summary_writer = tf.train.SummaryWriter(FLAGS.log_dir,
-                                                graph_def=sess.graph_def)        
-        # And then after everything is built, start the training loop.        
+                                                graph_def=sess.graph_def)
+        # And then after everything is built, start the training loop.
         for step in xrange(1, FLAGS.max_steps + 1):
             start_time = time.time()
             # Fill a feed dictionary with the actual set of images and labels
@@ -133,7 +136,7 @@ def run_training(extra_opts={}):
             # from the `train_op` (which is discarded) and the `loss` Op.  To
             # inspect the values of your Ops or variables, you may include them
             # in the list passed to sess.run() and the value tensors will be
-            # returned in the tuple from the call.            
+            # returned in the tuple from the call.
 
 
             _, loss_value = sess.run([train_op, loss],
@@ -142,8 +145,8 @@ def run_training(extra_opts={}):
             # Write the summaries and print an overview fairly often.
             if step % FLAGS.overview_steps == 0:
                 # Print status to stdout.
-                data_per_sec = FLAGS.batch_size / duration 
-                print('Step %d: loss = %.2f (%.3f sec) [%.2f data/s]' % 
+                data_per_sec = FLAGS.batch_size / duration
+                print('Step %d: loss = %.2f (%.3f sec) [%.2f data/s]' %
                       (step, loss_value, duration, data_per_sec))
                 # Update the events file.
                 summary_str = sess.run(regular_summaries, feed_dict=feed_dict)
@@ -158,7 +161,7 @@ def run_training(extra_opts={}):
                                              correct_count,
                                              loss,
                                              train)
-                sess.run(precision_train.assign(precision_t))                
+                sess.run(precision_train.assign(precision_t))
 
                 # Evaluate against the validation set.
                 print('Validation Data Eval:')
@@ -168,7 +171,7 @@ def run_training(extra_opts={}):
                                              validation)
                 sess.run(precision_validation.assign(precision_v))
 
-                summary_str_0, summary_str_1 = sess.run([precision_train_summary, precision_validation_summary])                                
+                summary_str_0, summary_str_1 = sess.run([precision_train_summary, precision_validation_summary])
                 summary_writer.add_summary(summary_str_0, step)
                 summary_writer.add_summary(summary_str_1, step)
                 if not os.path.exists('./results'):
@@ -183,16 +186,16 @@ def run_training(extra_opts={}):
                 res_file.write('Train loss: {0:.5f}\n'.format(obj_t))
                 res_file.write('Validation precision: {0:.5f}\n'.format(precision_v))
                 res_file.write('Validation loss: {0:.5f}\n'.format(obj_v))
-                res_file.write('Extra opts: ' + str(extra_opts) + '\n')                            
+                res_file.write('Extra opts: ' + str(extra_opts) + '\n')
                 res_file.write('Code:\n')
                 net_file = open('./net.py', 'r')
                 shutil.copyfileobj(net_file, res_file)
                 net_file.close()
                 res_file.close()
-                
+
             summary_writer.close()
         return {'precision':precision_v}
-    
+
 def main(_):
 #     layer_ranks = []
 #     layer_ranks.append(np.array([1, 7, 7, 7, 1], dtype='int32'))
@@ -209,9 +212,9 @@ def main(_):
     layer['inp_modes'] = layer['out_modes']
     layer['out_modes'] = np.array([2, 2, 5, 5], dtype='int32') # 100
     layers.append(layer) #100
-    
 
-    
+
+
     err_rslt = []
     compres_rate = []
     for rank_val in range(4,12,1):# 8 points
@@ -219,7 +222,7 @@ def main(_):
         tt_layer_ranks = [np.hstack(([1],np.ones(3, dtype='int32')*rank_val,[1])),
                               np.hstack(([1],np.ones(3, dtype='int32')*rank_val,[1]))]
         extra_opts['ranks_1'] = tt_layer_ranks[0]
-        extra_opts['ranks_2'] = tt_layer_ranks[1] 
+        extra_opts['ranks_2'] = tt_layer_ranks[1]
         rate = compres_ratio_tt(layers, tt_layer_ranks)
         compres_rate.append(rate)
         rslt = run_training(extra_opts)

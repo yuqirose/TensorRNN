@@ -221,8 +221,11 @@ def main(_):
                 if abs(valid_err_old - valid_err) < epsilon:
                     break
                 valid_err_old = valid_err
+
             test_err, test_pred= run_epoch(session, mtest)
+
             print("Test Error: %.3f" % test_err)
+
             test_true = np.squeeze(np.asarray(test_data[1:]))
             test_pred = np.squeeze(test_pred)
             rmse = np.sqrt(mean_squared_error (test_true, test_pred))

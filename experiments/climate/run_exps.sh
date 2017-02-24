@@ -16,10 +16,10 @@ d=$(echo ${d} | tr '/' '-')
 start_time="$d-$t"
 
 use_error= #--use_error_prop
-data_path=/cs/ml/datasets/stephan/tensorcompress/chaotic_ts.pkl
+data_path=/cs/ml/datasets/stephan/tensorcompress/ushcn_CA_0.pkl
 # chaotic_ts_mat.pkl  chaotic_ts.pkl  lorenz_series_mat.pkl  lorenz_series.pkl  traffic_9sensors.pkl  ushcn_CA.pkl
 
-exp=ts_error_exp
+exp=climate_error_exp
 
 base_dir=/tmp/tensorcompress/log/$exp_${use_error//--/""}/$start_time
 

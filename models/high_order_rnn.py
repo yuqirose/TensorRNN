@@ -77,6 +77,7 @@ def tensor_network_linear(inputs, states, output_size, bias, bias_start=0.0, sco
     output = _linear(total_inputs, output_size, True, scope=scope)
     return output
 
+
 def tensor_network(inputs, states, output_size, num_orders, bias, bias_start=0.0, scope=None):
     """form a high-order full tenosr """
     num_lags = len(states)
@@ -164,6 +165,7 @@ def _outer_product(batch_size, tensor, vector):
     res = tf.reshape(res, new_shape )
     return res
 
+
 def _shape_value(tensor):
     shape = tensor.get_shape()
     return [s.value for s in shape]
@@ -188,6 +190,7 @@ def _linear(args, output_size, bias, bias_start=0.0, scope=None):
             biases = vs.get_variable("biases", [output_size], dtype=dtype)
     return  nn_ops.bias_add(res,biases)
 
+
 def tensor_rnn(cell, inputs, num_steps, num_lags, initial_states):
     """High Order Recurrent Neural Network Layer
     """
@@ -206,8 +209,6 @@ def tensor_rnn(cell, inputs, num_steps, num_lags, initial_states):
             outputs.append(cell_output)
             states_list = _shift(states_list, state)
     return outputs, states
-
-
 
 
 def tensor_rnn_with_feed_prev(cell, inputs, num_steps, size, num_lags, initial_states, vocab_size, feed_prev=False):

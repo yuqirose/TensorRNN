@@ -2,7 +2,6 @@ import tensorflow as tf
 from tensorflow.python.ops.math_ops import sigmoid
 from high_order_rnn import TensorRNNCell, tensor_rnn, tensor_rnn_with_feed_prev
 class PTBModel(object):
-  """The PTB model."""
 
   def __init__(self, is_training, config, input_, use_error_prop=False):
     self._input = input_
@@ -13,13 +12,8 @@ class PTBModel(object):
     vocab_size = config.vocab_size
     num_lags = config.num_lags
     rank_vals = config.rank_vals
-    # Slightly better results can be obtained with forget gate biases
-    # initialized to 1 but the hyperparameters of the model would need to be
-    # different than reported in the paper.
-
 
     initializer = tf.random_uniform_initializer(-1,1)
-    #lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(size, forget_bias=0.0, state_is_tuple=True)
     rnn_cell = TensorRNNCell(size, num_lags, rank_vals)
 
     if is_training and config.keep_prob < 1:
@@ -28,54 +22,21 @@ class PTBModel(object):
     cell = tf.nn.rnn_cell.MultiRNNCell([rnn_cell] * config.num_layers, state_is_tuple=True)
     initial_states = []
     for lag in range(num_lags):
-      # initial_state: tuple of len num_layers, each element state_size(2 for lstm,c,h) x batch_size x input_size
       initial_state =  cell.zero_state(batch_size, dtype= tf.float32)
       initial_states.append(initial_state)
+
     self._initial_states = initial_states
+
     with tf.device("/cpu:0"):
       inputs = input_.input_data
-      """
-      embedding = tf.get_variable(
-        "embedding", [vocab_size, size], dtype=data_type())
-      inputs = tf.nn.embedding_lookup(embedding, input_.input_data)
-      """
 
     if is_training and config.keep_prob < 1:
       inputs = tf.nn.dropout(inputs, config.keep_prob)
 
-    # Simplified version of tensorflow.models.rnn.rnn.py's rnn().
-    # This builds an unrolled LSTM for tutorial purposes only.
-    # In general, use the rnn() or state_saving_rnn() from rnn.py.
-    #
-    # The alternative version of the code below is:
-    #
-    # inputs = [tf.squeeze(input_step, [1])
-    #           for input_step in tf.split(1, num_steps, inputs)]
-    # outputs, state = tf.nn.rnn(cell, inputs, initial_state=self._initial_state)
-#         outputs = []
-    # state = self._initial_state
-    # with tf.variable_scope("RNN"):
-      # for time_step in range(num_steps):
-        # if time_step > 0: tf.get_variable_scope().reuse_variables()
-        # (cell_output, state) = cell(inputs[:, time_step, :], state)
-        # outputs.append(cell_output)
     print("Predictions now computed inside cell.")
     feed_prev = not is_training if use_error_prop else False
     logits, state, weights  = tensor_rnn_with_feed_prev(cell, inputs, num_steps, size,
       num_lags, self._initial_states, vocab_size, feed_prev=feed_prev)
-
-    # This happens inside the cell now
-    # output = tf.reshape(tf.concat(1, outputs), [-1, size]) #(batch_size * num_steps) x hidden_size
-    # softmax_w = tf.get_variable(
-    #   "softmax_w", [size, vocab_size], dtype= tf.float32)
-    # softmax_b = tf.get_variable("softmax_b", [vocab_size], dtype=tf.float32)
-    # """logits: batch_size x num_steps"""
-    # logits = tf.matmul(output, softmax_w) + softmax_b
-
-    #rescale y = scale_w x  + scale_b
-    #scale_w = tf.get_variable("scale_w", [vocab_size], dtype=tf.float32)
-    #scale_b = tf.get_variable("scale_b", [vocab_size], dtype=tf.float32)
-    #logits = tf.mul(logits, scale_w) + scale_b
 
     softmax_w, softmax_b = weights["softmax_w"], weights["softmax_b"]
 
@@ -93,12 +54,9 @@ class PTBModel(object):
 
     self._lr = tf.Variable(0.0, trainable=False)
     tvars = tf.trainable_variables()
-    grads, _ = tf.clip_by_global_norm(tf.gradients(cost, tvars),
-                      config.max_grad_norm)
-    # optimizer = tf.train.GradientDescentOptimizer(self._lr)
+    grads, _ = tf.clip_by_global_norm(tf.gradients(cost, tvars), config.max_grad_norm)
     optimizer = tf.train.AdamOptimizer(self._lr)
-    self._train_op = optimizer.apply_gradients(
-      zip(grads, tvars),
+    self._train_op = optimizer.apply_gradients(zip(grads, tvars),
       global_step=tf.contrib.framework.get_or_create_global_step())
 
     self._new_lr = tf.placeholder(

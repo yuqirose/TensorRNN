@@ -24,7 +24,7 @@ exp=ts_mat_error_exp
 
 
 
-_num_steps=(12, 50)
+_num_steps=(12 50)
 hidden_size=128
 
 # With error-prop

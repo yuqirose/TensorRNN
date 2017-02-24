@@ -16,6 +16,7 @@ d=$(echo ${d} | tr '/' '-')
 start_time="$d-$t"
 
 use_error=--use_error_prop
+use_error_path=/feed_prev
 data_path=/cs/ml/datasets/stephan/tensorcompress/lorenz_series.pkl
 # chaotic_ts_mat.pkl  chaotic_ts.pkl  lorenz_series_mat.pkl  lorenz_series.pkl  traffic_9sensors.pkl  ushcn_CA.pkl
 

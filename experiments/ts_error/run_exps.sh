@@ -16,6 +16,7 @@ d=$(echo ${d} | tr '/' '-')
 start_time="$d-$t"
 
 use_error=--use_error_prop
+use_error_path=/feed_prev
 data_path=/cs/ml/datasets/stephan/tensorcompress/chaotic_ts.pkl
 # chaotic_ts_mat.pkl  chaotic_ts.pkl  lorenz_series_mat.pkl  lorenz_series.pkl  traffic_9sensors.pkl  ushcn_CA.pkl
 
@@ -24,7 +25,7 @@ exp=ts_error_exp
 num_steps=50
 hidden_size=128
 
-base_dir=/tmp/tensorcompress/log/$exp${use_error//--/""}/$start_time/rollout_$num_steps
+base_dir=/tmp/tensorcompress/log/$exp/rollout_$num_steps$use_error_path/$start_time
 echo $base_dir
 
 save_path=$base_dir/basic_rnn

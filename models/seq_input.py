@@ -39,10 +39,10 @@ def ptb_producer_rnd(raw_data, is_training, batch_size, num_steps, horizon, name
             j = tf.train.range_input_producer(i%num_sources, shuffle=False).dequeue()
             x = tf.squeeze(tf.slice(data, [0, i , 0 ,j], [batch_size, num_steps, data_dim, 1]),[3])
             y = tf.squeeze(tf.slice(data, [0, i + horizon, 0, j], [batch_size, num_steps, data_dim , 1]),[3])
-        else: 
+        else:
             i = tf.train.range_input_producer(epoch_size, shuffle=False).dequeue()
             j = tf.train.range_input_producer(i%num_sources, shuffle=False).dequeue()
-            
+
             x = tf.squeeze(tf.slice(data, [0, i*num_steps, 0, j], [batch_size, num_steps, data_dim, 1]), [3])
             y = tf.squeeze(tf.slice(data, [0, i*num_steps + horizon, 0, j], [batch_size, num_steps, data_dim, 1]), [3])
 
@@ -57,7 +57,7 @@ def ptb_producer(raw_data, is_training, batch_size, num_steps, horizon, name):
     with tf.name_scope(name, "PTBProducer", [raw_data, batch_size, num_steps]):
         (data_len,data_dim) = np.shape(raw_data)
         raw_data = tf.convert_to_tensor(raw_data, name="raw_data", dtype=tf.float32)
-      
+
         batch_len = data_len // batch_size
         data = tf.reshape(raw_data[0 : batch_size * batch_len,:],
                           [batch_size, batch_len, -1])
@@ -72,7 +72,7 @@ def ptb_producer(raw_data, is_training, batch_size, num_steps, horizon, name):
             i = tf.train.range_input_producer(batch_len-num_steps-horizon, shuffle=True).dequeue()
             x = tf.slice(data, [0, i , 0], [batch_size, num_steps, data_dim])
             y = tf.slice(data, [0, i + horizon, 0], [batch_size, num_steps, data_dim])
-        else: 
+        else:
             i = tf.train.range_input_producer(epoch_size, shuffle=False).dequeue()
             x = tf.slice(data, [0, i*num_steps, 0], [batch_size, num_steps, data_dim])
             y = tf.slice(data, [0, i*num_steps + horizon, 0], [batch_size, num_steps, data_dim])
@@ -88,8 +88,12 @@ class PTBInput(object):
         self.vocab_size = vocab_size = config.vocab_size
         self.epoch_size = ((len(data) // batch_size) - 1) // num_steps
         self.horizon = horizon = config.horizon
-        self.input_data, self.targets = ptb_producer(
-            data, is_training, batch_size, num_steps, horizon, name=name)
+        if np.ndim(data)==2:
+            self.input_data, self.targets = ptb_producer(
+                data, is_training, batch_size, num_steps, horizon, name=name)
+        else:
+            self.input_data, self.targets = ptb_producer_rnd(
+                data, is_training, batch_size, num_steps, horizon, name=name)
 
 class PTBInputRnd(object):
     """The input data with sequence sub-sampled sequences from sources"""

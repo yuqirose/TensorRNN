@@ -88,8 +88,13 @@ class PTBInput(object):
         self.vocab_size = vocab_size = config.vocab_size
         self.epoch_size = ((len(data) // batch_size) - 1) // num_steps
         self.horizon = horizon = config.horizon
-        self.input_data, self.targets = ptb_producer(
-            data, is_training, batch_size, num_steps, horizon, name=name)
+        if np.ndim(data)==2:
+            self.input_data, self.targets = ptb_producer(
+                data, is_training, batch_size, num_steps, horizon, name=name)
+        else:
+            self.input_data, self.targets = ptb_producer_rnd(
+                data, is_training, batch_size, num_steps, horizon, name=name)
+
 
 class PTBInputRnd(object):
     """The input data with sequence sub-sampled sequences from sources"""

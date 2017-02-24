@@ -42,7 +42,7 @@ def _rnn_loop(cell, inputs, num_steps, hidden_size, initial_state, vocab_size, f
 
             if feed_prev and prev is not None and time_step >= burn_in_steps:
                 inp, _, _ = _hidden_to_input(prev)
-                print("t", timestep, ">=", burn_in_steps, "--> feeding back output into input.")
+                print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
 
             (cell_output, state) = cell(inp, state)
             _cell_outputs.append(cell_output)

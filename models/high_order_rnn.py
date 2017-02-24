@@ -432,7 +432,7 @@ def tensor_rnn_with_feed_prev(cell, inputs, num_steps, size, num_lags,
 
         if feed_prev and prev is not None and time_step >= burn_in_steps:
           inp, _, _ = _hidden_to_input(prev)
-          print("t", timestep, ">=", burn_in_steps, "--> feeding back output into input.")
+          print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
 
         states = _list_to_states(states_list)
         """input tensor is [batch_size, num_steps, input_size]"""

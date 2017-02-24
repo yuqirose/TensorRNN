@@ -40,7 +40,7 @@ def _rnn_loop(cell, inputs, num_steps, hidden_size, initial_state, vocab_size, f
 
             inp = inputs[:, time_step, :]
 
-            if feed_prev and prev is not None and timestep >= burn_in_steps:
+            if feed_prev and prev is not None and time_step >= burn_in_steps:
                 inp, _, _ = _hidden_to_input(prev)
                 print("t", timestep, ">=", burn_in_steps, "--> feeding back output into input.")
 

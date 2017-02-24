@@ -430,7 +430,7 @@ def tensor_rnn_with_feed_prev(cell, inputs, num_steps, size, num_lags,
         inp = inputs[:, time_step, :]
 
 
-        if feed_prev and prev is not None and timestep >= burn_in_steps:
+        if feed_prev and prev is not None and time_step >= burn_in_steps:
           inp, _, _ = _hidden_to_input(prev)
           print("t", timestep, ">=", burn_in_steps, "--> feeding back output into input.")
 

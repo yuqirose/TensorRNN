@@ -29,7 +29,7 @@ flags.DEFINE_bool("use_fp16", False,
 flags.DEFINE_bool("use_error_prop", False,
                   "Feed previous output as input in RNN")
 flags.DEFINE_integer('hidden_size', 256, "number of hidden unit")
-flags.DEFINE_float('learning_rate', 5e-3, "learning rate of trainig")
+flags.DEFINE_float('learning_rate', 1e-3, "learning rate of trainig")
 FLAGS = flags.FLAGS
 
 
@@ -43,7 +43,7 @@ class TestConfig(object):
     num_steps =12
     horizon = 1
     hidden_size = 64
-    max_epoch = 10
+    max_epoch = 20
     max_max_epoch = 50
     keep_prob = 1.0
     lr_decay = 0.9
@@ -106,7 +106,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
     predicts = predicts.flatten()
     targets = targets.flatten()
 
-    return final_cost, predicts, targets
+    return final_cost, predicts
 
 
 def main(_):
@@ -147,24 +147,29 @@ def main(_):
                 mtest = PTBModel(is_training=False, config=eval_config,
                                  input_=test_input)
             tf.summary.scalar("Test_Loss", mtest.cost)
+        
         sv = tf.train.Supervisor(logdir=FLAGS.save_path, save_summaries_secs=20)
-        with sv.managed_session() as session:
+        sess_config = tf.ConfigProto()
+        sess_config.gpu_options.allow_growth = True
+        sess_config.gpu_options.per_process_gpu_memory_fraction = 0.2
+        with sv.managed_session(config=sess_config) as session:
+        
             for i in range(config.max_max_epoch):
                 lr_decay = config.lr_decay ** max(i + 1 - config.max_epoch, 0.0)
                 m.assign_lr(session, config.learning_rate * lr_decay)
 
                 print("Epoch: %d Learning rate: %.3f" % (i + 1, session.run(m.lr)))
-                train_err, _ ,_= run_epoch(session, m, eval_op=m.train_op,
+                train_err,_= run_epoch(session, m, eval_op=m.train_op,
                                              verbose=True)
                 print("Epoch: %d Train Error: %.3f" % (i + 1, train_err))
-                valid_err,_ ,_= run_epoch(session, mvalid)
+                valid_err,_= run_epoch(session, mvalid)
                 print("Epoch: %d Valid Error: %.3f" % (i + 1, valid_err))
 
-            test_err, test_pred, test_target= run_epoch(session, mtest)
+            test_err, test_pred= run_epoch(session, mtest)
             print("Test Error: %.3f" % test_err)
             test_true = np.squeeze(np.asarray(test_data[1:]))
             test_pred = np.squeeze(test_pred)
-            np.save(FLAGS.save_path+"predict.npy", [test_true, test_target, test_pred, test_err])
+            np.save(FLAGS.save_path+"predict.npy", [test_true, test_pred, test_err])
 
 
 

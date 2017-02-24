@@ -10,7 +10,7 @@ import sys, os
 os.sys.path.append("../../")
 from models.seq_model_tensor import *
 from models.seq_input import *
-os.environ["CUDA_VISIBLE_DEVICES"]=""
+#os.environ["CUDA_VISIBLE_DEVICES"]=""
 
 flags = tf.flags
 logging = tf.logging
@@ -36,7 +36,7 @@ class TestConfig(object):
   """Tiny config, for testing."""
   init_scale = 0.1
   learning_rate = 1e-3
-  max_grad_norm = 10
+  max_grad_norm = 1
   num_layers = 2
   num_steps = 12 # stops gradients after num_steps
   num_lags = 2 # num prev hiddens
@@ -44,10 +44,10 @@ class TestConfig(object):
   #num_orders = 2 # tensor prod order
   rank_vals= [1]
   hidden_size = 64 # dim of h
-  max_epoch = 20 # keep lr fixed
-  max_max_epoch = int(50) # decaying lr
+  max_epoch = 5 # keep lr fixed
+  max_max_epoch = int(10) # decaying lr
   keep_prob = 1.0 # dropout
-  lr_decay = 0.99
+  lr_decay = 0.9
   batch_size = 5
   vocab_size = 1340
 
@@ -144,10 +144,12 @@ def main(_):
         mtest = PTBModel(is_training=False, config=eval_config,
                  input_=test_input)
       tf.summary.scalar("Test_Loss", mtest.cost)
-      tf.summary.scalar("Test_Predict", mtest.predict[0][0])
 
     sv = tf.train.Supervisor(logdir=FLAGS.save_path, save_summaries_secs=20)
-    with sv.managed_session() as session:
+    sess_config = tf.ConfigProto()
+    sess_config.gpu_options.allow_growth = True
+    sess_config.gpu_options.per_process_gpu_memory_fraction = 0.2
+    with sv.managed_session(config=sess_config) as session:
       for i in range(config.max_max_epoch):
         lr_decay = config.lr_decay ** max(i + 1 - config.max_epoch, 0.0)
         m.assign_lr(session, config.learning_rate * lr_decay)

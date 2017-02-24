@@ -18,7 +18,7 @@ logging = tf.logging
 flags.DEFINE_string(
     "model", "small",
     "A type of model. Possible options are: small, medium, large.")
-flags.DEFINE_string("data_path", "../../../chaotic_ts_mat.pkl",
+flags.DEFINE_string("data_path", "../../../chaotic_ts.pkl",
                     "Where the training/test data is stored.")
 flags.DEFINE_string("save_path", "/tmp/tensorcompress/log/ts_exp/matrix_rnn_mat/",
                     "Model output directory.")
@@ -136,9 +136,14 @@ def main(_):
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
                 mtest = PTBModel(is_training=False, config=eval_config,
                                  input_=test_input)
+            tf.summary.scalar("Test_Loss", mtest.cost)
 
-        sv = tf.train.Supervisor(logdir=FLAGS.save_path)
-        with sv.managed_session() as session:
+        sv = tf.train.Supervisor(logdir=FLAGS.save_path, save_summaries_secs=20)
+        sess_config = tf.ConfigProto()
+        sess_config.gpu_options.allow_growth = True
+        sess_config.gpu_options.per_process_gpu_memory_fraction = 0.2
+        with sv.managed_session(config=sess_config) as session:
+        
             for i in range(config.max_max_epoch):
                 lr_decay = config.lr_decay ** max(i + 1 - config.max_epoch, 0.0)
                 m.assign_lr(session, config.learning_rate * lr_decay)

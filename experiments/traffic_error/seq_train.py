@@ -41,7 +41,7 @@ class TestConfig(object):
     init_scale = 0.1
     learning_rate = 1.0
     max_grad_norm = 1
-    num_layers = 2
+    num_layers = 1
     num_steps =12
     horizon =1
     hidden_size = 256
@@ -221,8 +221,11 @@ def main(_):
                 if abs(valid_err_old - valid_err) < epsilon:
                     break
                 valid_err_old = valid_err
+
             test_err, test_pred= run_epoch(session, mtest)
+
             print("Test Error: %.3f" % test_err)
+
             test_true = np.squeeze(np.asarray(test_data[1:]))
             test_pred = np.squeeze(test_pred)
             rmse = np.sqrt(mean_squared_error (test_true, test_pred))

@@ -39,7 +39,7 @@ class TestConfig(object):
     init_scale = 0.1
     learning_rate = 1.0
     max_grad_norm = 1
-    num_layers = 2
+    num_layers = 1
     num_steps =12
     horizon = 1
     hidden_size = 64
@@ -168,7 +168,7 @@ def main(_):
             print("Test Error: %.3f" % test_err)
             test_true = np.squeeze(np.asarray(test_data[1:]))
             test_pred = np.squeeze(test_pred)
-            np.save(FLAGS.save_path+"predict.npy", [test_true, test_target, test_pred, test_err])
+            np.save(FLAGS.save_path+"predict.npy", [test_true, test_pred, test_err])
 
 
 

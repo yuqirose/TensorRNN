@@ -9,7 +9,7 @@ from tensorflow.models.rnn.ptb import reader
 import sys, os
 
 os.sys.path.append("../../")
-from models.seq_model_tensor import *
+from models.seq_model_tensor_einsum import *
 from models.seq_input import *
 os.environ["CUDA_VISIBLE_DEVICES"]=""
 
@@ -39,7 +39,7 @@ class TestConfig(object):
   """Tiny config, for testing."""
   init_scale = 0.1
   learning_rate = 1e-3
-  max_grad_norm = 10
+  max_grad_norm = 1
   num_layers = 1
   num_steps = 12 # stops gradients after num_steps
   num_lags = 2 # num prev hiddens

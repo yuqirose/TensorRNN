@@ -167,7 +167,7 @@ def main(_):
             print("Test Error: %.3f" % test_err)
             test_true = np.squeeze(np.asarray(test_data[1:]))
             test_pred = np.squeeze(test_pred)
-            np.save(FLAGS.save_path+"predict.npy", [test_true, test_target, test_pred, test_err])
+            np.save(FLAGS.save_path+"predict.npy", [test_true, test_pred, test_err])
 
 
 

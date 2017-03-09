@@ -140,7 +140,6 @@ def tensor_network(inputs, states, output_size, num_orders, bias, bias_start=0.0
         return  nn_ops.bias_add(res,biases)
 
 
-
 def tensor_network_tt(inputs, states, output_size, rank_vals, bias, bias_start=0.0, scope=None):
     """tensor train decomposition for the full tenosr """
     num_orders = len(rank_vals)+1#alpha_1 to alpha_{K-1}
@@ -255,6 +254,7 @@ def tensor_network_tt_einsum(inputs, states, output_size, rank_vals, bias, bias_
         return indices
 
       def _get_einsum(i, s2):
+        #
         s1 = _get_indices(i)
         _s1 = s1.replace(s1[1], "")
         _s2 = s2.replace(s2[1], "")
@@ -295,9 +295,7 @@ def tensor_network_tt_einsum(inputs, states, output_size, rank_vals, bias, bias_
 
         print mat_core.get_shape().as_list()
 
-        ss, _s3 = _get_einsum(i, x)
-        einsum = ss
-        x = _s3
+        einsum, x = ss, _s3 = _get_einsum(i, x)
 
         print "order", i, ss
 

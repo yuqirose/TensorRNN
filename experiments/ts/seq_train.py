@@ -31,7 +31,6 @@ flags.DEFINE_bool("use_fp16", False,
 flags.DEFINE_bool("use_error_prop", False,
                   "Feed previous output as input in RNN")
 flags.DEFINE_integer('hidden_size', 256, "number of hidden unit")
-flags.DEFINE_float('learning_rate', 1e-3, "learning rate of trainig")
 FLAGS = flags.FLAGS
 
 
@@ -121,7 +120,7 @@ def main(_):
     eval_config = TestConfig()
     eval_config.hidden_size = FLAGS.hidden_size
     eval_config.batch_size = 1
-    eval_config.num_steps = 1
+    eval_config.num_steps = FLAGS.num_steps
     eval_config.vocab_size = config.vocab_size
     epsilon = 1e-6
 

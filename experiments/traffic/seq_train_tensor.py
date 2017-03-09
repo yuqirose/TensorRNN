@@ -28,6 +28,9 @@ flags.DEFINE_integer("hidden_size","256", "hidden layer size")
 flags.DEFINE_float("learning_rate", "1e-4", "learning rate")
 flags.DEFINE_integer("horizon","1", "n step ahead prediction")
 flags.DEFINE_integer("rank_val","2", "rank of tensor train model")
+
+flags.DEFINE_integer("num_steps", 12,
+                  "Output sequence length")
 FLAGS = flags.FLAGS
 
 
@@ -116,7 +119,7 @@ def main(_):
   config.rank_vals = rank_vals
   eval_config = TestConfig()
   eval_config.batch_size = 1
-  eval_config.num_steps = 1
+  eval_config.num_steps = FLAGS.num_steps
   eval_config.hidden_size = FLAGS.hidden_size
   eval_config.horizon = FLAGS.horizon
   eval_config.rank_vals = rank_vals

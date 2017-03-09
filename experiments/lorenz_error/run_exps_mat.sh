@@ -15,11 +15,12 @@ d=$(echo ${d} | tr '/' '-')
 
 start_time="$d-$t"
 
-
-data_path=/cs/ml/datasets/stephan/tensorcompress/ushcn_CA_0.pkl
+use_error= #--use_error_prop
+use_error_path=/no_feed_prev
+data_path=/cs/ml/datasets/stephan/tensorcompress/lorenz_series_mat.pkl
 # chaotic_ts_mat.pkl  chaotic_ts.pkl  lorenz_series_mat.pkl  lorenz_series.pkl  traffic_9sensors.pkl  ushcn_CA.pkl
 
-exp=climate_error_exp
+exp=lorenz_mat_error_exp
 
 
 _num_steps=(12 50)
@@ -30,7 +31,6 @@ burn_in_steps=5 # just for naming purposes
 
 for num_steps in "${_num_steps[@]}"
 do
-
 
 # use_error= #--use_error_prop
 # use_error_path=/no_feed_prev
@@ -74,4 +74,5 @@ python seq_train_tensor.py --data_path=$data_path --save_path=$save_path --hidde
 
 save_path=$base_dir/einsum_tt_rnn
 python seq_train_tensor_einsum.py --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_steps=$num_steps $use_error
+
 done

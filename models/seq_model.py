@@ -54,9 +54,11 @@ class PTBModel(object):
         #           for input_step in tf.split(1, num_steps, inputs)]
         # outputs, state = tf.nn.rnn(cell, inputs, initial_state=self._initial_state)
 
+        print("num_steps:", num_steps)
+
         feed_prev = not is_training if use_error_prop else False
         logits, states, weights = rnn_with_feed_prev._rnn_loop(cell, inputs,
-            num_steps, size, self._initial_state, vocab_size, feed_prev=feed_prev)
+            num_steps, size, self._initial_state, vocab_size, feed_prev=feed_prev, burn_in_steps=config.burn_in_steps)
         state = states[-1]
 
         self._predict = logits

@@ -67,10 +67,11 @@ class PTBModel(object):
     # """logits: batch_size x num_steps"""
     # logits = tf.matmul(output, softmax_w) + softmax_b
 
+    print("num_steps:", num_steps)
 
     feed_prev = not is_training if use_error_prop else False
     logits, state, weights  = tensor_rnn_with_feed_prev(cell, inputs, num_steps, size,
-      num_lags, self._initial_states, vocab_size, feed_prev=feed_prev)
+      num_lags, self._initial_states, vocab_size, feed_prev=feed_prev, burn_in_steps=config.burn_in_steps)
 
 
     self._predict = logits

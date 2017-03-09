@@ -11,7 +11,7 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import nn_ops
 
 
-def _rnn_loop(cell, inputs, num_steps, hidden_size, initial_state, vocab_size, feed_prev=False):
+def _rnn_loop(cell, inputs, num_steps, hidden_size, initial_state, vocab_size, feed_prev=False, burn_in_steps=0):
 
     prev = None
     _states = []
@@ -40,8 +40,9 @@ def _rnn_loop(cell, inputs, num_steps, hidden_size, initial_state, vocab_size, f
 
             inp = inputs[:, time_step, :]
 
-            if feed_prev and prev is not None:
+            if feed_prev and prev is not None and time_step >= burn_in_steps:
                 inp, _, _ = _hidden_to_input(prev)
+                print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
 
             (cell_output, state) = cell(inp, state)
             _cell_outputs.append(cell_output)

@@ -15,7 +15,8 @@ d=$(echo ${d} | tr '/' '-')
 
 start_time="$d-$t"
 
-use_error=--use_error_prop
+use_error= #--use_error_prop
+use_error_path=/no_feed_prev
 data_path=/cs/ml/datasets/stephan/tensorcompress/lorenz_series.pkl
 # chaotic_ts_mat.pkl  chaotic_ts.pkl  lorenz_series_mat.pkl  lorenz_series.pkl  traffic_9sensors.pkl  ushcn_CA.pkl
 
@@ -27,6 +28,7 @@ echo $base_dir
 num_steps=50
 
 hidden_size=128
+burn_in_steps=5 # just for naming purposes
 
 save_path=$base_dir/basic_rnn
 python seq_train.py --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_steps=$num_steps $use_error

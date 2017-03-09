@@ -37,6 +37,7 @@ FLAGS = flags.FLAGS
 
 class TestConfig(object):
     """Tiny config, for testing."""
+    burn_in_steps = 5
     init_scale = 0.1
     learning_rate = 1.0
     max_grad_norm = 1

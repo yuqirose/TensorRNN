@@ -1,5 +1,6 @@
 *.pyc
 
+./experiments/result
 ./experiments/data
 ./experiments/log
 .ipynb_checkpoints

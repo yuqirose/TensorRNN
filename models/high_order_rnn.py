@@ -3,7 +3,7 @@ import copy
 import tensorflow as tf
 from collections import deque
 from tensorflow.python.util import nest
-from tensorflow.python.ops.rnn_cell import RNNCell
+from tensorflow.contrib.rnn import RNNCell
 from tensorflow.python.ops.math_ops import tanh
 from tensorflow.python.ops import variable_scope as vs
 from tensorflow.python.ops import math_ops
@@ -160,8 +160,8 @@ def tensor_network_tt(inputs, states, output_size, rank_vals, bias, bias_start=0
         mat = vs.get_variable("weights_h", mat_size) # h_z x h_z... x output_size
 
         #mat = tf.Variable(mat, name="weights")
-        states_vector = tf.concat(1, states)
-        states_vector = tf.concat(1, [states_vector, tf.ones([batch_size, 1])])
+        states_vector = tf.concat(states, 1)
+        states_vector = tf.concat([states_vector, tf.ones([batch_size, 1])],1)
         """form high order state tensor"""
         states_tensor = states_vector
         for order in range(num_orders-1):
@@ -344,7 +344,7 @@ def _outer_product(batch_size, tensor, vector):
     """tensor-vector outer-product"""
     tensor_flat= tf.expand_dims(tf.reshape(tensor, [batch_size,-1]), 2)
     vector_flat = tf.expand_dims(vector, 1)
-    res = tf.batch_matmul(tensor_flat, vector_flat)
+    res = tf.matmul(tensor_flat, vector_flat)
     new_shape =  [batch_size]+_shape_value(tensor)[1:]+_shape_value(vector)[1:]
     res = tf.reshape(res, new_shape )
     return res
@@ -367,7 +367,7 @@ def _linear(args, output_size, bias, bias_start=0.0, scope=None):
     with vs.variable_scope(scope) as outer_scope:
         weights = vs.get_variable("weights", [total_arg_size, output_size], dtype=dtype)
         """y = [batch_size x total_arg_size] * [total_arg_size x output_size]"""
-        res = math_ops.matmul(tf.concat(1, args), weights)
+        res = math_ops.matmul(tf.concat(args, 1), weights)
         if not bias:
             return res
         with vs.variable_scope(outer_scope) as inner_scope:
@@ -395,8 +395,51 @@ def tensor_rnn(cell, inputs, num_steps, num_lags, initial_states):
     return outputs, states
 
 
-def tensor_rnn_with_feed_prev(cell, inputs, num_steps, size, num_lags,
-    initial_states, vocab_size, feed_prev=False, burn_in_steps=0):
+def rnn_with_feed_prev(cell, inputs, num_steps, hidden_size, initial_state, input_size, feed_prev=False, burn_in_steps=0):
+
+    prev = None
+    _states = []
+    _cell_outputs = []
+    _outputs = []
+    _weights = {}
+
+    state = initial_state
+
+    if feed_prev:
+      print("Creating model --> Feeding output back into input.")
+    else:
+      print("Creating model input = ground truth each timestep.")
+
+    with tf.variable_scope("RNN"):
+        for time_step in range(num_steps):
+
+            if time_step > 0:
+                tf.get_variable_scope().reuse_variables()
+
+            inp = inputs[:, time_step, :]
+
+            if feed_prev and prev is not None and time_step >= burn_in_steps:
+                inp, _, _ = _hidden_to_output(prev, hidden_size, input_size)
+                print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
+
+            (cell_output, state) = cell(inp, state)
+            _cell_outputs.append(cell_output)
+            _states.append(state)
+
+            if feed_prev:
+              prev = cell_output
+
+            output, w, b = _hidden_to_output(cell_output, hidden_size, input_size)
+            _outputs.append(output)
+    _weights["softmax_w"] = w
+    _weights["softmax_b"] = b
+
+    logits = tf.stack(_outputs, 1)
+
+    return logits, _states, _weights
+
+def tensor_rnn_with_feed_prev(cell, inputs, num_steps, hidden_size, num_lags,
+    initial_states, input_size, feed_prev=False, burn_in_steps=0):
     """High Order Recurrent Neural Network Layer
     """
     #tuple of 2-d tensor (batch_size, s)
@@ -408,18 +451,11 @@ def tensor_rnn_with_feed_prev(cell, inputs, num_steps, size, num_lags,
     states_list = initial_states #list of high order states
 
     prev = None
-    print(cell.state_size)
 
     if feed_prev:
       print("Creating model @ not training --> Feeding output back into input.")
     else:
       print("Creating model @ training --> input = ground truth each timestep.")
-
-    def _hidden_to_input(h):
-      softmax_w = tf.get_variable("softmax_w", [size, vocab_size], dtype= tf.float32)
-      softmax_b = tf.get_variable("softmax_b", [vocab_size], dtype=tf.float32)
-      logits = tf.matmul(h, softmax_w) + softmax_b
-      return logits, softmax_w, softmax_b
 
     with tf.variable_scope("tensor_rnn"):
       for time_step in range(num_steps):
@@ -431,14 +467,12 @@ def tensor_rnn_with_feed_prev(cell, inputs, num_steps, size, num_lags,
 
 
         if feed_prev and prev is not None and time_step >= burn_in_steps:
-          inp, _, _ = _hidden_to_input(prev)
+          inp, _, _ = _hidden_to_output(prev, hidden_size, input_size)
           print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
 
         states = _list_to_states(states_list)
         """input tensor is [batch_size, num_steps, input_size]"""
-        input_slice = inputs[:, time_step, :]#tf.slice(inputs, [0,time_step, 0], [-1,num_lags, -1])
-
-        (cell_output, state)=cell(input_slice, states)
+        (cell_output, state)=cell(inp, states)
         _cell_outputs.append(cell_output)
 
         states_list = _shift(states_list, state)
@@ -446,15 +480,21 @@ def tensor_rnn_with_feed_prev(cell, inputs, num_steps, size, num_lags,
         if feed_prev:
           prev = cell_output
 
-        output, w, b = _hidden_to_input(cell_output)
+        output, w, b = _hidden_to_output(cell_output, hidden_size, input_size)
         _outputs.append(output)
 
       weights["softmax_w"] = w
       weights["softmax_b"] = b
 
-    logits = tf.reshape(tf.concat(1, _outputs), [-1, vocab_size])
+    logits = tf.stack(_outputs,1)
 
     return logits, states, weights
+
+def _hidden_to_output(h, hidden_size, input_size):
+    softmax_w = tf.get_variable("softmax_w", [hidden_size, input_size], dtype= tf.float32)
+    softmax_b = tf.get_variable("softmax_b", [input_size], dtype=tf.float32)
+    output = tf.matmul(h, softmax_w) + softmax_b
+    return output, softmax_w, softmax_b
 
 
 def _shift (input_list, new_item):

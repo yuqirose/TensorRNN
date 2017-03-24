@@ -1,7 +1,7 @@
 import tensorflow as tf
 
-import rnn_with_feed_prev
-
+from high_order_rnn import rnn_with_feed_prev
+from tensorflow.contrib.rnn import LSTMCell, MultiRNNCell
 class PTBModel(object):
     """The PTB model."""
 
@@ -10,8 +10,8 @@ class PTBModel(object):
 
         batch_size = input_.batch_size
         num_steps = input_.num_steps
-        size = config.hidden_size
-        vocab_size = config.vocab_size
+        hidden_size = config.hidden_size
+        input_size = input_.input_size
 
         # Slightly better results can be obtained with forget gate biases
         # initialized to 1 but the hyperparameters of the model would need to be
@@ -20,12 +20,12 @@ class PTBModel(object):
 
         initializer = tf.random_uniform_initializer(-1,1)
         #rnn_cell = tf.nn.rnn_cell.BasicRNNCell(size)
-        rnn_cell = tf.nn.rnn_cell.LSTMCell(size)
+        rnn_cell = LSTMCell(hidden_size)
 
         if is_training and config.keep_prob < 1:
             rnn_cell = tf.nn.rnn_cell.DropoutWrapper(
                 rnn_cell, output_keep_prob=config.keep_prob)
-        cell = tf.nn.rnn_cell.MultiRNNCell([rnn_cell] * config.num_layers, state_is_tuple=True)
+        cell = MultiRNNCell([rnn_cell] * config.num_layers, state_is_tuple=True)
 
         self._initial_state = cell.zero_state(batch_size, dtype= tf.float32)
 
@@ -70,14 +70,14 @@ class PTBModel(object):
 
         feed_prev = not is_training if use_error_prop else False
 
-        logits, states, weights = rnn_with_feed_prev._rnn_loop(cell, inputs,
-            num_steps, size, self._initial_state, vocab_size, feed_prev=feed_prev, burn_in_steps=config.burn_in_steps)
+        logits, states, weights = rnn_with_feed_prev(cell, inputs,
+            num_steps, hidden_size, self._initial_state, input_size, feed_prev=feed_prev, burn_in_steps=config.burn_in_steps)
         state = states[-1]
 
 
         self._predict = tf.reshape(logits, [batch_size, num_steps, -1])
         self._cost = cost = tf.reduce_mean(tf.squared_difference(
-            logits, tf.reshape(input_.targets, [batch_size*num_steps,-1]) ))
+            tf.reshape(logits, [-1,input_size]), tf.reshape(input_.targets, [batch_size*num_steps,-1]) ))
         self._final_state = state
 
         if not is_training:

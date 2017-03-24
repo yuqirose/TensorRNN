@@ -17,7 +17,8 @@ start_time="$d-$t"
 
 use_error= #--use_error_prop
 use_error_path=/no_feed_prev
-data_path=/cs/ml/datasets/stephan/tensorcompress/lorenz_series.pkl
+data_path=../../../data/lorenz_series.pkl
+#data_path=/cs/ml/datasets/stephan/tensorcompress/lorenz_series.pkl
 # chaotic_ts_mat.pkl  chaotic_ts.pkl  lorenz_series_mat.pkl  lorenz_series.pkl  traffic_9sensors.pkl  ushcn_CA.pkl
 
 exp=lorenz_error_exp

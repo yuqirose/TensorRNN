@@ -1,6 +1,8 @@
 import tensorflow as tf
 from tensorflow.python.ops.math_ops import sigmoid
 from high_order_rnn import MatrixRNNCell, tensor_rnn, tensor_rnn_with_feed_prev
+from tensorflow.contrib.rnn import MultiRNNCell
+
 class PTBModel(object):
   """The PTB model."""
 
@@ -10,7 +12,7 @@ class PTBModel(object):
     batch_size = input_.batch_size
     num_steps = input_.num_steps
     size = config.hidden_size
-    vocab_size = config.vocab_size
+    input_size = input_.input_size
     num_lags = config.num_lags
     # Slightly better results can be obtained with forget gate biases
     # initialized to 1 but the hyperparameters of the model would need to be
@@ -24,7 +26,7 @@ class PTBModel(object):
     if is_training and config.keep_prob < 1:
       rnn_cell = tf.nn.rnn_cell.DropoutWrapper(
         rnn_cell, output_keep_prob=config.keep_prob)
-    cell = tf.nn.rnn_cell.MultiRNNCell([rnn_cell] * config.num_layers, state_is_tuple=True)
+    cell = MultiRNNCell([rnn_cell] * config.num_layers, state_is_tuple=True)
     initial_states = []
     for lag in range(num_lags):
       # initial_state: tuple of len num_layers, each element state_size(2 for lstm,c,h) x batch_size x input_size
@@ -71,13 +73,13 @@ class PTBModel(object):
 
     feed_prev = not is_training if use_error_prop else False
     logits, state, weights  = tensor_rnn_with_feed_prev(cell, inputs, num_steps, size,
-      num_lags, self._initial_states, vocab_size, feed_prev=feed_prev, burn_in_steps=config.burn_in_steps)
+      num_lags, self._initial_states, input_size, feed_prev=feed_prev, burn_in_steps=config.burn_in_steps)
 
 
     self._predict = logits
 
     self._cost = cost = tf.reduce_mean(tf.squared_difference(
-      logits, tf.reshape(input_.targets, [batch_size*num_steps,-1]) ))
+      tf.reshape(logits,[-1, input_size]), tf.reshape(input_.targets, [batch_size*num_steps,-1]) ))
     self._final_state = state
 
     if not is_training:

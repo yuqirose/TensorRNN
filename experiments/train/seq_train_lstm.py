@@ -5,7 +5,6 @@ import time
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from tensorflow.models.rnn.ptb import reader
 import sys, os
 import argparse
 
@@ -20,19 +19,18 @@ logging = tf.logging
 flags.DEFINE_string(
     "model", "small",
     "A type of model. Possible options are: small, medium, large.")
-flags.DEFINE_string("data_path", "../../../lorenz_series.pkl",
+flags.DEFINE_string("data_path", "../../../data/lorenz_series.pkl",
                     "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "/tmp/tensorcompress/log/lorenz_error_exp/basic_lstm/",
+flags.DEFINE_string("save_path", "../../../log/lorenz/basic_lstm/",
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
 flags.DEFINE_bool("use_error_prop", False,
                   "Feed previous output as input in RNN")
+
 flags.DEFINE_integer('hidden_size', 256, "number of hidden unit")
 flags.DEFINE_float('learning_rate', 5e-3, "learning rate of trainig")
-
-flags.DEFINE_integer("num_steps", 12,
-                  "Output sequence length")
+flags.DEFINE_integer("num_steps", 12, "output sequence length")
 FLAGS = flags.FLAGS
 
 
@@ -47,8 +45,8 @@ class TestConfig(object):
     num_steps =12
     horizon = 1
     hidden_size = 64
-    max_epoch = 10
-    max_max_epoch = 50
+    max_epoch = 2
+    max_max_epoch = 5
     keep_prob = 1.0
     lr_decay = 0.9
     batch_size = 5
@@ -58,9 +56,9 @@ def run_epoch(session, model, eval_op=None, verbose=False):
     """Runs the model on the given data."""
     start_time = time.time()
     costs = 0.0
-    predicts = np.array([]).reshape(model.input.batch_size,0, model.input.vocab_size)
-    targets = np.array([]).reshape(model.input.batch_size,0,model.input.vocab_size)
     iters = 0
+    predicts = []
+    targets = []
     state = session.run(model.initial_state)
 
     fetches = {
@@ -88,8 +86,8 @@ def run_epoch(session, model, eval_op=None, verbose=False):
 
         ##print("cost at step {0}: {1}".format(step, cost))
         state = vals["final_state"]
-        predicts = np.hstack((predicts, predict))
-        targets = np.hstack((targets, target))
+        predicts.append(predict)
+        targets.append(target)
 
 #         if step % 500 == 0:
           # #for i in vals["input"]:
@@ -106,11 +104,13 @@ def run_epoch(session, model, eval_op=None, verbose=False):
             print("%.3f error: %.3f speed: %.0f wps" %
                   (step * 1.0 / model.input.epoch_size, costs / step,
                    iters * model.input.batch_size / (time.time() - start_time)))
-    final_cost = np.sqrt(costs/model.input.epoch_size)
-    predicts = predicts.flatten()
-    targets = targets.flatten()
 
-    return final_cost, predicts, targets
+    predicts = np.stack(predicts,1).reshape(-1,model.input.input_size) # test_len x input_size
+    targets = np.stack(targets,1).reshape(-1,model.input.input_size) # test_len x input_size
+    final_cost = np.sqrt(costs/model.input.epoch_size)
+    final_rslt = (targets, predicts) 
+    
+    return final_cost, final_rslt
 
 
 def main(_):
@@ -123,12 +123,12 @@ def main(_):
 
     config.learning_rate = FLAGS.learning_rate
     config.hidden_size = FLAGS.hidden_size
-    config.vocab_size = train_data.shape[1]
+    config.num_steps = FLAGS.num_steps
+
     eval_config = TestConfig()
     eval_config.hidden_size = FLAGS.hidden_size
     eval_config.batch_size = 1
     eval_config.num_steps = FLAGS.num_steps
-    eval_config.vocab_size = config.vocab_size
 
     if FLAGS.use_error_prop:
         print("Using error prop in RNN!")
@@ -162,17 +162,15 @@ def main(_):
                 m.assign_lr(session, config.learning_rate * lr_decay)
 
                 print("Epoch: %d Learning rate: %.3f" % (i + 1, session.run(m.lr)))
-                train_err, _ ,_= run_epoch(session, m, eval_op=m.train_op,
+                train_err, _ = run_epoch(session, m, eval_op=m.train_op,
                                              verbose=True)
                 print("Epoch: %d Train Error: %.3f" % (i + 1, train_err))
-                valid_err,_ ,_= run_epoch(session, mvalid)
+                valid_err, _ = run_epoch(session, mvalid)
                 print("Epoch: %d Valid Error: %.3f" % (i + 1, valid_err))
 
-            test_err, test_pred, test_target= run_epoch(session, mtest)
+            test_err, test_rslt = run_epoch(session, mtest)
             print("Test Error: %.3f" % test_err)
-            test_true = np.squeeze(np.asarray(test_data[1:]))
-            test_pred = np.squeeze(test_pred)
-            np.save(FLAGS.save_path+"predict.npy", [test_true, test_pred, test_err])
+            np.save(FLAGS.save_path+"predict.npy", test_rslt)
 
 
 

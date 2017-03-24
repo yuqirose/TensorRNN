@@ -1,5 +1,6 @@
 import tensorflow as tf
 from tensorflow.python.ops.math_ops import sigmoid
+from tensorflow.contrib.rnn import MultiRNNCell
 from high_order_rnn import EinsumTensorRNNCell, tensor_rnn, tensor_rnn_with_feed_prev
 class PTBModel(object):
 
@@ -8,18 +9,18 @@ class PTBModel(object):
 
     batch_size = input_.batch_size
     num_steps = input_.num_steps
-    size = config.hidden_size
-    vocab_size = config.vocab_size
+    hidden_size = config.hidden_size
+    input_size = input_.input_size
     num_lags = config.num_lags
     rank_vals = config.rank_vals
 
     initializer = tf.random_uniform_initializer(-1,1)
-    rnn_cell = EinsumTensorRNNCell(size, num_lags, rank_vals)
+    rnn_cell = EinsumTensorRNNCell(hidden_size, num_lags, rank_vals)
 
     if is_training and config.keep_prob < 1:
       rnn_cell = tf.nn.rnn_cell.DropoutWrapper(
         rnn_cell, output_keep_prob=config.keep_prob)
-    cell = tf.nn.rnn_cell.MultiRNNCell([rnn_cell] * config.num_layers, state_is_tuple=True)
+    cell = MultiRNNCell([rnn_cell] * config.num_layers, state_is_tuple=True)
     initial_states = []
     for lag in range(num_lags):
       initial_state =  cell.zero_state(batch_size, dtype= tf.float32)
@@ -37,18 +38,16 @@ class PTBModel(object):
 
     print("Predictions now computed inside cell.")
     feed_prev = not is_training if use_error_prop else False
-    logits, state, weights  = tensor_rnn_with_feed_prev(cell, inputs, num_steps, size,
-      num_lags, self._initial_states, vocab_size, feed_prev=feed_prev, burn_in_steps=config.burn_in_steps)
+    logits, state, weights  = tensor_rnn_with_feed_prev(cell, inputs, num_steps, hidden_size,
+      num_lags, self._initial_states, input_size, feed_prev=feed_prev, burn_in_steps=config.burn_in_steps)
 
     softmax_w, softmax_b = weights["softmax_w"], weights["softmax_b"]
 
     self._predict = logits
 
-    beta = 0.0
     self._cost = cost = tf.reduce_mean(tf.squared_difference(
-      logits, tf.reshape(input_.targets, [batch_size*num_steps,-1]) )
-      + beta*tf.nn.l2_loss(logits)
-      + beta*tf.nn.l2_loss(softmax_w) + beta*tf.nn.l2_loss(softmax_b))
+      tf.reshape(logits, [-1, input_size]), tf.reshape(input_.targets, [batch_size*num_steps,-1]) ))
+
     self._final_state = state
 
     if not is_training:

@@ -178,8 +178,7 @@ def tensor_network_tt(inputs, states, output_size, rank_vals, bias, bias_start=0
             out_h = tf.reshape(out_h, [1,-1])
             out_h = tf.transpose(out_h, [1,0])
             #print(i,out_h.get_shape())
-        out_h = tf.reshape(out_h, [output_size, -1])
-        out_h = tf.transpose(out_h, [1, 0])
+        out_h = tf.reshape(out_h, [-1, output_size])
         res = tf.reshape(tf.add(out_x, out_h) ,[-1, output_size],name="res")
         if not bias:
             return
@@ -230,8 +229,8 @@ def tensor_network_tt_einsum(inputs, states, output_size, rank_vals, bias, bias_
     mat = vs.get_variable("weights_h", mat_size) # h_z x h_z... x output_size
 
     #mat = tf.Variable(mat, name="weights")
-    states_vector = tf.concat(1, states)
-    states_vector = tf.concat(1, [states_vector, tf.ones([batch_size, 1])])
+    states_vector = tf.concat(states, 1)
+    states_vector = tf.concat( [states_vector, tf.ones([batch_size, 1])], 1)
     """form high order state tensor"""
     states_tensor = states_vector
     for order in range(num_orders-1):
@@ -320,7 +319,7 @@ def tensor_network_tt_einsum(inputs, states, output_size, rank_vals, bias, bias_
       out_h = tf.squeeze(out_h, [1])
 
       # Compute h_t = U*x_t + W*H_{t-1}
-      res = tf.reshape(tf.add(out_x, out_h), [-1, output_size],name="res")
+      res = tf.add(out_x, out_h)
 
       print res.get_shape()
 

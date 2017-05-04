@@ -29,7 +29,7 @@ flags.DEFINE_bool("use_error_prop", False,
                   "Feed previous output as input in RNN")
 
 flags.DEFINE_integer('hidden_size', 256, "number of hidden unit")
-flags.DEFINE_float('learning_rate', 5e-3, "learning rate of trainig")
+flags.DEFINE_float('learning_rate', 1e-3, "learning rate of trainig")
 flags.DEFINE_integer("num_steps", 12, "output sequence length")
 FLAGS = flags.FLAGS
 
@@ -45,8 +45,8 @@ class TestConfig(object):
     num_steps =12
     horizon = 1
     hidden_size = 64
-    max_epoch = 2
-    max_max_epoch = 5
+    max_epoch = 20
+    max_max_epoch = 50
     keep_prob = 1.0
     lr_decay = 0.9
     batch_size = 5
@@ -128,7 +128,7 @@ def main(_):
     eval_config = TestConfig()
     eval_config.hidden_size = FLAGS.hidden_size
     eval_config.batch_size = 1
-    eval_config.num_steps = FLAGS.num_steps
+    eval_config.num_steps = 1
 
     if FLAGS.use_error_prop:
         print("Using error prop in RNN!")
@@ -155,8 +155,13 @@ def main(_):
                 mtest = PTBModel(is_training=False, config=eval_config,
                                  input_=test_input, use_error_prop=FLAGS.use_error_prop)
             tf.summary.scalar("Test_Loss", mtest.cost)
-        sv = tf.train.Supervisor(logdir=FLAGS.save_path, save_summaries_secs = 20)
-        with sv.managed_session() as session:
+
+        gpu_config = tf.ConfigProto()
+        gpu_config.gpu_options.per_process_gpu_memory_fraction=0.1
+        gpu_config.gpu_options.allow_growth = True
+        sv = tf.train.Supervisor(logdir=FLAGS.save_path)
+        with sv.managed_session(config = gpu_config) as session:
+            valid_err_old = float("inf")
             for i in range(config.max_max_epoch):
                 lr_decay = config.lr_decay ** max(i + 1 - config.max_epoch, 0.0)
                 m.assign_lr(session, config.learning_rate * lr_decay)
@@ -168,10 +173,23 @@ def main(_):
                 valid_err, _ = run_epoch(session, mvalid)
                 print("Epoch: %d Valid Error: %.3f" % (i + 1, valid_err))
 
+                # early stopping
+                if valid_err_old <= valid_err:
+                    print("Early stopping after %d epoch" % i)
+                    break
+                valid_err_old = valid_err
+
+            
             test_err, test_rslt = run_epoch(session, mtest)
             print("Test Error: %.3f" % test_err)
             np.save(FLAGS.save_path+"predict.npy", test_rslt)
 
+            # Write config file
+            with open(FLAGS.save_path+"config_error.out", 'w') as f:
+                f.write('hidden_size:'+ str(config.hidden_size) + '\t'+ 'num_steps:'+ str(config.num_steps) +
+                        '\t'+ 'learning_rate:'+ str(config.learning_rate) + '\n')
+                f.write('train_error:'+ str(train_err) + '\t' + 'valid_error:'+ str(valid_err) + 
+                        '\t'+ 'test_error:'+ str(test_err) + '\n')
 
 
             if FLAGS.save_path:

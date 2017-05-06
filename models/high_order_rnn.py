@@ -458,7 +458,6 @@ def tensor_rnn_with_feed_prev(cell, inputs, num_steps, hidden_size, num_lags,
 
     with tf.variable_scope("tensor_rnn"):
       for time_step in range(num_steps):
-
         if time_step > 0:
           tf.get_variable_scope().reuse_variables()
 
@@ -494,7 +493,6 @@ def _hidden_to_output(h, hidden_size, input_size):
     softmax_b = tf.get_variable("softmax_b", [input_size], dtype=tf.float32)
     output = tf.matmul(h, softmax_w) + softmax_b
     return output, softmax_w, softmax_b
-
 
 def _shift (input_list, new_item):
     """Update lag number of states"""

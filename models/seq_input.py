@@ -86,12 +86,12 @@ def seq_producer(raw_data, is_training, batch_size, num_steps, horizon, name):
         horizon: the forecasting horizon
     """
     with tf.name_scope(name, "PTBProducer", [raw_data, batch_size, num_steps]):
-        (data_len,data_dim) = np.shape(raw_data)
+        (data_len, total_steps, data_dim) = np.shape(raw_data)
         raw_data = tf.convert_to_tensor(raw_data, name="raw_data", dtype=tf.float32)
       
         batch_len = data_len // batch_size
-        data = tf.reshape(raw_data[0 : batch_size * batch_len,:],
-                          [batch_size, batch_len, -1]) #batch_size, batch_len, dim_size
+        data = tf.reshape(raw_data[0 : batch_size * batch_len, :],
+                          [batch_size, batch_len, total_steps, -1]) #batch_size, batch_len, dim_size
         epoch_size = batch_len # examples in mini-batch
         assertion = tf.assert_positive(
             epoch_size,
@@ -101,12 +101,12 @@ def seq_producer(raw_data, is_training, batch_size, num_steps, horizon, name):
 
         if is_training:
             i = tf.train.range_input_producer(epoch_size, shuffle=True).dequeue()
-            x = tf.slice(data, [0, i , 0], [batch_size, num_steps, data_dim])
-            y = tf.slice(data, [0, i + horizon, 0], [batch_size, num_steps, data_dim])
+            x = tf.squeeze(tf.slice(data, [0, i , 0, 0], [batch_size, 1, num_steps, data_dim]), [1])
+            y = tf.squeeze(tf.slice(data, [0, i , num_steps, 0], [batch_size, 1, num_steps, data_dim]), [1])
         else: 
             i = tf.train.range_input_producer(epoch_size, shuffle=False).dequeue()
-            x = tf.slice(data, [0, i, 0], [batch_size, num_steps, data_dim])
-            y = tf.slice(data, [0, i + horizon, 0], [batch_size, num_steps, data_dim])
+            x = tf.squeeze(tf.slice(data, [0, i, 0, 0], [batch_size, 1, num_steps, data_dim]), [1])
+            y = tf.squeeze(tf.slice(data, [0, i, num_steps, 0], [batch_size, 1, num_steps, data_dim]), [1])
         return x, y
 
  
@@ -117,14 +117,16 @@ class PTBInput(object):
         self.num_steps = num_steps = config.num_steps
         self.horizon = horizon = config.horizon
         self.epoch_size = ((len(data) // batch_size) - 1) // num_steps
-        self.input_size = np.shape(data)[1]
+        
         
         if config.rand_init == True:
+            self.input_size = np.shape(data)[2]
             #print("feeding as random initial")
             self.epoch_size = (len(data) // batch_size) 
             self.input_data, self.targets = seq_producer(
-                data, is_training, batch_size, horizon, name=name)
+                data, is_training, batch_size, num_steps, horizon, name=name)
         else:
+            self.input_size = np.shape(data)[1]
             if np.ndim(data)==2:
                 self.input_data, self.targets = ptb_producer(
                     data, is_training, batch_size, num_steps, horizon, name=name)

@@ -20,7 +20,7 @@ class PTBModel(object):
 
         initializer = tf.random_uniform_initializer(-1,1)
         #rnn_cell = tf.nn.rnn_cell.BasicRNNCell(size)
-        rnn_cell = LSTMCell(hidden_size)
+        rnn_cell = LSTMCell(hidden_size, reuse=tf.get_variable_scope().reuse)
 
         if is_training and config.keep_prob < 1:
             rnn_cell = tf.nn.rnn_cell.DropoutWrapper(

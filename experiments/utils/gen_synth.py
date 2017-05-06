@@ -6,12 +6,12 @@ import cPickle as pickle
 def gen_logistic_series(x0, num_steps):
     alpha = 4.0
     num_steps = num_steps
-    x = np.ndarray((num_steps,) )
+    x = np.ndarray((num_steps,1) )
     x[0]  = x0
     f = lambda  x ,t: alpha* x[t] * (1.0 - x[t]) 
     for t in range(num_steps-1):
         x[t+1] = f(x,t)
-    logistic_series = np.transpose(x)
+    logistic_series = x
     return logistic_series
 
 
@@ -51,34 +51,34 @@ def gen_lorenz_series(x0, y0, z0, num_steps):
 
 def gen_lorenz_dataset(file_name="lorenz.pkl"):
     #define initial range
-    num_samples = 100
-    num_steps = int(1e5)
+    num_samples = 200
+    num_steps = int(1e2)
     init_range = np.random.uniform(0.1,1.0,(num_samples,3))
    
-    lorenz_series_mat = np.ndarray((num_steps , 3, num_samples ))
+    lorenz_series_mat = np.ndarray((num_samples, num_steps, 3))
 
     for i in range(num_samples):
         x0,y0,z0 = init_range[i,:]
         series = gen_lorenz_series(x0,y0,z0, num_steps )
-        lorenz_series_mat[:,:,i] = series
+        lorenz_series_mat[i,:,:] = series
                 
     pickle.dump(lorenz_series_mat, open(file_name,"wb")) 
 
 
 def gen_logistic_dataset(file_name = "logistic.pkl"):
     """generate set of chaotic time series with randomly selected initial"""
-    num_series = 100
+    num_series = 50
     num_steps = int(1e2)
 
-    init_range = np.linspace(0.1, 1.0, num_series)
-    x_mat = np.ndarray((num_steps,1, num_series ))# num_time x num_series , a collection of time series with different initial values
+    init_range = np.random.uniform(0.1, 1.0, num_series)
+    x_mat = np.ndarray((num_series, num_steps, 1 ))# num_time x num_series , a collection of time series with different initial values
     for init, i in zip(init_range, range(num_series)):
         series=gen_logistic_series(init,num_steps)
-        x_mat[:,0, i]  = series
+        x_mat[i, :, :]  = series
     pickle.dump(x_mat,open(file_name,"wb"))
 
 def main():
-    data_path = "./"#"/home/roseyu/data/tensorRNN/"
+    data_path = "/Users/roseyu/Documents/Python/"#"/home/roseyu/data/tensorRNN/"
 
     file_name = data_path+"logistic.pkl"
     gen_logistic_dataset(file_name)

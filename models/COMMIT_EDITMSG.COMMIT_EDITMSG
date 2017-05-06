@@ -1,0 +1,281 @@
+Fixed simulation with random initial
+
+# --------------
+# Please enter the commit message for your changes. Everything below
+# this paragraph is ignored, and an empty message aborts the commit.
+# Just close the window to accept your message.
+diff --git a/experiments/train/seq_train_lstm.py b/experiments/train/seq_train_lstm.py
+index 93f3884..6d760f5 100644
+--- a/experiments/train/seq_train_lstm.py
++++ b/experiments/train/seq_train_lstm.py
+@@ -19,9 +19,9 @@ logging = tf.logging
+ flags.DEFINE_string(
+     "model", "small",
+     "A type of model. Possible options are: small, medium, large.")
+-flags.DEFINE_string("data_path", "../../../data/lorenz_series.pkl",
++flags.DEFINE_string("data_path", "/Users/roseyu/Documents/Python/lorenz.pkl",
+                     "Where the training/test data is stored.")
+-flags.DEFINE_string("save_path", "../../../log/lorenz/basic_lstm/",
++flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/log/lorenz/basic_lstm/",
+                     "Model output directory.")
+ flags.DEFINE_bool("use_fp16", False,
+                   "Train using 16-bit floats instead of 32bit floats")
+diff --git a/experiments/train/seq_train_tensor_einsum.py b/experiments/train/seq_train_tensor_einsum.py
+index 702e34f..39c8fc1 100644
+--- a/experiments/train/seq_train_tensor_einsum.py
++++ b/experiments/train/seq_train_tensor_einsum.py
+@@ -18,9 +18,9 @@ logging = tf.logging
+ flags.DEFINE_string(
+   "model", "small",
+   "A type of model. Possible options are: small, medium, large.")
+-flags.DEFINE_string("data_path", "../../../data/lorenz_series.pkl",
++flags.DEFINE_string("data_path", "/Users/roseyu/Documents/Python/lorenz.pkl",
+           "Where the training/test data is stored.")
+-flags.DEFINE_string("save_path", "../../../log/lorenz/tt_rnn/",
++flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/log/lorenz/tt_rnn/",
+           "Model output directory.")
+ flags.DEFINE_bool("use_fp16", False,
+           "Train using 16-bit floats instead of 32bit floats")
+diff --git a/experiments/utils/gen_synth.py b/experiments/utils/gen_synth.py
+index 4483d4e..9ec109a 100644
+--- a/experiments/utils/gen_synth.py
++++ b/experiments/utils/gen_synth.py
+@@ -6,12 +6,12 @@ import cPickle as pickle
+ def gen_logistic_series(x0, num_steps):
+     alpha = 4.0
+     num_steps = num_steps
+-    x = np.ndarray((num_steps,) )
++    x = np.ndarray((num_steps,1) )
+     x[0]  = x0
+     f = lambda  x ,t: alpha* x[t] * (1.0 - x[t]) 
+     for t in range(num_steps-1):
+         x[t+1] = f(x,t)
+-    logistic_series = np.transpose(x)
++    logistic_series = x
+     return logistic_series
+ 
+ 
+@@ -51,34 +51,34 @@ def gen_lorenz_series(x0, y0, z0, num_steps):
+ 
+ def gen_lorenz_dataset(file_name="lorenz.pkl"):
+     #define initial range
+-    num_samples = 100
+-    num_steps = int(1e5)
++    num_samples = 200
++    num_steps = int(1e2)
+     init_range = np.random.uniform(0.1,1.0,(num_samples,3))
+    
+-    lorenz_series_mat = np.ndarray((num_steps , 3, num_samples ))
++    lorenz_series_mat = np.ndarray((num_samples, num_steps, 3))
+ 
+     for i in range(num_samples):
+         x0,y0,z0 = init_range[i,:]
+         series = gen_lorenz_series(x0,y0,z0, num_steps )
+-        lorenz_series_mat[:,:,i] = series
++        lorenz_series_mat[i,:,:] = series
+                 
+     pickle.dump(lorenz_series_mat, open(file_name,"wb")) 
+ 
+ 
+ def gen_logistic_dataset(file_name = "logistic.pkl"):
+     """generate set of chaotic time series with randomly selected initial"""
+-    num_series = 100
++    num_series = 50
+     num_steps = int(1e2)
+ 
+-    init_range = np.linspace(0.1, 1.0, num_series)
+-    x_mat = np.ndarray((num_steps,1, num_series ))# num_time x num_series , a collection of time series with different initial values
++    init_range = np.random.uniform(0.1, 1.0, num_series)
++    x_mat = np.ndarray((num_series, num_steps, 1 ))# num_time x num_series , a collection of time series with different initial values
+     for init, i in zip(init_range, range(num_series)):
+         series=gen_logistic_series(init,num_steps)
+-        x_mat[:,0, i]  = series
++        x_mat[i, :, :]  = series
+     pickle.dump(x_mat,open(file_name,"wb"))
+ 
+ def main():
+-    data_path = "./"#"/home/roseyu/data/tensorRNN/"
++    data_path = "/Users/roseyu/Documents/Python/"#"/home/roseyu/data/tensorRNN/"
+ 
+     file_name = data_path+"logistic.pkl"
+     gen_logistic_dataset(file_name)
+diff --git a/models/high_order_rnn.py b/models/high_order_rnn.py
+index a12ce81..1bf16f5 100644
+--- a/models/high_order_rnn.py
++++ b/models/high_order_rnn.py
+@@ -236,14 +236,14 @@ def tensor_network_tt_einsum(inputs, states, output_size, rank_vals, bias, bias_
+     for order in range(num_orders-1):
+       states_tensor = _outer_product(batch_size, states_tensor, states_vector)
+ 
+-    print("tensor product", states_tensor.name, states_tensor.get_shape().as_list())
++    # print("tensor product", states_tensor.name, states_tensor.get_shape().as_list())
+ 
+     def _tensor_net_tt_einsum(states_tensor):
+-      print("input:", states_tensor.name, states_tensor.get_shape().as_list())
+-      print("mat_dims", mat_dims)
+-      print("mat_ranks", mat_ranks)
+-      print("mat_ps", mat_ps)
+-      print("mat_size", mat_size)
++      # print("input:", states_tensor.name, states_tensor.get_shape().as_list())
++      # print("mat_dims", mat_dims)
++      # print("mat_ranks", mat_ranks)
++      # print("mat_ps", mat_ps)
++      # print("mat_size", mat_size)
+ 
+       abc = "abcdefgh"
+       ijk = "ijklmnopqrstuvwxy"
+@@ -269,15 +269,15 @@ def tensor_network_tt_einsum(inputs, states, output_size, rank_vals, bias, bias_
+       mat_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]])
+       mat_core = tf.reshape(mat_core, [mat_ranks[i], total_state_size, mat_ranks[i + 1]])
+ 
+-      print mat_core.get_shape().as_list()
++      # print mat_core.get_shape().as_list()
+ 
+       _s3 = x[:1] + x[2:] + "ab"
+       einsum = "aib," + x + "->" + _s3
+       x = _s3
+-      print "order", i, einsum
++      # print "order", i, einsum
+ 
+       out_h = tf.einsum(einsum, mat_core, states_tensor)
+-      print(out_h.name, out_h.get_shape().as_list())
++      # print(out_h.name, out_h.get_shape().as_list())
+ 
+       # 2nd - penultimate latent factor
+       for i in range(1, num_orders - 1):
+@@ -292,11 +292,11 @@ def tensor_network_tt_einsum(inputs, states, output_size, rank_vals, bias, bias_
+         mat_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]])
+         mat_core = tf.reshape(mat_core, [mat_ranks[i], total_state_size, mat_ranks[i + 1]])
+ 
+-        print mat_core.get_shape().as_list()
++        # print mat_core.get_shape().as_list()
+ 
+         einsum, x = ss, _s3 = _get_einsum(i, x)
+ 
+-        print "order", i, ss
++        # print "order", i, ss
+ 
+         out_h = tf.einsum(einsum, mat_core, out_h)
+         print(out_h.name, out_h.get_shape().as_list())
+@@ -306,31 +306,31 @@ def tensor_network_tt_einsum(inputs, states, output_size, rank_vals, bias, bias_
+       i = num_orders - 1
+       mat_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]])
+       mat_core = tf.reshape(mat_core, [mat_ranks[i], total_state_size, mat_ranks[i + 1]])
+-      print mat_core.get_shape().as_list()
++      # print mat_core.get_shape().as_list()
+ 
+       einsum, _s3 = _get_einsum(num_orders - 1, x)
+-      print "order", i, einsum
++      # print "order", i, einsum
+ 
+       out_h = tf.einsum(einsum, mat_core, out_h)
+-      print(out_h.name, out_h.get_shape().as_list())
++      # print(out_h.name, out_h.get_shape().as_list())
+ 
+-      print "Squeeze out the dimension-1 dummy dim (first dim of 1st latent factor)"
++      # print "Squeeze out the dimension-1 dummy dim (first dim of 1st latent factor)"
+ 
+       out_h = tf.squeeze(out_h, [1])
+ 
+       # Compute h_t = U*x_t + W*H_{t-1}
+       res = tf.add(out_x, out_h)
+ 
+-      print res.get_shape()
++      # print res.get_shape()
+ 
+       # biases = vs.get_variable("biases", [output_size])
+       return res
+ 
+     res = _tensor_net_tt_einsum(states_tensor)
+ 
+-    print "END OF CELL CONSTRUCTION"
+-    print "========================"
+-    print ""
++    # print "END OF CELL CONSTRUCTION"
++    # print "========================"
++    # print ""
+ 
+     if not bias:
+       return res
+diff --git a/models/seq_input.py b/models/seq_input.py
+index fa26ef6..6fb3d26 100644
+--- a/models/seq_input.py
++++ b/models/seq_input.py
+@@ -86,12 +86,12 @@ def seq_producer(raw_data, is_training, batch_size, num_steps, horizon, name):
+         horizon: the forecasting horizon
+     """
+     with tf.name_scope(name, "PTBProducer", [raw_data, batch_size, num_steps]):
+-        (data_len,data_dim) = np.shape(raw_data)
++        (data_len, total_steps, data_dim) = np.shape(raw_data)
+         raw_data = tf.convert_to_tensor(raw_data, name="raw_data", dtype=tf.float32)
+       
+         batch_len = data_len // batch_size
+-        data = tf.reshape(raw_data[0 : batch_size * batch_len,:],
+-                          [batch_size, batch_len, -1]) #batch_size, batch_len, dim_size
++        data = tf.reshape(raw_data[0 : batch_size * batch_len, :],
++                          [batch_size, batch_len, total_steps, -1]) #batch_size, batch_len, dim_size
+         epoch_size = batch_len # examples in mini-batch
+         assertion = tf.assert_positive(
+             epoch_size,
+@@ -101,12 +101,12 @@ def seq_producer(raw_data, is_training, batch_size, num_steps, horizon, name):
+ 
+         if is_training:
+             i = tf.train.range_input_producer(epoch_size, shuffle=True).dequeue()
+-            x = tf.slice(data, [0, i , 0], [batch_size, num_steps, data_dim])
+-            y = tf.slice(data, [0, i + horizon, 0], [batch_size, num_steps, data_dim])
++            x = tf.squeeze(tf.slice(data, [0, i , 0, 0], [batch_size, 1, num_steps, data_dim]), [1])
++            y = tf.squeeze(tf.slice(data, [0, i , num_steps, 0], [batch_size, 1, num_steps, data_dim]), [1])
+         else: 
+             i = tf.train.range_input_producer(epoch_size, shuffle=False).dequeue()
+-            x = tf.slice(data, [0, i, 0], [batch_size, num_steps, data_dim])
+-            y = tf.slice(data, [0, i + horizon, 0], [batch_size, num_steps, data_dim])
++            x = tf.squeeze(tf.slice(data, [0, i, 0, 0], [batch_size, 1, num_steps, data_dim]), [1])
++            y = tf.squeeze(tf.slice(data, [0, i, num_steps, 0], [batch_size, 1, num_steps, data_dim]), [1])
+         return x, y
+ 
+  
+@@ -117,14 +117,16 @@ class PTBInput(object):
+         self.num_steps = num_steps = config.num_steps
+         self.horizon = horizon = config.horizon
+         self.epoch_size = ((len(data) // batch_size) - 1) // num_steps
+-        self.input_size = np.shape(data)[1]
++        
+         
+         if config.rand_init == True:
++            self.input_size = np.shape(data)[2]
+             #print("feeding as random initial")
+             self.epoch_size = (len(data) // batch_size) 
+             self.input_data, self.targets = seq_producer(
+-                data, is_training, batch_size, horizon, name=name)
++                data, is_training, batch_size, num_steps, horizon, name=name)
+         else:
++            self.input_size = np.shape(data)[1]
+             if np.ndim(data)==2:
+                 self.input_data, self.targets = ptb_producer(
+                     data, is_training, batch_size, num_steps, horizon, name=name)
+diff --git a/models/seq_model_lstm.py b/models/seq_model_lstm.py
+index ca8ca55..d35d1a1 100644
+--- a/models/seq_model_lstm.py
++++ b/models/seq_model_lstm.py
+@@ -20,7 +20,7 @@ class PTBModel(object):
+ 
+         initializer = tf.random_uniform_initializer(-1,1)
+         #rnn_cell = tf.nn.rnn_cell.BasicRNNCell(size)
+-        rnn_cell = LSTMCell(hidden_size)
++        rnn_cell = LSTMCell(hidden_size, reuse=tf.get_variable_scope().reuse)
+ 
+         if is_training and config.keep_prob < 1:
+             rnn_cell = tf.nn.rnn_cell.DropoutWrapper(
+diff --git a/models/seq_model_tensor_einsum.py b/models/seq_model_tensor_einsum.py
+index 971a0bb..a44fa8c 100644
+--- a/models/seq_model_tensor_einsum.py
++++ b/models/seq_model_tensor_einsum.py
+@@ -36,7 +36,7 @@ class PTBModel(object):
+     if is_training and config.keep_prob < 1:
+       inputs = tf.nn.dropout(inputs, config.keep_prob)
+ 
+-    print("Predictions now computed inside cell.")
++    # print("Predictions now computed inside cell.")
+     feed_prev = not is_training if use_error_prop else False
+     logits, state, weights  = tensor_rnn_with_feed_prev(cell, inputs, num_steps, hidden_size,
+       num_lags, self._initial_states, input_size, feed_prev=feed_prev, burn_in_steps=config.burn_in_steps)

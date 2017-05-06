@@ -236,14 +236,14 @@ def tensor_network_tt_einsum(inputs, states, output_size, rank_vals, bias, bias_
     for order in range(num_orders-1):
       states_tensor = _outer_product(batch_size, states_tensor, states_vector)
 
-    print("tensor product", states_tensor.name, states_tensor.get_shape().as_list())
+    # print("tensor product", states_tensor.name, states_tensor.get_shape().as_list())
 
     def _tensor_net_tt_einsum(states_tensor):
-      print("input:", states_tensor.name, states_tensor.get_shape().as_list())
-      print("mat_dims", mat_dims)
-      print("mat_ranks", mat_ranks)
-      print("mat_ps", mat_ps)
-      print("mat_size", mat_size)
+      # print("input:", states_tensor.name, states_tensor.get_shape().as_list())
+      # print("mat_dims", mat_dims)
+      # print("mat_ranks", mat_ranks)
+      # print("mat_ps", mat_ps)
+      # print("mat_size", mat_size)
 
       abc = "abcdefgh"
       ijk = "ijklmnopqrstuvwxy"
@@ -269,15 +269,15 @@ def tensor_network_tt_einsum(inputs, states, output_size, rank_vals, bias, bias_
       mat_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]])
       mat_core = tf.reshape(mat_core, [mat_ranks[i], total_state_size, mat_ranks[i + 1]])
 
-      print mat_core.get_shape().as_list()
+      # print mat_core.get_shape().as_list()
 
       _s3 = x[:1] + x[2:] + "ab"
       einsum = "aib," + x + "->" + _s3
       x = _s3
-      print "order", i, einsum
+      # print "order", i, einsum
 
       out_h = tf.einsum(einsum, mat_core, states_tensor)
-      print(out_h.name, out_h.get_shape().as_list())
+      # print(out_h.name, out_h.get_shape().as_list())
 
       # 2nd - penultimate latent factor
       for i in range(1, num_orders - 1):
@@ -292,11 +292,11 @@ def tensor_network_tt_einsum(inputs, states, output_size, rank_vals, bias, bias_
         mat_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]])
         mat_core = tf.reshape(mat_core, [mat_ranks[i], total_state_size, mat_ranks[i + 1]])
 
-        print mat_core.get_shape().as_list()
+        # print mat_core.get_shape().as_list()
 
         einsum, x = ss, _s3 = _get_einsum(i, x)
 
-        print "order", i, ss
+        # print "order", i, ss
 
         out_h = tf.einsum(einsum, mat_core, out_h)
         print(out_h.name, out_h.get_shape().as_list())
@@ -306,31 +306,31 @@ def tensor_network_tt_einsum(inputs, states, output_size, rank_vals, bias, bias_
       i = num_orders - 1
       mat_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]])
       mat_core = tf.reshape(mat_core, [mat_ranks[i], total_state_size, mat_ranks[i + 1]])
-      print mat_core.get_shape().as_list()
+      # print mat_core.get_shape().as_list()
 
       einsum, _s3 = _get_einsum(num_orders - 1, x)
-      print "order", i, einsum
+      # print "order", i, einsum
 
       out_h = tf.einsum(einsum, mat_core, out_h)
-      print(out_h.name, out_h.get_shape().as_list())
+      # print(out_h.name, out_h.get_shape().as_list())
 
-      print "Squeeze out the dimension-1 dummy dim (first dim of 1st latent factor)"
+      # print "Squeeze out the dimension-1 dummy dim (first dim of 1st latent factor)"
 
       out_h = tf.squeeze(out_h, [1])
 
       # Compute h_t = U*x_t + W*H_{t-1}
       res = tf.add(out_x, out_h)
 
-      print res.get_shape()
+      # print res.get_shape()
 
       # biases = vs.get_variable("biases", [output_size])
       return res
 
     res = _tensor_net_tt_einsum(states_tensor)
 
-    print "END OF CELL CONSTRUCTION"
-    print "========================"
-    print ""
+    # print "END OF CELL CONSTRUCTION"
+    # print "========================"
+    # print ""
 
     if not bias:
       return res

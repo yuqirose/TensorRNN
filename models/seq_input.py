@@ -25,10 +25,10 @@ def ptb_producer_rnd(raw_data, is_training, batch_size, num_steps, horizon, name
     with tf.name_scope(name, "PTBProducer", [raw_data, batch_size, num_steps]):
         (data_len,data_dim,num_sources) = np.shape(raw_data)
         raw_data = tf.convert_to_tensor(raw_data, name="raw_data", dtype=tf.float32)
-        batch_len = data_len // batch_size
-        data = tf.reshape(raw_data[0 : batch_size * batch_len,:],
-                          [batch_size, batch_len, data_dim, -1])
-        epoch_size = (batch_len - 1) // num_steps
+        num_batches = data_len // batch_size
+        data = tf.reshape(raw_data[0 : batch_size * num_batches,:],
+                          [batch_size, num_batches, data_dim, -1])
+        epoch_size = (num_batches - 1) // num_steps
         assertion = tf.assert_positive(
             epoch_size,
             message="epoch_size == 0, decrease batch_size or num_steps")
@@ -36,14 +36,14 @@ def ptb_producer_rnd(raw_data, is_training, batch_size, num_steps, horizon, name
               epoch_size = tf.identity(epoch_size, name="epoch_size")
 
         if is_training:
-            i = tf.train.range_input_producer(batch_len-num_steps-horizon, shuffle=True).dequeue()
+            i = tf.train.range_input_producer(num_batches-num_steps-horizon, shuffle=True).dequeue()
             j = tf.train.range_input_producer(i%num_sources, shuffle=False).dequeue()
             x = tf.squeeze(tf.slice(data, [0, i , 0 ,j], [batch_size, num_steps, data_dim, 1]),[3])
             y = tf.squeeze(tf.slice(data, [0, i + horizon, 0, j], [batch_size, num_steps, data_dim , 1]),[3])
-        else: 
+        else:
             i = tf.train.range_input_producer(epoch_size, shuffle=False).dequeue()
             j = tf.train.range_input_producer(i%num_sources, shuffle=False).dequeue()
-            
+
             x = tf.squeeze(tf.slice(data, [0, i*num_steps, 0, j], [batch_size, num_steps, data_dim, 1]), [3])
             y = tf.squeeze(tf.slice(data, [0, i*num_steps + horizon, 0, j], [batch_size, num_steps, data_dim, 1]), [3])
 
@@ -58,11 +58,11 @@ def ptb_producer(raw_data, is_training, batch_size, num_steps, horizon, name):
     with tf.name_scope(name, "PTBProducer", [raw_data, batch_size, num_steps]):
         (data_len,data_dim) = np.shape(raw_data)
         raw_data = tf.convert_to_tensor(raw_data, name="raw_data", dtype=tf.float32)
-      
-        batch_len = data_len // batch_size
-        data = tf.reshape(raw_data[0 : batch_size * batch_len,:],
-                          [batch_size, batch_len, -1])
-        epoch_size = (batch_len - 1) // num_steps
+
+        num_batches = data_len // batch_size
+        data = tf.reshape(raw_data[0 : batch_size * num_batches,:],
+                          [batch_size, num_batches, -1])
+        epoch_size = (num_batches - 1) // num_steps
         assertion = tf.assert_positive(
             epoch_size,
             message="epoch_size == 0, decrease batch_size or num_steps")
@@ -70,10 +70,10 @@ def ptb_producer(raw_data, is_training, batch_size, num_steps, horizon, name):
               epoch_size = tf.identity(epoch_size, name="epoch_size")
 
         if is_training:
-            i = tf.train.range_input_producer(batch_len-num_steps-horizon, shuffle=True).dequeue()
+            i = tf.train.range_input_producer(num_batches-num_steps-horizon, shuffle=True).dequeue()
             x = tf.slice(data, [0, i , 0], [batch_size, num_steps, data_dim])
             y = tf.slice(data, [0, i + horizon, 0], [batch_size, num_steps, data_dim])
-        else: 
+        else:
             i = tf.train.range_input_producer(epoch_size, shuffle=False).dequeue()
             x = tf.slice(data, [0, i*num_steps, 0], [batch_size, num_steps, data_dim])
             y = tf.slice(data, [0, i*num_steps + horizon, 0], [batch_size, num_steps, data_dim])
@@ -81,35 +81,29 @@ def ptb_producer(raw_data, is_training, batch_size, num_steps, horizon, name):
         return x, y
 
 def seq_producer(raw_data, is_training, batch_size, num_steps, horizon, name):
-    """ The mini-batch generator for subsequences with random initialization points 
+    """ The mini-batch generator for subsequences with random initialization points
     Args:
         horizon: the forecasting horizon
     """
     with tf.name_scope(name, "PTBProducer", [raw_data, batch_size, num_steps]):
         (data_len, total_steps, data_dim) = np.shape(raw_data)
         raw_data = tf.convert_to_tensor(raw_data, name="raw_data", dtype=tf.float32)
-      
-        batch_len = data_len // batch_size
-        data = tf.reshape(raw_data[0 : batch_size * batch_len, :],
-                          [batch_size, batch_len, total_steps, -1]) #batch_size, batch_len, dim_size
-        epoch_size = batch_len # examples in mini-batch
+
+        epoch_size = data_len // batch_size
+        data = tf.reshape(raw_data[0 : batch_size * epoch_size],
+                          [batch_size, epoch_size, total_steps, data_dim]) #batch_size, num_batches, dim_size
         assertion = tf.assert_positive(
             epoch_size,
             message="epoch_size == 0, decrease batch_size or num_steps")
         with tf.control_dependencies([assertion]):
               epoch_size = tf.identity(epoch_size, name="epoch_size")
 
-        if is_training:
-            i = tf.train.range_input_producer(epoch_size, shuffle=True).dequeue()
-            x = tf.squeeze(tf.slice(data, [0, i , 0, 0], [batch_size, 1, num_steps, data_dim]), [1])
-            y = tf.squeeze(tf.slice(data, [0, i , num_steps, 0], [batch_size, 1, num_steps, data_dim]), [1])
-        else: 
-            i = tf.train.range_input_producer(epoch_size, shuffle=False).dequeue()
-            x = tf.squeeze(tf.slice(data, [0, i, 0, 0], [batch_size, 1, num_steps, data_dim]), [1])
-            y = tf.squeeze(tf.slice(data, [0, i, num_steps, 0], [batch_size, 1, num_steps, data_dim]), [1])
+        i = tf.train.range_input_producer(epoch_size, shuffle=is_training).dequeue()
+        x = tf.squeeze(tf.slice(data, [0, i, 0, 0], [batch_size, 1, num_steps, data_dim]), [1]) # input x_t
+        y = tf.squeeze(tf.slice(data, [0, i, horizon, 0], [batch_size, 1, num_steps, data_dim]), [1]) # predict x_(t+1)
         return x, y
 
- 
+
 class PTBInput(object):
     """The input data."""
     def __init__(self, is_training, config, data, name=None):
@@ -117,12 +111,12 @@ class PTBInput(object):
         self.num_steps = num_steps = config.num_steps
         self.horizon = horizon = config.horizon
         self.epoch_size = ((len(data) // batch_size) - 1) // num_steps
-        
-        
+
+
         if config.rand_init == True:
             self.input_size = np.shape(data)[2]
             #print("feeding as random initial")
-            self.epoch_size = (len(data) // batch_size) 
+            self.epoch_size = (len(data) // batch_size)
             self.input_data, self.targets = seq_producer(
                 data, is_training, batch_size, num_steps, horizon, name=name)
         else:

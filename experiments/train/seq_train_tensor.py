@@ -56,6 +56,7 @@ class TestConfig(object):
   keep_prob = 1.0 # dropout
   lr_decay = 0.9
   batch_size = 5
+  rand_init = True
 
 def run_epoch(session, model, eval_op=None, verbose=False):
   """Runs the model on the given data."""

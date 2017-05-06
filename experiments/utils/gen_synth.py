@@ -78,7 +78,7 @@ def gen_logistic_dataset(file_name = "logistic.pkl"):
     pickle.dump(x_mat,open(file_name,"wb"))
 
 def main():
-    data_path = "/home/roseyu/data/tensorRNN/"
+    data_path = "./"#"/home/roseyu/data/tensorRNN/"
 
     file_name = data_path+"logistic.pkl"
     gen_logistic_dataset(file_name)

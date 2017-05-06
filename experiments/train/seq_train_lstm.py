@@ -51,6 +51,7 @@ class TestConfig(object):
     lr_decay = 0.9
     batch_size = 5
     vocab_size = 1340
+    rand_init = True
 
 def run_epoch(session, model, eval_op=None, verbose=False):
     """Runs the model on the given data."""

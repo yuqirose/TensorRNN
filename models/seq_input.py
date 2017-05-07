@@ -4,7 +4,7 @@ import pandas as pd
 import os
 import cPickle as pickle
 
-def seq_raw_data(data_path="../../../chaotic_ts_mat.pkl", val_size = 0.1, test_size = 0.1):
+def seq_raw_data(data_path="logistic.pkl", val_size = 0.1, test_size = 0.1):
     print("loading sequence data ...")
     data = pickle.load(open(data_path))
     if (np.ndim(data)==1):
@@ -13,7 +13,7 @@ def seq_raw_data(data_path="../../../chaotic_ts_mat.pkl", val_size = 0.1, test_s
 
     ntest = int(round(len(data) * (1 - test_size)))
     nval = int(round(len(data[:ntest]) * (1 - val_size)))
-    train_data, valid_data, test_data = data[:nval,:], data[nval:ntest,:], data[ntest:,:]
+    train_data, valid_data, test_data = data[:nval, ], data[nval:ntest, ], data[ntest:,]
     return train_data, valid_data, test_data
 
 

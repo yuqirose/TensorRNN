@@ -1,6 +1,5 @@
 import tensorflow as tf
-from tensorflow.contrib.rnn import BasicRNNCell
-from tensorflow.contrib.rnn import MultiRNNCell
+from tensorflow.contrib.rnn import BasicRNNCell,  MultiRNNCell, DropoutWrapper
 from high_order_rnn import rnn_with_feed_prev
 class PTBModel(object):
     """The PTB model."""
@@ -22,10 +21,8 @@ class PTBModel(object):
         rnn_cell = BasicRNNCell(hidden_size)
 
 
-        # if is_training and config.keep_prob < 1:
-        #     rnn_cell = tf.nn.rnn_cell.DropoutWrapper(
-        #         rnn_cell, output_keep_prob=config.keep_prob)
-
+        if is_training and config.keep_prob < 1:
+            rnn_cell = DropoutWrapper(rnn_cell, output_keep_prob=config.keep_prob)
 
         cell = MultiRNNCell([rnn_cell] * config.num_layers, state_is_tuple=True)
 

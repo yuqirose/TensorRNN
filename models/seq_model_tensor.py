@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow.python.ops.math_ops import sigmoid
 from high_order_rnn import TensorRNNCell, tensor_rnn, tensor_rnn_with_feed_prev
-from tensorflow.contrib.rnn import MultiRNNCell
+from tensorflow.contrib.rnn import MultiRNNCell, DropoutWrapper
 
 class PTBModel(object):
 
@@ -19,8 +19,8 @@ class PTBModel(object):
     rnn_cell = TensorRNNCell(hidden_size, num_lags, rank_vals)
 
     if is_training and config.keep_prob < 1:
-      rnn_cell = tf.nn.rnn_cell.DropoutWrapper(
-        rnn_cell, output_keep_prob=config.keep_prob)
+      rnn_cell = DropoutWrapper(rnn_cell, output_keep_prob=config.keep_prob)
+      
     cell = MultiRNNCell([rnn_cell] * config.num_layers, state_is_tuple=True)
     initial_states = []
     for lag in range(num_lags):

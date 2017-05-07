@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from high_order_rnn import rnn_with_feed_prev
-from tensorflow.contrib.rnn import LSTMCell, MultiRNNCell
+from tensorflow.contrib.rnn import LSTMCell, MultiRNNCell, DropoutWrapper
 class PTBModel(object):
     """The PTB model."""
 
@@ -23,8 +23,8 @@ class PTBModel(object):
         rnn_cell = LSTMCell(hidden_size)
 
         if is_training and config.keep_prob < 1:
-            rnn_cell = tf.nn.rnn_cell.DropoutWrapper(
-                rnn_cell, output_keep_prob=config.keep_prob)
+            rnn_cell = DropoutWrapper(rnn_cell, output_keep_prob=config.keep_prob)
+            
         cell = MultiRNNCell([rnn_cell] * config.num_layers, state_is_tuple=True)
 
         self._initial_state = cell.zero_state(batch_size, dtype= tf.float32)

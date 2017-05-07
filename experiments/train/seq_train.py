@@ -180,8 +180,11 @@ def main(_):
 
             # Write config file
             with open(FLAGS.save_path+"config_error.out", 'w') as f:
-                f.write('hidden_size:'+ str(config.hidden_size) + '\t'+ 'num_steps:'+ str(config.num_steps) +
-                        '\t'+ 'learning_rate:'+ str(config.learning_rate) + '\n')
+                f.write('num_layers:'+ str(config.num_layers) +'\t'+'hidden_size:'+ str(config.hidden_size)+
+                    '\t'+ 'num_steps:'+ str(config.num_steps) +
+                    '\t'+ 'learning_rate:'+ str(config.learning_rate) + '\n')
+                if FLAGS.use_error_prop:
+                    f.write('error propagation \t')
                 f.write('train_error:'+ str(train_err) + '\t' + 'valid_error:'+ str(valid_err) + 
                         '\t'+ 'test_error:'+ str(test_err) + '\n')
 

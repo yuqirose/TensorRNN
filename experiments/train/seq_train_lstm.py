@@ -47,7 +47,7 @@ class TestConfig(object):
     hidden_size = 64
     max_epoch = 20
     max_max_epoch = 50
-    keep_prob = 1.0
+    keep_prob = 0.5
     lr_decay = 0.9
     batch_size = 5
     vocab_size = 1340
@@ -103,12 +103,12 @@ def run_epoch(session, model, eval_op=None, verbose=False):
 
         if verbose and step % (model.input.epoch_size // 10) == 10:
             print("%.3f error: %.3f speed: %.0f wps" %
-                  (step * 1.0 / model.input.epoch_size, costs / step,
+                  (step * 1.0 / model.input.epoch_size, costs / iters,
                    iters * model.input.batch_size / (time.time() - start_time)))
 
     predicts = np.stack(predicts,1).reshape(-1,model.input.input_size) # test_len x input_size
     targets = np.stack(targets,1).reshape(-1,model.input.input_size) # test_len x input_size
-    final_cost = np.sqrt(costs/model.input.epoch_size)
+    final_cost = np.sqrt(costs/iters)
     final_rslt = (targets, predicts) 
     
     return final_cost, final_rslt

@@ -92,6 +92,8 @@ def run_epoch(session, model, eval_op=None, verbose=False):
     # print("step {0}: predict{1}, cost {2}".format(step, predict, cost))
     # print("cost at step {0}: {1}".format(step, cost))
     state = vals["final_state"]
+    predicts.append(predict)
+    targets.append(target)
 #     if step % 500 == 0:
       # #for i in vals["input"]:
          # # print("step", step, "input\n", vals["input"][0,0:5])
@@ -100,18 +102,16 @@ def run_epoch(session, model, eval_op=None, verbose=False):
       # #for i in predict
           # print("step", step, "predicts\n", predict[0:5])
     costs += cost
-    predicts.append(predict)
-    targets.append(target)
     iters += model.input.num_steps
 
     if verbose and step % (model.input.epoch_size // 10) == 10:
       print("%.3f error: %.3f speed: %.0f wps" %
-          (step * 1.0 / model.input.epoch_size, costs / step,
+          (step * 1.0 / model.input.epoch_size, costs / iters,
            iters * model.input.batch_size / (time.time() - start_time)))
 
   predicts = np.stack(predicts,1).reshape(-1,model.input.input_size) # test_len x input_size
   targets = np.stack(targets,1).reshape(-1,model.input.input_size) # test_len x input_size
-  final_cost = np.sqrt(costs/model.input.epoch_size)
+  final_cost = np.sqrt(costs/iters)
   final_rslt = (targets, predicts) 
     
   return final_cost, final_rslt

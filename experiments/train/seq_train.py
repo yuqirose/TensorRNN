@@ -48,7 +48,7 @@ class TestConfig(object):
     hidden_size = 256
     max_epoch = 20
     max_max_epoch = 50
-    keep_prob = 1.0
+    keep_prob = 0.5
     lr_decay = 0.9
     batch_size = 5
     rand_init = True
@@ -99,15 +99,15 @@ def run_epoch(session, model, eval_op=None, verbose=False):
               # print("step", step, "predicts\n", predict[0:5])
 
         costs += cost
-        #iters += model.input.num_steps
+        iters += model.input.num_steps
 
         if verbose and step % (model.input.epoch_size // 10) == 10:
             print("%.3f error: %.3f speed: %.0f wps" %
-                  (step * 1.0 / model.input.epoch_size, np.sqrt(costs / step),
+                  (step * 1.0 / model.input.epoch_size, np.sqrt(costs / iters),
                    iters * model.input.batch_size / (time.time() - start_time)))
     predicts = np.stack(predicts,1).reshape(-1,model.input.input_size) # test_len x input_size
     targets = np.stack(targets,1).reshape(-1,model.input.input_size) # test_len x input_size
-    final_cost = np.sqrt(costs/model.input.epoch_size)
+    final_cost = np.sqrt(costs/iters)
     final_rslt = (targets, predicts) 
     
     return final_cost, final_rslt

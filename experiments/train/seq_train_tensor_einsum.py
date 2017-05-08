@@ -44,7 +44,7 @@ class TestConfig(object):
   init_scale = 1.0
   learning_rate = 1e-3
   max_grad_norm = 10
-  num_layers = 1
+  num_layers = 2
   num_steps = 12 # stops gradients after num_steps
   horizon = 1
   num_lags = 3 # num prev hiddens
@@ -53,7 +53,7 @@ class TestConfig(object):
   hidden_size = 256 # dim of h
   max_epoch = 20 # keep lr fixed
   max_max_epoch = 50 # decaying lr
-  keep_prob = 0.5 # dropout
+  keep_prob = 0.1 # dropout
   lr_decay = 0.9
   batch_size = 5
   rand_init = True

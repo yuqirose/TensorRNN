@@ -41,13 +41,13 @@ class TestConfig(object):
     init_scale = 0.1
     learning_rate = 1.0
     max_grad_norm = 1
-    num_layers = 1
+    num_layers = 2
     num_steps =12
     horizon = 1
     hidden_size = 64
     max_epoch = 20
     max_max_epoch = 50
-    keep_prob = 0.5
+    keep_prob = 0.1
     lr_decay = 0.9
     batch_size = 5
     vocab_size = 1340

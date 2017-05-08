@@ -20,16 +20,15 @@ use_error=True #--use_error_prop
 #data_path=/cs/ml/datasets/stephan/tensorcompress/lorenz_series.pkl
 #chaotic_ts_mat.pkl  chaotic_ts.pkl  lorenz_series_mat.pkl  lorenz_series.pkl  traffic_9sensors.pkl  ushcn_CA.pkl
 
-for exp in lorenz logistic traffic climate 
+for exp in lorenz logistic  
 do	
 
 data_path=/home/roseyu/data/tensorRNN/${exp}.pkl
 base_dir=/tmp/tensorRNN/log/$exp/$start_time
 
 echo $base_dir
-num_steps=12
-
-hidden_size=128
+num_steps=50
+hidden_size=64
 burn_in_steps=5 # just for naming purposes
 learning_rate=0.003
 #save_path=$base_dir/basic_rnn/

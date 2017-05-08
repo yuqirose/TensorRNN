@@ -48,7 +48,7 @@ class TestConfig(object):
     hidden_size = 256
     max_epoch = 20
     max_max_epoch = 50
-    keep_prob = 0.5
+    keep_prob = 0.1
     lr_decay = 0.9
     batch_size = 5
     rand_init = True

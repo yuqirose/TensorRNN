@@ -49,7 +49,7 @@ class TestConfig(object):
     max_epoch = 20
     max_max_epoch = 50
     keep_prob = 0.1
-    lr_decay = 0.9
+    lr_decay = 0.99
     batch_size = 5
     rand_init = True
 

@@ -18,9 +18,9 @@ logging = tf.logging
 flags.DEFINE_string(
   "model", "small",
   "A type of model. Possible options are: small, medium, large.")
-flags.DEFINE_string("data_path", "/Users/roseyu/Documents/Python/lorenz.pkl",
+flags.DEFINE_string("data_path", "lorenz.pkl",
           "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/log/lorenz/tt_rnn/",
+flags.DEFINE_string("save_path", "tt_rnn/",
           "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
           "Train using 16-bit floats instead of 32bit floats")
@@ -53,7 +53,7 @@ class TestConfig(object):
   hidden_size = 256 # dim of h
   max_epoch = 20 # keep lr fixed
   max_max_epoch = 50 # decaying lr
-  keep_prob = 0.1 # dropout
+  keep_prob = 1.0# dropout
   lr_decay = 0.9
   batch_size = 5
   rand_init = True

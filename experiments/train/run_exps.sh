@@ -20,17 +20,18 @@ use_error=True #--use_error_prop
 #data_path=/cs/ml/datasets/stephan/tensorcompress/lorenz_series.pkl
 #chaotic_ts_mat.pkl  chaotic_ts.pkl  lorenz_series_mat.pkl  lorenz_series.pkl  traffic_9sensors.pkl  ushcn_CA.pkl
 
-for exp in lorenz logistic  
+for exp in logistic lorenz  
 do	
 
 data_path=/home/roseyu/data/tensorRNN/${exp}.pkl
 base_dir=/tmp/tensorRNN/log/$exp/$start_time
 
 echo $base_dir
-num_steps=50
+for num_steps in 10 15 20 25 30 35 40 45 #num_steps=50
+do
 hidden_size=64
 burn_in_steps=5 # just for naming purposes
-learning_rate=0.003
+learning_rate=0.005
 #save_path=$base_dir/basic_rnn/
 #python seq_train.py --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_steps=$num_steps --use_error_prop=$use_error
 
@@ -45,5 +46,5 @@ python seq_train_lstm.py --data_path=$data_path --save_path=$save_path --hidden_
 
 save_path=$base_dir/tensor_rnn_einsum/
 python seq_train_tensor_einsum.py --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_steps=$num_steps --learning_rate=$learning_rate --use_error_prop=$use_error
-
+done
 done

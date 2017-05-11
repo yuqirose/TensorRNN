@@ -46,15 +46,9 @@ class TestConfig(object):
     horizon = 1
     hidden_size = 64
     max_epoch = 20
-<<<<<<< HEAD
     max_max_epoch =100
     keep_prob = 0.5
     lr_decay = 0.9
-=======
-    max_max_epoch = 50
-    keep_prob = 0.1
-    lr_decay = 0.99
->>>>>>> 6f5e33f25595bd6a1e777db875e312982d776252
     batch_size = 5
     rand_init = True
 

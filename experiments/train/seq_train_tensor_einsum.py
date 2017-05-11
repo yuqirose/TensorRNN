@@ -50,15 +50,9 @@ class TestConfig(object):
   rank_vals= [2]
   hidden_size = 64 # dim of h
   max_epoch = 20 # keep lr fixed
-<<<<<<< HEAD
   max_max_epoch = 100 # decaying lr
   keep_prob = 1.0 # dropout
   lr_decay = 0.9
-=======
-  max_max_epoch = 50 # decaying lr
-  keep_prob = 1.0# dropout
-  lr_decay = 0.99
->>>>>>> 6f5e33f25595bd6a1e777db875e312982d776252
   batch_size = 5
   rand_init = True
 

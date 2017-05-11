@@ -188,7 +188,7 @@ def tensor_network_tt(inputs, states, output_size, rank_vals, bias, bias_start=0
 
 def tensor_network_tt_einsum(inputs, states, output_size, rank_vals, bias, bias_start=0.0, scope=None):
 
-  print("Using Einsum Tensor-Train decomposition.")
+  # print("Using Einsum Tensor-Train decomposition.")
 
   """tensor train decomposition for the full tenosr """
   num_orders = len(rank_vals)+1#alpha_1 to alpha_{K-1}

@@ -18,20 +18,18 @@ logging = tf.logging
 flags.DEFINE_string(
   "model", "small",
   "A type of model. Possible options are: small, medium, large.")
-flags.DEFINE_string("data_path", "../../../data/lorenz_series.pkl",
+flags.DEFINE_string("data_path", "/Users/roseyu/Documents/Python/lorenz_series.pkl",
           "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "../../../log/lorenz/tensor_rnn/",
+flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/lorenz/tensor_rnn/",
           "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
           "Train using 16-bit floats instead of 32bit floats")
 flags.DEFINE_bool("use_error_prop", False,
                   "Feed previous output as input in RNN")
 
-flags.DEFINE_integer("hidden_size","256", "hidden layer size")
-flags.DEFINE_float("learning_rate", "1e-3", "learning rate")
-flags.DEFINE_integer("num_steps", 12,"Output sequence length")
-flags.DEFINE_integer("num_lags", 3, "number of time lag")
-flags.DEFINE_integer("num_orders", 2, "number of tensor order")
+flags.DEFINE_integer("hidden_size",256, "hidden layer size")
+flags.DEFINE_float("learning_rate", 1e-3, "learning rate")
+flags.DEFINE_integer("num_test_steps", 20,"Output sequence length")
 flags.DEFINE_integer("rank_val","2", "rank of tensor train model")
 
 FLAGS = flags.FLAGS
@@ -52,7 +50,7 @@ class TestConfig(object):
   rank_vals= [1]
   hidden_size = 256 # dim of h
   max_epoch = 20 # keep lr fixed
-  max_max_epoch = 50 # decaying lr
+  max_max_epoch = 100 # decaying lr
   keep_prob = 0.5 # dropout
   lr_decay = 0.9
   batch_size = 5
@@ -65,7 +63,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
   iters = 0
   predicts = []
   targets = []
-  states_val = session.run(model.initial_states)
+  initial_states = session.run(model.initial_states)
 
   fetches = {
     "cost": model.cost,
@@ -82,7 +80,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
     feed_dict = {}
     for i, states in enumerate(model.initial_states):
       for j, state in enumerate(states):
-        feed_dict[state] = states_val[i][j]
+        feed_dict[state] = initial_states[i][j]
 
     vals = session.run(fetches, feed_dict)
 
@@ -94,23 +92,26 @@ def run_epoch(session, model, eval_op=None, verbose=False):
     state = vals["final_state"]
     predicts.append(predict)
     targets.append(target)
-#     if step % 500 == 0:
-      # #for i in vals["input"]:
-         # # print("step", step, "input\n", vals["input"][0,0:5])
-      # #for i in vals["target"]:
-          # print("step", step, "target\n", vals["target"][0,0:5])
-      # #for i in predict
-          # print("step", step, "predicts\n", predict[0:5])
+
+    # if step % 20 == 0:
+      
+    #    print("step", step, "input\n", vals["input"][0,0:5])
+    
+    #    print("step", step, "target\n", vals["target"][0,0:5])
+    
+    #    print("step", step, "predicts\n", predict[0:5])
+
     costs += cost
     iters += model.input.num_steps
 
     if verbose and step % (model.input.epoch_size // 10) == 10:
       print("%.3f error: %.3f speed: %.0f wps" %
-          (step * 1.0 / model.input.epoch_size, costs / iters,
+          (step * 1.0 / model.input.epoch_size, np.sqrt(costs / iters),
            iters * model.input.batch_size / (time.time() - start_time)))
 
   predicts = np.stack(predicts,1).reshape(-1,model.input.input_size) # test_len x input_size
   targets = np.stack(targets,1).reshape(-1,model.input.input_size) # test_len x input_size
+  
   final_cost = np.sqrt(costs/iters)
   final_rslt = (targets, predicts) 
     
@@ -126,14 +127,13 @@ def main(_):
   config = TestConfig()
   config.learning_rate = FLAGS.learning_rate
   config.hidden_size = FLAGS.hidden_size
-  config.num_steps = FLAGS.num_steps
   config.num_lags = FLAGS.num_lags
   config.num_orders = FLAGS.num_orders
   config.rank_vals = [FLAGS.rank_val]
 
   eval_config = TestConfig()
   eval_config.batch_size = 1
-  eval_config.num_steps = 1
+  eval_config.num_steps = FLags.num_test_steps
   eval_config.num_lags = FLAGS.num_lags
   eval_config.num_orders = FLAGS.num_orders
   eval_config.hidden_size = FLAGS.hidden_size
@@ -156,7 +156,7 @@ def main(_):
     with tf.name_scope("Valid"):
       valid_input = PTBInput(is_training=False, config=config, data=valid_data, name="ValidInput")
       with tf.variable_scope("Model", reuse=True, initializer=initializer):
-        mvalid = PTBModel(is_training=False, config=config, input_=valid_input, use_error_prop=FLAGS.use_error_prop)
+        mvalid = PTBModel(is_training=False, config=config, input_=valid_input, use_error_prop=False)
       tf.summary.scalar("Validation_Loss", mvalid.cost)
 
     with tf.name_scope("Test"):
@@ -173,14 +173,14 @@ def main(_):
         lr_decay = config.lr_decay ** max(i + 1 - config.max_epoch, 0.0)
         m.assign_lr(session, config.learning_rate * lr_decay)
 
-        print("Epoch: %d Learning rate: %.3f" % (i + 1, session.run(m.lr)))
+        print("Epoch: %d Learning rate: %.2E" % (i + 1, session.run(m.lr)))
         train_err, _= run_epoch(session, m, eval_op=m.train_op,
                        verbose=True)
         print("Epoch: %d Train Error: %.3f" % (i + 1, train_err))
         valid_err, _ = run_epoch(session, mvalid)
         print("Epoch: %d Valid Error: %.3f" % (i + 1, valid_err))
         # early stopping
-        if valid_err_old <= valid_err:
+        if valid_err - valid_err_old > 1e-3:
           print("Early stopping after %d epoch" % i)
           break
         valid_err_old = valid_err
@@ -195,9 +195,8 @@ def main(_):
       with open(FLAGS.save_path+"config_error.out", 'w') as f:
         f.write('num_layers:'+ str(config.num_layers) +'\t'+'hidden_size:'+ str(config.hidden_size)+
             '\t'+ 'num_steps:'+ str(config.num_steps) +
-            '\t'+ 'learning_rate:'+ str(config.learning_rate) + '\n')
-          if FLAGS.use_error_prop:
-              f.write('error propagation \t')
+            '\t'+ 'learning_rate:'+ str(config.learning_rate)  +'\t'+ 'err_prop:'+ str(FLAGS.use_error_prop) + '\n')
+ 
         f.write('train_error:'+ str(train_err) + '\t' + 'valid_error:'+ str(valid_err) + 
                         '\t'+ 'test_error:'+ str(test_err) + '\n')
 

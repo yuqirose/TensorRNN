@@ -20,9 +20,9 @@ logging = tf.logging
 flags.DEFINE_string(
     "model", "small",
     "A type of model. Possible options are: small, medium, large.")
-flags.DEFINE_string("data_path", "lorenz.pkl",
+flags.DEFINE_string("data_path", "/Users/roseyu/Documents/Python/lorenz.pkl",
                     "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "lorenz/basic_rnn/",
+flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/lorenz/basic_rnn/",
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
@@ -31,7 +31,7 @@ flags.DEFINE_bool("use_error_prop", False,
 
 flags.DEFINE_integer('hidden_size', 256, "number of hidden unit")
 flags.DEFINE_float('learning_rate', 1e-3, "learning rate of trainig")
-flags.DEFINE_integer("num_steps", 12, "Output sequence length")
+flags.DEFINE_integer("num_test_steps", 20, "Output sequence length")
 FLAGS = flags.FLAGS
 
 
@@ -42,13 +42,13 @@ class TestConfig(object):
     init_scale = 1.0
     learning_rate = 1.0
     max_grad_norm = 1
-    num_layers = 1
-    num_steps =12
+    num_layers = 2
+    num_steps = 35
     horizon =1
-    hidden_size = 256
+    hidden_size = 64
     max_epoch = 20
-    max_max_epoch = 50
-    keep_prob = 0.1
+    max_max_epoch = 100
+    keep_prob = 0.5
     lr_decay = 0.9
     batch_size = 5
     rand_init = True
@@ -60,7 +60,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
     iters = 0
     predicts = []
     targets = []
-    state = session.run(model.initial_state)
+    initial_states = session.run(model.initial_state)
 
     fetches = {
         "cost": model.cost,
@@ -78,7 +78,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
             # feed_dict[c] = state[i].c
             # feed_dict[h] = state[i].h
         for i, s in enumerate(model.initial_state):
-            feed_dict[s] = state[i]
+            feed_dict[s] = initial_states[i]
 
         vals = session.run(fetches, feed_dict)
         cost = vals["cost"]
@@ -90,13 +90,14 @@ def run_epoch(session, model, eval_op=None, verbose=False):
         state = vals["final_state"]
         predicts.append(predict) # predict: matrix batch_size x num_steps x input_size
         targets.append(target)
-#         if step % 500 == 0:
-          # #for i in vals["input"]:
-              # #print("step", step, "input\n", vals["input"][0,0:5])
-          # #for i in vals["target"]:
-              # print("step", step, "target\n", vals["target"][0,0:5])
-          # #for i in predict
-              # print("step", step, "predicts\n", predict[0:5])
+
+        # if step % 20 == 0:
+         
+        #   print("step", step, "input\n", vals["input"][0,0:5])
+      
+        #   print("step", step, "target\n", vals["target"][0,0:5])
+      
+        #   print("step", step, "predicts\n", predict[0:5])
 
         costs += cost
         iters += model.input.num_steps
@@ -107,6 +108,8 @@ def run_epoch(session, model, eval_op=None, verbose=False):
                    iters * model.input.batch_size / (time.time() - start_time)))
     predicts = np.stack(predicts,1).reshape(-1,model.input.input_size) # test_len x input_size
     targets = np.stack(targets,1).reshape(-1,model.input.input_size) # test_len x input_size
+
+    
     final_cost = np.sqrt(costs/iters)
     final_rslt = (targets, predicts) 
     
@@ -122,11 +125,10 @@ def main(_):
     config = TestConfig()
     config.learning_rate = FLAGS.learning_rate
     config.hidden_size = FLAGS.hidden_size
-    config.num_steps = FLAGS.num_steps
 
     eval_config = TestConfig()
     eval_config.hidden_size = FLAGS.hidden_size
-    eval_config.num_steps = 1
+    eval_config.num_steps = FLAGS.num_test_steps
     eval_config.batch_size = 1
 
     if FLAGS.use_error_prop:
@@ -145,7 +147,7 @@ def main(_):
         with tf.name_scope("Valid"):
             valid_input = PTBInput(is_training=False, config=config, data=valid_data, name="ValidInput")
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
-                mvalid = PTBModel(is_training=False, config=config, input_=valid_input, use_error_prop=FLAGS.use_error_prop)
+                mvalid = PTBModel(is_training=False, config=config, input_=valid_input, use_error_prop=False)
             tf.summary.scalar("Validation_Loss", mvalid.cost)
 
         with tf.name_scope("Test"):
@@ -161,7 +163,8 @@ def main(_):
             for i in range(config.max_max_epoch):
                 lr_decay = config.lr_decay ** max(i + 1 - config.max_epoch, 0.0)
                 m.assign_lr(session, config.learning_rate * lr_decay)
-                print("Epoch: %d Learning rate: %.3f" % (i + 1, session.run(m.lr)))
+                
+                print("Epoch: %d Learning rate: %.2E" % (i + 1, session.run(m.lr)))
                 train_err, _ = run_epoch(session, m, eval_op=m.train_op,
                                              verbose=True)
                 print("Epoch: %d Train Error: %.3f" % (i + 1, train_err))
@@ -169,7 +172,7 @@ def main(_):
                 print("Epoch: %d Valid Error: %.3f" % (i + 1, valid_err))
 
                 # early stopping
-                if valid_err_old <= valid_err:
+                if valid_err - valid_err_old > 1e-3:
                     print("Early stopping after %d epoch" % i)
                     break
                 valid_err_old = valid_err
@@ -182,9 +185,7 @@ def main(_):
             with open(FLAGS.save_path+"config_error.out", 'w') as f:
                 f.write('num_layers:'+ str(config.num_layers) +'\t'+'hidden_size:'+ str(config.hidden_size)+
                     '\t'+ 'num_steps:'+ str(config.num_steps) +
-                    '\t'+ 'learning_rate:'+ str(config.learning_rate) + '\n')
-                if FLAGS.use_error_prop:
-                    f.write('error propagation \t')
+                    '\t'+ 'learning_rate:'+ str(config.learning_rate) +'\t'+ 'err_prop:'+ str(FLAGS.use_error_prop) + '\n')
                 f.write('train_error:'+ str(train_err) + '\t' + 'valid_error:'+ str(valid_err) + 
                         '\t'+ 'test_error:'+ str(test_err) + '\n')
 

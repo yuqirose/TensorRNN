@@ -2,16 +2,20 @@ import numpy as np
 import cPickle as pickle
 
 
-
-def gen_logistic_series(x0, num_steps):
+def gen_logistic_series(x0, num_steps, num_freq):
     alpha = 4.0
-    num_steps = num_steps
     x = np.ndarray((num_steps,1) )
     x[0]  = x0
+    
+    xx = np.ndarray((num_steps//num_freq,1))
     f = lambda  x ,t: alpha* x[t] * (1.0 - x[t]) 
+    j = 0
     for t in range(num_steps-1):
+        if t%num_freq ==0:
+            xx[j]  = x[t]
+            j += 1
         x[t+1] = f(x,t)
-    logistic_series = x
+    logistic_series = xx
     return logistic_series
 
 
@@ -59,7 +63,7 @@ def gen_lorenz_series(x0, y0, z0, num_steps, num_freq):
 
 def gen_lorenz_dataset(file_name="lorenz.pkl"):
     #define initial range
-    num_samples = int(1e5)
+    num_samples = int(1e2)
     num_freq = int(5)
     num_steps = int(1e2)*num_freq
     
@@ -77,15 +81,20 @@ def gen_lorenz_dataset(file_name="lorenz.pkl"):
 
 def gen_logistic_dataset(file_name = "logistic.pkl"):
     """generate set of chaotic time series with randomly selected initial"""
-    num_series = 50
-    num_steps = int(1e2)
+    num_samples = int(1e2)
+    num_freq = int(5)
+    num_steps = int(1e2)*num_freq
+    
+    init_range = np.random.uniform(0.0,1.0,(num_samples,1))
+   
+    logistic_series_mat = np.ndarray((num_samples, num_steps//num_freq, 1))
 
-    init_range = np.random.uniform(0.1, 1.0, num_series)
-    x_mat = np.ndarray((num_series, num_steps, 1 ))# num_time x num_series , a collection of time series with different initial values
-    for init, i in zip(init_range, range(num_series)):
-        series=gen_logistic_series(init,num_steps)
-        x_mat[i, :, :]  = series
-    pickle.dump(x_mat,open(file_name,"wb"))
+    for i in range(num_samples):
+        x0 = init_range[i,:]
+        series = gen_logistic_series(x0, num_steps, num_freq )
+        logistic_series_mat[i,:,:] = series
+
+    pickle.dump(logistic_series_mat,open(file_name,"wb"))
 
 def main():
     data_path = "/Users/roseyu/Documents/Python/"#"/home/roseyu/data/tensorRNN/"

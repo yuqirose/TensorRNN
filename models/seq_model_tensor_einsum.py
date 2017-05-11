@@ -66,7 +66,7 @@ class PTBModel(object):
 
   def assign_lr(self, session, lr_value):
     session.run(self._lr_update, feed_dict={self._new_lr: lr_value})
-
+    
   @property
   def input(self):
     return self._input

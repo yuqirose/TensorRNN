@@ -63,7 +63,7 @@ def gen_lorenz_series(x0, y0, z0, num_steps, num_freq):
 
 def gen_lorenz_dataset(file_name="lorenz.pkl"):
     #define initial range
-    num_samples = int(1e2)
+    num_samples = int(1e4)
     num_freq = int(5)
     num_steps = int(1e2)*num_freq
     
@@ -81,7 +81,7 @@ def gen_lorenz_dataset(file_name="lorenz.pkl"):
 
 def gen_logistic_dataset(file_name = "logistic.pkl"):
     """generate set of chaotic time series with randomly selected initial"""
-    num_samples = int(1e2)
+    num_samples = int(1e4)
     num_freq = int(5)
     num_steps = int(1e2)*num_freq
     
@@ -97,7 +97,8 @@ def gen_logistic_dataset(file_name = "logistic.pkl"):
     pickle.dump(logistic_series_mat,open(file_name,"wb"))
 
 def main():
-    data_path = "/Users/roseyu/Documents/Python/"#"/home/roseyu/data/tensorRNN/"
+    data_path = "/home/roseyu/data/tensorRNN/"
+    #data_path = "/Users/roseyu/Documents/Python/"
 
     file_name = data_path+"logistic.pkl"
     gen_logistic_dataset(file_name)

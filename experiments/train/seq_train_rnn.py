@@ -29,7 +29,7 @@ flags.DEFINE_bool("use_fp16", False,
 flags.DEFINE_bool("use_error_prop", False,
                   "Feed previous output as input in RNN")
 
-flags.DEFINE_integer('hidden_size', 256, "number of hidden unit")
+flags.DEFINE_integer('hidden_size', 128, "number of hidden unit")
 flags.DEFINE_float('learning_rate', 1e-3, "learning rate of trainig")
 flags.DEFINE_integer("num_test_steps", 20, "Output sequence length")
 FLAGS = flags.FLAGS
@@ -48,7 +48,7 @@ class TestConfig(object):
     hidden_size = 64
     max_epoch = 20
     max_max_epoch = 100
-    keep_prob = 0.5
+    keep_prob = 1.0
     lr_decay = 0.9
     batch_size = 5
     rand_init = True

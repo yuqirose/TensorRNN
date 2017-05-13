@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 from tensorflow.python.ops.math_ops import sigmoid
 from high_order_rnn import TensorRNNCell, tensor_rnn, tensor_rnn_with_feed_prev
 from tensorflow.contrib.rnn import MultiRNNCell, DropoutWrapper
@@ -37,12 +38,12 @@ class PTBModel(object):
 
     print("num_steps:", num_steps)
 
-    print("Predictions now computed inside cell.")
+    # print("Predictions now computed inside cell.")
     feed_prev = not is_training if use_error_prop else False
     logits, state, weights  = tensor_rnn_with_feed_prev(cell, inputs, num_steps, hidden_size,
       num_lags, self._initial_states, input_size, feed_prev=feed_prev, burn_in_steps=config.burn_in_steps)
 
-    softmax_w, softmax_b = weights["softmax_w"], weights["softmax_b"]
+    # softmax_w, softmax_b = weights["softmax_w"], weights["softmax_b"]
 
     self._predict = logits
 

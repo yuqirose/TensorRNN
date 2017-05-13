@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 from tensorflow.python.ops.math_ops import sigmoid
 from tensorflow.contrib.rnn import MultiRNNCell, DropoutWrapper
 from high_order_rnn import EinsumTensorRNNCell, tensor_rnn, tensor_rnn_with_feed_prev
@@ -12,6 +13,7 @@ class PTBModel(object):
     hidden_size = config.hidden_size
     input_size = input_.input_size
     num_lags = config.num_lags
+    num_orders = config.num_orders
     rank_vals = config.rank_vals
 
     initializer = tf.random_uniform_initializer(-1,1)
@@ -41,7 +43,7 @@ class PTBModel(object):
     logits, state, weights  = tensor_rnn_with_feed_prev(cell, inputs, num_steps, hidden_size,
       num_lags, self._initial_states, input_size, feed_prev=feed_prev, burn_in_steps=config.burn_in_steps)
 
-    softmax_w, softmax_b = weights["softmax_w"], weights["softmax_b"]
+    # softmax_w, softmax_b = weights["softmax_w"], weights["softmax_b"]
 
     self._predict = logits
 
@@ -49,6 +51,14 @@ class PTBModel(object):
       tf.reshape(logits, [-1, input_size]), tf.reshape(input_.targets, [batch_size*num_steps,-1]) ))
 
     self._final_state = state
+
+    # calculate number of training parameters
+    total_state_size = (hidden_size * num_lags + 1 )
+    mat_ranks = np.concatenate(([1], rank_vals, [hidden_size]))
+    mat_dims = np.ones((num_orders,)) * total_state_size
+    num_params = np.sum(mat_ranks[:-1] * mat_dims * mat_ranks[1:])
+    print("number of parameters : %d " % (num_params))
+
 
     if not is_training:
       return
@@ -66,6 +76,7 @@ class PTBModel(object):
 
   def assign_lr(self, session, lr_value):
     session.run(self._lr_update, feed_dict={self._new_lr: lr_value})
+    
     
   @property
   def input(self):

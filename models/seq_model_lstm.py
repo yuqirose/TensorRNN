@@ -1,5 +1,5 @@
 import tensorflow as tf
-
+import numpy as np
 from high_order_rnn import rnn_with_feed_prev
 from tensorflow.contrib.rnn import LSTMCell, MultiRNNCell, DropoutWrapper
 class PTBModel(object):
@@ -78,7 +78,10 @@ class PTBModel(object):
         self._predict = tf.reshape(logits, [batch_size, num_steps, -1])
         self._cost = cost = tf.reduce_mean(tf.squared_difference(
             tf.reshape(logits, [-1,input_size]), tf.reshape(input_.targets, [batch_size*num_steps,-1]) ))
-        self._final_state = state
+        self._final_state = states
+        # calculate number of parameters 
+        num_params = hidden_size * (hidden_size + 1)*4
+        print("number of parameters : %d " % (num_params))
 
         if not is_training:
             return

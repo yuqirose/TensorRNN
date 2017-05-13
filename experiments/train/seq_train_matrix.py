@@ -49,7 +49,7 @@ class TestConfig(object):
     keep_prob = 1.0
     lr_decay = 0.9
     batch_size = 5
-    rand_init = True
+    rand_init = False
 
 def run_epoch(session, model, eval_op=None, verbose=False):
     """Runs the model on the given data."""
@@ -156,7 +156,8 @@ def main(_):
                                  input_=test_input, use_error_prop=FLAGS.use_error_prop)
 
         gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.1)
-        sv = tf.train.Supervisor(logdir=FLAGS.save_path)
+
+        sv = tf.train.Supervisor(logdir=FLAGS.save_path, save_summaries_secs=10)
         with sv.managed_session(config = tf.ConfigProto(gpu_options=gpu_options)) as session:
             valid_err_old = float('inf')
             for i in range(config.max_max_epoch):
@@ -171,7 +172,7 @@ def main(_):
                 print("Epoch: %d Valid Error: %.3f" % (i + 1, valid_err))
 
                 # early stopping
-                if valid_err - valid_err_old > 1e-3:
+                if valid_err >= valid_err_old :
                     print("Early stopping after %d epoch" % i)
                     break
                 valid_err_old = valid_err

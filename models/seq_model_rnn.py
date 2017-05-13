@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 from tensorflow.contrib.rnn import BasicRNNCell,  MultiRNNCell, DropoutWrapper
 from high_order_rnn import rnn_with_feed_prev
 class PTBModel(object):
@@ -62,6 +63,11 @@ class PTBModel(object):
             tf.reshape(logits,[-1,input_size]), tf.reshape(input_.targets, [batch_size*num_steps,-1]) ))
         self._final_state = state
 
+        # calculate number of parameters 
+        num_params = hidden_size * (hidden_size + 1)
+        print("number of parameters : %d " % (num_params))
+
+
         if not is_training:
             return
 
@@ -83,8 +89,7 @@ class PTBModel(object):
         # self._input_update = tf.assign(self._input, self._new_input)
     def assign_lr(self, session, lr_value):
         session.run(self._lr_update, feed_dict={self._new_lr: lr_value})
-        #def feed_pred(self, session, predict):
-        # session.run(self._input_update, feed_dict={"predict":predict})
+    
 
     @property
     def input(self):

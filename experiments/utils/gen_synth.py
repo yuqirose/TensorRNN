@@ -61,7 +61,7 @@ def gen_lorenz_series(x0, y0, z0, num_steps, num_freq):
     lorenz_series = np.transpose(np.vstack((xss,yss,zss)))
     return lorenz_series
 
-def gen_lorenz_dataset(file_name="lorenz.pkl"):
+def gen_lorenz_dataset2(file_name="lorenz.pkl"):
     #define initial range
     num_samples = int(1e4)
     num_freq = int(5)
@@ -79,7 +79,7 @@ def gen_lorenz_dataset(file_name="lorenz.pkl"):
     pickle.dump(lorenz_series_mat, open(file_name,"wb")) 
 
 
-def gen_logistic_dataset(file_name = "logistic.pkl"):
+def gen_logistic_dataset2(file_name = "logistic.pkl"):
     """generate set of chaotic time series with randomly selected initial"""
     num_samples = int(1e4)
     num_freq = int(5)
@@ -96,9 +96,38 @@ def gen_logistic_dataset(file_name = "logistic.pkl"):
 
     pickle.dump(logistic_series_mat,open(file_name,"wb"))
 
+
+
+def gen_lorenz_dataset(file_name="lorenz.pkl"):
+    #define initial range 
+    num_steps = int(1e4)
+    num_freq = int(1)
+    lorenz_series_mat = np.ndarray((num_steps, 3))
+
+    x0,y0,z0 = (0.0,0.0,0.0)
+    series = gen_lorenz_series(x0,y0,z0, num_steps, num_freq )
+    lorenz_series_mat = series
+                
+    pickle.dump(lorenz_series_mat, open(file_name,"wb")) 
+
+
+def gen_logistic_dataset(file_name = "logistic.pkl"):
+    """generate set of chaotic time series with randomly selected initial"""
+    num_freq = int(1)
+    num_steps = int(1e4)
+   
+    logistic_series_mat = np.ndarray((num_steps, 1))
+
+    
+    x0 = 0.0
+    series = gen_logistic_series(x0, num_steps, num_freq )
+    logistic_series_mat = series
+
+    pickle.dump(logistic_series_mat,open(file_name,"wb"))
+
 def main():
     data_path = "/home/roseyu/data/tensorRNN/"
-    #data_path = "/Users/roseyu/Documents/Python/"
+    # data_path = "/Users/roseyu/Documents/Python/"
 
     file_name = data_path+"logistic.pkl"
     gen_logistic_dataset(file_name)

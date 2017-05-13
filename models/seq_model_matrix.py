@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 from tensorflow.python.ops.math_ops import sigmoid
 from high_order_rnn import MatrixRNNCell, tensor_rnn, tensor_rnn_with_feed_prev
 from tensorflow.contrib.rnn import MultiRNNCell,  DropoutWrapper
@@ -82,6 +83,10 @@ class PTBModel(object):
       tf.reshape(logits,[-1, input_size]), tf.reshape(input_.targets, [batch_size*num_steps,-1]) ))
     self._final_state = state
 
+    # calculate number of parameters 
+    num_params = hidden_size * (hidden_size + 1) * num_lags
+    print("number of parameters : %d " % (num_params))
+  
     if not is_training:
       return
 
@@ -101,6 +106,7 @@ class PTBModel(object):
 
   def assign_lr(self, session, lr_value):
     session.run(self._lr_update, feed_dict={self._new_lr: lr_value})
+
 
   @property
   def input(self):

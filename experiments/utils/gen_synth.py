@@ -100,7 +100,7 @@ def gen_logistic_dataset2(file_name = "logistic.pkl"):
 
 def gen_lorenz_dataset(file_name="lorenz.pkl"):
     #define initial range 
-    num_steps = int(1e4)
+    num_steps = int(1e6)
     num_freq = int(1)
     lorenz_series_mat = np.ndarray((num_steps, 3))
 
@@ -114,7 +114,7 @@ def gen_lorenz_dataset(file_name="lorenz.pkl"):
 def gen_logistic_dataset(file_name = "logistic.pkl"):
     """generate set of chaotic time series with randomly selected initial"""
     num_freq = int(1)
-    num_steps = int(1e4)
+    num_steps = int(1e6)
    
     logistic_series_mat = np.ndarray((num_steps, 1))
 

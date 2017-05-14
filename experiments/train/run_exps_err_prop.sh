@@ -23,7 +23,7 @@ hidden_size=128
 burn_in_steps=5 # just for naming purposes
 learning_rate=0.001
 
-for exp in logistic lorenz  
+for exp in climate energy 
 do	
 
 data_path=/home/roseyu/data/tensorRNN/${exp}.pkl

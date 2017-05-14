@@ -154,6 +154,7 @@ def main(_):
             with tf.variable_scope("Model", reuse=True, initializer=initializer):
                 mtest = PTBModel(is_training=False, config=eval_config,
                                  input_=test_input, use_error_prop=FLAGS.use_error_prop)
+            tf.summary.scalar("Test_Loss", mtest.cost)
 
         gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.1)
 

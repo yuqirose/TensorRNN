@@ -84,7 +84,7 @@ class PTBModel(object):
     self._final_state = state
 
     # calculate number of parameters 
-    num_params = hidden_size * (hidden_size + 1) * num_lags
+    num_params = size * (size + 1) * num_lags
     print("number of parameters : %d " % (num_params))
   
     if not is_training:

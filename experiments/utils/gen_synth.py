@@ -96,9 +96,7 @@ def gen_logistic_dataset2(file_name = "logistic.pkl"):
 
     pickle.dump(logistic_series_mat,open(file_name,"wb"))
 
-
-
-def gen_lorenz_dataset(file_name="lorenz.pkl"):
+def gen_lorenz_dataset1(file_name="lorenz.pkl"):
     #define initial range 
     num_steps = int(1e6)
     num_freq = int(1)
@@ -111,7 +109,7 @@ def gen_lorenz_dataset(file_name="lorenz.pkl"):
     pickle.dump(lorenz_series_mat, open(file_name,"wb")) 
 
 
-def gen_logistic_dataset(file_name = "logistic.pkl"):
+def gen_logistic_dataset1(file_name = "logistic.pkl"):
     """generate set of chaotic time series with randomly selected initial"""
     num_freq = int(1)
     num_steps = int(1e6)
@@ -125,9 +123,46 @@ def gen_logistic_dataset(file_name = "logistic.pkl"):
 
     pickle.dump(logistic_series_mat,open(file_name,"wb"))
 
+def gen_lorenz_dataset(file_name="lorenz.pkl"):
+    #define initial range
+    num_samples = int(50)
+    num_freq = int(5)
+    num_steps = int(1e3)*num_freq
+    
+    init_range = np.random.uniform(-20,20,(num_samples,3))
+   
+    lorenz_series_mat = np.ndarray((num_steps//num_freq, 3*num_samples))
+
+    for i in range(num_samples):
+        x0,y0,z0 = init_range[i,:]
+        series = gen_lorenz_series(x0,y0,z0, num_steps, num_freq )
+        lorenz_series_mat[:,i*3 : (i+1)*3] = series
+    # print(lorenz_series_mat.shape)
+                
+    pickle.dump(lorenz_series_mat, open(file_name,"wb")) 
+
+
+def gen_logistic_dataset(file_name = "logistic.pkl"):
+    """generate set of chaotic time series with randomly selected initial"""
+    num_samples = int(50)
+    num_freq = int(5)
+    num_steps = int(1e3)*num_freq
+    
+    init_range = np.random.uniform(0.0,1.0,(num_samples,1))
+   
+    logistic_series_mat = np.ndarray((num_steps//num_freq, 1*num_samples))
+
+    for i in range(num_samples):
+        x0 = init_range[i,:]
+        series = gen_logistic_series(x0, num_steps, num_freq )
+        logistic_series_mat[:,i:i+1] = series
+    # print(logistic_series_mat.shape)
+
+    pickle.dump(logistic_series_mat,open(file_name,"wb"))
+
 def main():
-    data_path = "/home/roseyu/data/tensorRNN/"
-    # data_path = "/Users/roseyu/Documents/Python/"
+    # data_path = "/home/roseyu/data/tensorRNN/"
+    data_path = "/Users/roseyu/Documents/Python/"
 
     file_name = data_path+"logistic.pkl"
     gen_logistic_dataset(file_name)

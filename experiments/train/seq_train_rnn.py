@@ -30,7 +30,8 @@ flags.DEFINE_bool("use_error_prop", False,
                   "Feed previous output as input in RNN")
 
 flags.DEFINE_integer('hidden_size', 128, "number of hidden unit")
-flags.DEFINE_float('learning_rate', 1e-3, "learning rate of trainig")
+flags.DEFINE_float('learning_rate', 1e-3, "learning rate of training")
+flags.DEFINE_integer("num_train_steps", 20, "Output sequence length")
 flags.DEFINE_integer("num_test_steps", 20, "Output sequence length")
 FLAGS = flags.FLAGS
 
@@ -125,6 +126,7 @@ def main(_):
     config = TestConfig()
     config.learning_rate = FLAGS.learning_rate
     config.hidden_size = FLAGS.hidden_size
+    config.num_steps = FLAGS.num_train_steps
 
     eval_config = TestConfig()
     eval_config.hidden_size = FLAGS.hidden_size

@@ -29,6 +29,7 @@ flags.DEFINE_bool("use_error_prop", False,
 
 flags.DEFINE_integer("hidden_size",128, "hidden layer size")
 flags.DEFINE_float("learning_rate", 1e-3, "learning rate")
+flags.DEFINE_integer("num_train_steps", 20,"Output sequence length")
 flags.DEFINE_integer("num_test_steps", 20,"Output sequence length")
 flags.DEFINE_integer("rank_val","2", "rank of tensor train model")
 
@@ -127,16 +128,13 @@ def main(_):
   config = TestConfig()
   config.learning_rate = FLAGS.learning_rate
   config.hidden_size = FLAGS.hidden_size
-  config.num_lags = FLAGS.num_lags
-  config.num_orders = FLAGS.num_orders
+  config.num_steps = FLAGS.num_train_steps
   config.rank_vals = [FLAGS.rank_val]
 
   eval_config = TestConfig()
-  eval_config.batch_size = 1
-  eval_config.num_steps = FLags.num_test_steps
-  eval_config.num_lags = FLAGS.num_lags
-  eval_config.num_orders = FLAGS.num_orders
   eval_config.hidden_size = FLAGS.hidden_size
+  eval_config.num_steps = FLags.num_test_steps
+  eval_config.batch_size = 1
   eval_config.rank_vals = [FLAGS.rank_val]
 
 

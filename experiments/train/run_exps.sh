@@ -19,11 +19,11 @@ use_error=False #--use_error_prop
 #data_path=../../../data/lorenz_series.pkl
 #chaotic_ts_mat.pkl  chaotic_ts.pkl  lorenz_series_mat.pkl  lorenz_series.pkl  traffic_9sensors.pkl  ushcn_CA.pkl
 
-hidden_size=16
+hidden_size=256
 burn_in_steps=5 # just for naming purposes
-learning_rate=0.005
+learning_rate=0.0005
 
-for exp in n2 #logistic lorenz 
+for exp in U #logistic lorenz 
 do	
 
 data_path=/home/roseyu/data/tensorRNN/${exp}.pkl

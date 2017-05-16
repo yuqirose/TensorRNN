@@ -33,8 +33,8 @@ class MatrixRNNCell(RNNCell):
         with vs.variable_scope(scope or "tensor_rnn_cell"):
             output = tensor_network_linear( inputs, states, self._num_units, True, scope=scope)
             # dense = tf.contrib.layers.fully_connected(output, self._num_units, activation_fn=None, scope=scope)
-            output = tf.contrib.layers.batch_norm(output, center=True, scale=True, 
-                                          is_training=True, scope=scope)
+            # output = tf.contrib.layers.batch_norm(output, center=True, scale=True, 
+            #                               is_training=True, scope=scope)
             new_state = self._activation(output)
         if self._state_is_tuple:
             new_state = (new_state)
@@ -66,8 +66,8 @@ class TensorRNNCell(RNNCell):
         with vs.variable_scope(scope or "tensor_rnn_cell"):
             output = tensor_network_tt( inputs, states, self._num_units,self._rank_vals, True, scope=scope)
             # dense = tf.contrib.layers.fully_connected(output, self._num_units, activation_fn=None, scope=scope)
-            output = tf.contrib.layers.batch_norm(output, center=True, scale=True, 
-                                          is_training=True, scope=scope)
+            # output = tf.contrib.layers.batch_norm(output, center=True, scale=True, 
+            #                               is_training=True, scope=scope)
             new_state = self._activation(output)
         if self._state_is_tuple:
             new_state = (new_state)
@@ -99,8 +99,8 @@ class EinsumTensorRNNCell(RNNCell):
         with vs.variable_scope(scope or "tensor_rnn_cell"):
             output = tensor_network_tt_einsum( inputs, states, self._num_units,self._rank_vals, True, scope=scope)
             # dense = tf.contrib.layers.fully_connected(output, self._num_units, activation_fn=None, scope=scope)
-            output = tf.contrib.layers.batch_norm(output, center=True, scale=True, 
-                                          is_training=True, scope=scope)
+            # output = tf.contrib.layers.batch_norm(output, center=True, scale=True, 
+            #                               is_training=True, scope=scope)
             new_state = self._activation(output)
         if self._state_is_tuple:
             new_state = (new_state)

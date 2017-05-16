@@ -30,8 +30,8 @@ flags.DEFINE_bool("use_error_prop", True,
 
 flags.DEFINE_integer('hidden_size', 128, "number of hidden unit")
 flags.DEFINE_float('learning_rate', 1e-3, "learning rate of trainig")
-flags.DEFINE_integer("num_train_steps",20, "output sequence length")
-flags.DEFINE_integer("num_test_steps",20, "output sequence length")
+flags.DEFINE_integer("num_train_steps",10, "output sequence length")
+flags.DEFINE_integer("num_test_steps",10, "output sequence length")
 FLAGS = flags.FLAGS
 
 
@@ -39,8 +39,8 @@ FLAGS = flags.FLAGS
 class TestConfig(object):
     """Tiny config, for testing."""
     burn_in_steps = 5
-    init_scale = 0.1
-    learning_rate = 1.0
+    init_scale = 1.0
+    learning_rate = 1e-3
     max_grad_norm = 1
     num_layers = 2
     num_steps =35
@@ -99,7 +99,10 @@ def run_epoch(session, model, eval_op=None, verbose=False):
         #   print("step", step, "predicts\n", vals["predict"][0,0:5])
 
         costs += cost
-        iters += model.input.num_steps
+        # print(cost, iters)
+        # print('rsme:', np.sqrt(np.mean((predict-target)**2)))
+
+        iters += 1 #model.input.num_steps
 
         if verbose and step % (model.input.epoch_size // 10) == 10:
             print("%.3f error: %.3f speed: %.0f wps" %

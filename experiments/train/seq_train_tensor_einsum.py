@@ -41,7 +41,7 @@ class TestConfig(object):
   """Tiny config, for testing."""
   burn_in_steps = 5
   init_scale = 1.0
-  learning_rate = 5e-2
+  learning_rate = 1e-3
   max_grad_norm = 10
   num_layers = 2
   num_steps = 35 # stops gradients after num_steps
@@ -102,10 +102,12 @@ def run_epoch(session, model, eval_op=None, verbose=False):
     #    print("step", step, "predicts\n",vals["predict"][0,0:5])
 
 
-    costs += cost
+    
     predicts.append(predict)
     targets.append(target)
-    iters += model.input.num_steps
+
+    costs += cost
+    iters += 1 #model.input.num_steps
 
     if verbose and step % (model.input.epoch_size // 10) == 10:
       print("%.3f error: %.3f speed: %.0f wps" %

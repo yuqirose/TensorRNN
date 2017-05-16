@@ -41,7 +41,7 @@ class TestConfig(object):
     """Tiny config, for testing."""
     burn_in_steps = 5
     init_scale = 1.0
-    learning_rate = 1.0
+    learning_rate = 1e-3
     max_grad_norm = 1
     num_layers = 2
     num_steps = 35
@@ -101,7 +101,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
         #   print("step", step, "predicts\n", predict[0:5])
 
         costs += cost
-        iters += model.input.num_steps
+        iters += 1 #model.input.num_steps
 
         if verbose and step % (model.input.epoch_size // 10) == 10:
             print("%.3f error: %.3f speed: %.0f wps" %

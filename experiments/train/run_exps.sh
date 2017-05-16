@@ -19,9 +19,9 @@ use_error=False #--use_error_prop
 #data_path=../../../data/lorenz_series.pkl
 #chaotic_ts_mat.pkl  chaotic_ts.pkl  lorenz_series_mat.pkl  lorenz_series.pkl  traffic_9sensors.pkl  ushcn_CA.pkl
 
-hidden_size=256
+hidden_size=128
 burn_in_steps=5 # just for naming purposes
-learning_rate=0.0005
+learning_rate=0.001
 
 for exp in climate #logistic lorenz 
 do	
@@ -48,7 +48,7 @@ python seq_train_matrix.py --data_path=$data_path --save_path=$save_path --hidde
 #save_path=$base_dir/tensor_rnn/
 #python seq_train_tensor.py --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_steps=$num_steps --use_error_prop=$use_error
 
-save_path=$base_dir/tensor_rnn_einsum/
+save_path=$base_dir/tensor_rnn/
 python seq_train_tensor_einsum.py --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_train_steps=$num_train_steps --num_test_steps=$num_test_steps --learning_rate=$learning_rate --use_error_prop=$use_error
 #done
 done

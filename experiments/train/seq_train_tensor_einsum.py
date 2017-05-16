@@ -50,9 +50,9 @@ class TestConfig(object):
   num_orders = 2 # tensor prod order
   rank_vals= [1]
   hidden_size = 64 # dim of h
-  max_epoch = 50 # keep lr fixed
-  max_max_epoch = 300 # decaying lr
-  keep_prob = 0.5 # dropout
+  max_epoch = 20 # keep lr fixed
+  max_max_epoch = 100 # decaying lr
+  keep_prob = 1.0 # dropout
   lr_decay = 0.99
   batch_size = 5
   rand_init = False

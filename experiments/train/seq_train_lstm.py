@@ -32,6 +32,7 @@ flags.DEFINE_integer('hidden_size', 128, "number of hidden unit")
 flags.DEFINE_float('learning_rate', 1e-2, "learning rate of trainig")
 flags.DEFINE_integer("num_train_steps",20, "output sequence length")
 flags.DEFINE_integer("num_test_steps",20, "output sequence length")
+
 FLAGS = flags.FLAGS
 
 
@@ -41,14 +42,14 @@ class TestConfig(object):
     burn_in_steps = 5
     init_scale = 1.0
     learning_rate = 1e-2
-    max_grad_norm = 1
+    max_grad_norm = 10
     num_layers = 1
     num_steps =35
     horizon = 1
     hidden_size = 64
-    max_epoch = 50
-    max_max_epoch =300
-    keep_prob = 0.5
+    max_epoch = 20
+    max_max_epoch =100
+    keep_prob = 1.0
     lr_decay = 0.99
     batch_size = 5
     rand_init = False
@@ -90,13 +91,13 @@ def run_epoch(session, model, eval_op=None, verbose=False):
         predicts.append(predict)
         targets.append(target)
 
-        # if step % 20 == 0:
+        if step % 20 == 0:
    
-        #   print("step", step, "input\n", vals["input"][0,0:5])
+            print("step", step, "input\n", vals["input"][0,0:5])
     
-        #   print("step", step, "target\n", vals["target"][0,0:5])
+            print("step", step, "target\n", vals["target"][0,0:5])
    
-        #   print("step", step, "predicts\n", vals["predict"][0,0:5])
+            print("step", step, "predicts\n", vals["predict"][0,0:5])
 
         costs += cost
         # print(cost, iters)

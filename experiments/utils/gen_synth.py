@@ -127,7 +127,7 @@ def gen_lorenz_dataset(file_name="lorenz.pkl"):
     #define initial range
     num_samples = int(1)
     num_freq = int(1)
-    num_steps = int(1e3)*num_freq
+    num_steps = int(1e4)*num_freq
     
     init_range = np.random.uniform(-20,20,(num_samples,3))
    
@@ -147,7 +147,7 @@ def gen_logistic_dataset(file_name = "logistic.pkl"):
 
     num_samples = int(1)
     num_freq = int(1)
-    num_steps = int(1e3)*num_freq
+    num_steps = int(1e4)*num_freq
     
     init_range = np.random.uniform(0.0,1.0,(num_samples,1))
    

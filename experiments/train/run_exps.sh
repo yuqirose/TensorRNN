@@ -31,7 +31,7 @@ do
 
 data_path=/home/roseyu/data/tensorRNN/${exp}.pkl
 
-for hidden_size in 16 32 64 128 256
+for hidden_size in 16
 do
 
 #for num_test_steps in 10 15 20 25 30 35 40 45 

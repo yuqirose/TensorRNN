@@ -40,7 +40,7 @@ FLAGS = flags.FLAGS
 class TestConfig(object):
   """Tiny config, for testing."""
   burn_in_steps = 5
-  init_scale = 0.1
+  init_scale = 1.0
   learning_rate = 1e-3
   max_grad_norm = 10
   num_layers = 2
@@ -178,9 +178,9 @@ def main(_):
         valid_err, _ = run_epoch(session, mvalid)
         print("Epoch: %d Valid Error: %.3f" % (i + 1, valid_err))
         # early stopping
-        if valid_err >= valid_err_old:
-          print("Early stopping after %d epoch" % i)
-          break
+        # if valid_err >= valid_err_old:
+        #   print("Early stopping after %d epoch" % i)
+        #   break
         valid_err_old = valid_err
 
 

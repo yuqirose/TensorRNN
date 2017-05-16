@@ -28,8 +28,8 @@ do
 
 data_path=/home/roseyu/data/tensorRNN/${exp}.pkl
 
-num_train_steps=10
-num_test_steps=10
+num_train_steps=3
+num_test_steps=3
 #for num_test_steps in 10 15 20 25 30 35 40 45 
 #do
 #base_dir=/tmp/tensorRNN/log/$exp/$start_time/ts_$num_test_steps/

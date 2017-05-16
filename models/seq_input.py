@@ -5,6 +5,7 @@ import os
 import cPickle as pickle
 
 def seq_raw_data(data_path="logistic.pkl", val_size = 0.1, test_size = 0.1):
+    """ this approach is fundamentally flawed if time series is non-statinary"""
     print("loading sequence data ...")
     data = pickle.load(open(data_path))
     if (np.ndim(data)==1):

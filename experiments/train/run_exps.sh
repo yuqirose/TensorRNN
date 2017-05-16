@@ -19,21 +19,24 @@ use_error=False #--use_error_prop
 #data_path=../../../data/lorenz_series.pkl
 #chaotic_ts_mat.pkl  chaotic_ts.pkl  lorenz_series_mat.pkl  lorenz_series.pkl  traffic_9sensors.pkl  ushcn_CA.pkl
 
-hidden_size=256
+# hidden_size=128
 burn_in_steps=5 # just for naming purposes
-learning_rate=0.001
+learning_rate=0.01
 
-for exp in climate #logistic lorenz 
+for exp in logistic lorenz 
 do	
 
 data_path=/home/roseyu/data/tensorRNN/${exp}.pkl
 
-num_train_steps=35
-num_test_steps=35
+num_train_steps=20
+num_test_steps=20
+
+for hidden_size in 32 64 128 256
+do
 #for num_test_steps in 10 15 20 25 30 35 40 45 
 #do
 #base_dir=/tmp/tensorRNN/log/$exp/$start_time/ts_$num_test_steps/
-base_dir=/var/tmp/tensorRNN/log/$exp/$start_time/
+base_dir=/var/tmp/tensorRNN/log/$exp/$start_time
 echo $base_dir
 
 save_path=$base_dir/basic_rnn/
@@ -50,5 +53,6 @@ python seq_train_matrix.py --data_path=$data_path --save_path=$save_path --hidde
 
 save_path=$base_dir/tensor_rnn/
 python seq_train_tensor_einsum.py --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_train_steps=$num_train_steps --num_test_steps=$num_test_steps --learning_rate=$learning_rate --use_error_prop=$use_error
-#done
+
+done
 done

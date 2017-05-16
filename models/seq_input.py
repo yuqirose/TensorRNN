@@ -70,14 +70,9 @@ def ptb_producer(raw_data, is_training, batch_size, num_steps, horizon, name):
         with tf.control_dependencies([assertion]):
               epoch_size = tf.identity(epoch_size, name="epoch_size")
 
-        if is_training:
-            i = tf.train.range_input_producer(num_batches-num_steps-horizon, shuffle=True).dequeue()
-            x = tf.slice(data, [0, i , 0], [batch_size, num_steps, data_dim])
-            y = tf.slice(data, [0, i + horizon, 0], [batch_size, num_steps, data_dim])
-        else:
-            i = tf.train.range_input_producer(epoch_size, shuffle=False).dequeue()
-            x = tf.slice(data, [0, i*num_steps, 0], [batch_size, num_steps, data_dim])
-            y = tf.slice(data, [0, i*num_steps + horizon, 0], [batch_size, num_steps, data_dim])
+        i = tf.train.range_input_producer(epoch_size, shuffle=is_training).dequeue()
+        x = tf.slice(data, [0, i*num_steps, 0], [batch_size, num_steps, data_dim])
+        y = tf.slice(data, [0, i*num_steps + horizon, 0], [batch_size, num_steps, data_dim])
 
         return x, y
 

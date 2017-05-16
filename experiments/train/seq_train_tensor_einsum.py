@@ -24,14 +24,14 @@ flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/lorenz/tt_rnn/"
           "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
           "Train using 16-bit floats instead of 32bit floats")
-flags.DEFINE_bool("use_error_prop", True,
+flags.DEFINE_bool("use_error_prop", False,
                   "Feed previous output as input in RNN")
 
-flags.DEFINE_integer("hidden_size", 128, "hidden layer size")
-flags.DEFINE_float("learning_rate", 1e-3, "learning rate")
+flags.DEFINE_integer("hidden_size", 32, "hidden layer size")
+flags.DEFINE_float("learning_rate", 1e-1, "learning rate")
 flags.DEFINE_integer("num_train_steps",20,"Output sequence length")
 flags.DEFINE_integer("num_test_steps",20,"Output sequence length")
-flags.DEFINE_integer("rank_val","2", "rank of tensor train model")
+flags.DEFINE_integer("rank_val","1", "rank of tensor train model")
 
 FLAGS = flags.FLAGS
 
@@ -43,17 +43,17 @@ class TestConfig(object):
   init_scale = 1.0
   learning_rate = 1e-3
   max_grad_norm = 10
-  num_layers = 2
+  num_layers = 1
   num_steps = 35 # stops gradients after num_steps
   horizon = 1
   num_lags = 3 # num prev hiddens
   num_orders = 2 # tensor prod order
   rank_vals= [1]
   hidden_size = 64 # dim of h
-  max_epoch = 20 # keep lr fixed
-  max_max_epoch = 100 # decaying lr
+  max_epoch = 50 # keep lr fixed
+  max_max_epoch = 300 # decaying lr
   keep_prob = 0.5 # dropout
-  lr_decay = 1.0
+  lr_decay = 0.99
   batch_size = 5
   rand_init = False
 

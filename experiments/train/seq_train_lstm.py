@@ -25,13 +25,13 @@ flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/lorenz/basic_ls
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
-flags.DEFINE_bool("use_error_prop", True,
+flags.DEFINE_bool("use_error_prop", False,
                   "Feed previous output as input in RNN")
 
 flags.DEFINE_integer('hidden_size', 128, "number of hidden unit")
-flags.DEFINE_float('learning_rate', 1e-3, "learning rate of trainig")
-flags.DEFINE_integer("num_train_steps",10, "output sequence length")
-flags.DEFINE_integer("num_test_steps",10, "output sequence length")
+flags.DEFINE_float('learning_rate', 1e-2, "learning rate of trainig")
+flags.DEFINE_integer("num_train_steps",20, "output sequence length")
+flags.DEFINE_integer("num_test_steps",20, "output sequence length")
 FLAGS = flags.FLAGS
 
 
@@ -42,14 +42,14 @@ class TestConfig(object):
     init_scale = 1.0
     learning_rate = 1e-2
     max_grad_norm = 1
-    num_layers = 2
+    num_layers = 1
     num_steps =35
     horizon = 1
     hidden_size = 64
-    max_epoch = 20
-    max_max_epoch =100
+    max_epoch = 50
+    max_max_epoch =300
     keep_prob = 0.5
-    lr_decay = 0.9
+    lr_decay = 0.99
     batch_size = 5
     rand_init = False
 

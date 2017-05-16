@@ -53,7 +53,7 @@ class TestConfig(object):
   max_epoch = 20 # keep lr fixed
   max_max_epoch = 100 # decaying lr
   keep_prob = 0.5 # dropout
-  lr_decay = 0.9
+  lr_decay = 1.0
   batch_size = 5
   rand_init = False
 

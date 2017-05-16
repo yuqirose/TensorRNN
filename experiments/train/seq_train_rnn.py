@@ -162,7 +162,7 @@ def main(_):
 
         sv = tf.train.Supervisor(logdir=FLAGS.save_path, save_summaries_secs=10)
         with sv.managed_session(config = tf.ConfigProto(gpu_options=gpu_options)) as session:
-            valid_err_old = float("inf")
+            train_err_old = float("inf")
             for i in range(config.max_max_epoch):
                 lr_decay = config.lr_decay ** max(i + 1 - config.max_epoch, 0.0)
                 m.assign_lr(session, config.learning_rate * lr_decay)
@@ -178,7 +178,9 @@ def main(_):
                 # if valid_err >= valid_err_old:
                 #     print("Early stopping after %d epoch" % i)
                 #     break
-                valid_err_old = valid_err
+                if train_err_old == train_err:
+                    m.assign_lr(session, config.learning_rate * 0.5)
+                train_err_old = train_err
 
             test_err, test_rslt = run_epoch(session, mtest)
             print("Test Error: %.3f" % test_err)

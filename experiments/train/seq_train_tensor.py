@@ -40,10 +40,10 @@ FLAGS = flags.FLAGS
 class TestConfig(object):
   """Tiny config, for testing."""
   burn_in_steps = 5
-  init_scale = 1.0
+  init_scale = 0.1
   learning_rate = 1e-3
   max_grad_norm = 10
-  num_layers = 1
+  num_layers = 2
   num_steps = 12 # stops gradients after num_steps
   horizon = 1
   num_lags = 3 # num prev hiddens

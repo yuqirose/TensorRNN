@@ -23,17 +23,17 @@ hidden_size=256
 burn_in_steps=5 # just for naming purposes
 learning_rate=0.0005
 
-for exp in U #logistic lorenz 
+for exp in climate #logistic lorenz 
 do	
 
 data_path=/home/roseyu/data/tensorRNN/${exp}.pkl
 
-num_train_steps=3
-num_test_steps=3
+num_train_steps=35
+num_test_steps=35
 #for num_test_steps in 10 15 20 25 30 35 40 45 
 #do
 #base_dir=/tmp/tensorRNN/log/$exp/$start_time/ts_$num_test_steps/
-base_dir=/tmp/tensorRNN/log/$exp/$start_time/
+base_dir=/var/tmp/tensorRNN/log/$exp/$start_time/
 echo $base_dir
 
 save_path=$base_dir/basic_rnn/

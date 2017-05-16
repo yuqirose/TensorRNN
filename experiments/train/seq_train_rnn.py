@@ -31,8 +31,8 @@ flags.DEFINE_bool("use_error_prop", False,
 
 flags.DEFINE_integer('hidden_size', 128, "number of hidden unit")
 flags.DEFINE_float('learning_rate', 1e-3, "learning rate of training")
-flags.DEFINE_integer("num_train_steps", 20, "Output sequence length")
-flags.DEFINE_integer("num_test_steps", 20, "Output sequence length")
+flags.DEFINE_integer("num_train_steps", 10, "Output sequence length")
+flags.DEFINE_integer("num_test_steps", 10, "Output sequence length")
 FLAGS = flags.FLAGS
 
 
@@ -178,9 +178,7 @@ def main(_):
                 # if valid_err >= valid_err_old:
                 #     print("Early stopping after %d epoch" % i)
                 #     break
-                if train_err_old == train_err:
-                    m.assign_lr(session, config.learning_rate * 0.5)
-                train_err_old = train_err
+                
 
             test_err, test_rslt = run_epoch(session, mtest)
             print("Test Error: %.3f" % test_err)

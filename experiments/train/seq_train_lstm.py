@@ -40,7 +40,7 @@ class TestConfig(object):
     """Tiny config, for testing."""
     burn_in_steps = 5
     init_scale = 1.0
-    learning_rate = 1e-3
+    learning_rate = 1e-2
     max_grad_norm = 1
     num_layers = 2
     num_steps =35
@@ -49,7 +49,7 @@ class TestConfig(object):
     max_epoch = 20
     max_max_epoch =100
     keep_prob = 0.5
-    lr_decay = 1.0
+    lr_decay = 0.9
     batch_size = 5
     rand_init = False
 
@@ -184,9 +184,7 @@ def main(_):
                 # if valid_err >= valid_err_old:
                 #     print("Early stopping after %d epoch" % i)
                 #     break
-                if train_err_old == train_err:
-                    m.assign_lr(session, config.learning_rate * 0.5)
-                train_err_old = train_err
+
 
             
             test_err, test_rslt = run_epoch(session, mtest)

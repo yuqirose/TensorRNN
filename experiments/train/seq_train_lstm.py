@@ -48,7 +48,7 @@ class TestConfig(object):
     horizon = 1
     hidden_size = 64
     max_epoch = 20
-    max_max_epoch =5
+    max_max_epoch =100
     keep_prob = 1.0
     lr_decay = 0.99
     batch_size = 5
@@ -91,9 +91,9 @@ def run_epoch(session, model, eval_op=None, verbose=False):
         predicts.append(predict)
         targets.append(target)
 
-        if eval_op is None:
-            print("target step", step)
-            print(target[0,:5,1])
+        # if eval_op is None:
+        #     print("target step", step)
+        #     print(target[0,:5,1])
 
         # if step % 20 == 0:
    
@@ -114,8 +114,8 @@ def run_epoch(session, model, eval_op=None, verbose=False):
                   (step * 1.0 / model.input.epoch_size, np.sqrt(costs / iters ),
                    iters * model.input.batch_size / (time.time() - start_time)))
 
-    predicts = np.stack(predicts,1).reshape(-1,model.input.input_size) # test_len x input_size
-    targets = np.stack(targets,1).reshape(-1,model.input.input_size) # test_len x input_size
+    # predicts = np.stack(predicts,1).reshape(-1,model.input.input_size) # test_len x input_size
+    # targets = np.stack(targets,1).reshape(-1,model.input.input_size) # test_len x input_size
     
     final_cost = np.sqrt(costs/iters)
     final_rslt = (targets, predicts) 

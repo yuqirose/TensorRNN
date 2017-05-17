@@ -4,6 +4,13 @@ import pandas as pd
 import os
 import cPickle as pickle
 
+def normalize_columns(arr):
+    rows, cols = arr.shape
+    for col in xrange(cols):
+        arr_col = arr[:,col]
+        arr[:,col] = (arr_col - arr_col.min() )/ (arr_col.max()- arr_col.min())
+    return arr
+
 def seq_raw_data(data_path="logistic.pkl", val_size = 0.1, test_size = 0.1):
     """ this approach is fundamentally flawed if time series is non-statinary"""
     print("loading sequence data ...")
@@ -11,6 +18,10 @@ def seq_raw_data(data_path="logistic.pkl", val_size = 0.1, test_size = 0.1):
     if (np.ndim(data)==1):
         data = np.expand_dims(data, axis=1)
     print("input type ",type( data), np.shape(data))
+
+    """normalize the data"""
+    print("normalize to (0-1)")
+    data = normalize_columns(data)
 
     ntest = int(round(len(data) * (1 - test_size)))
     nval = int(round(len(data[:ntest]) * (1 - val_size)))

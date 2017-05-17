@@ -51,7 +51,7 @@ class TestConfig(object):
   rank_vals= [1]
   hidden_size = 64 # dim of h
   max_epoch = 20 # keep lr fixed
-  max_max_epoch = 5 # decaying lr
+  max_max_epoch = 100 # decaying lr
   keep_prob = 1.0 # dropout
   lr_decay = 0.99
   batch_size = 5
@@ -100,9 +100,9 @@ def run_epoch(session, model, eval_op=None, verbose=False):
     #    print("step", step, "target\n", vals["target"][0,0:5])
    
     #    print("step", step, "predicts\n",vals["predict"][0,0:5])
-    if eval_op is None:
-      print("target step", step)
-      print(target[0,:5,1])
+    # if eval_op is None:
+    #   print("target step", step)
+    #   print(target[0,:5,1])
 
     
     predicts.append(predict)
@@ -116,8 +116,8 @@ def run_epoch(session, model, eval_op=None, verbose=False):
           (step * 1.0 / model.input.epoch_size, np.sqrt(costs / iters),
            iters * model.input.batch_size / (time.time() - start_time)))
 
-  predicts = np.stack(predicts,1).reshape(-1,model.input.input_size) # test_len x input_size
-  targets = np.stack(targets,1).reshape(-1,model.input.input_size) # test_len x input_size
+  # predicts = np.stack(predicts,1).reshape(-1,model.input.input_size) # test_len x input_size
+  # targets = np.stack(targets,1).reshape(-1,model.input.input_size) # test_len x input_size
   
   final_cost = np.sqrt(costs/iters)
   final_rslt = (targets, predicts) 

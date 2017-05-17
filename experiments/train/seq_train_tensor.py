@@ -110,8 +110,8 @@ def run_epoch(session, model, eval_op=None, verbose=False):
           (step * 1.0 / model.input.epoch_size, np.sqrt(costs / iters),
            iters * model.input.batch_size / (time.time() - start_time)))
 
-  predicts = np.stack(predicts,1).reshape(-1,model.input.input_size) # test_len x input_size
-  targets = np.stack(targets,1).reshape(-1,model.input.input_size) # test_len x input_size
+  # predicts = np.stack(predicts,1).reshape(-1,model.input.input_size) # test_len x input_size
+  # targets = np.stack(targets,1).reshape(-1,model.input.input_size) # test_len x input_size
   
   final_cost = np.sqrt(costs/iters)
   final_rslt = (targets, predicts) 

@@ -100,9 +100,9 @@ def run_epoch(session, model, eval_op=None, verbose=False):
     #    print("step", step, "target\n", vals["target"][0,0:5])
    
     #    print("step", step, "predicts\n",vals["predict"][0,0:5])
-    print("target step", step)
     if eval_op is None:
-       print(target[:5,1])
+      print("target step", step)
+      print(target[0,:5,1])
 
     
     predicts.append(predict)

@@ -91,9 +91,10 @@ def run_epoch(session, model, eval_op=None, verbose=False):
         targets.append(target)
         
 
-        print("target step", step)
+
         if eval_op is None:
-             print(target[:5,1])
+            print("target step", step)
+            print(target[0,:5,1])
         # if step % 20 == 0:
    
         #   print("step", step, "input\n", vals["input"][0,0:5])

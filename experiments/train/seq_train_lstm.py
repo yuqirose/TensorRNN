@@ -28,10 +28,10 @@ flags.DEFINE_bool("use_fp16", False,
 flags.DEFINE_bool("use_error_prop", False,
                   "Feed previous output as input in RNN")
 
-flags.DEFINE_integer('hidden_size', 128, "number of hidden unit")
+flags.DEFINE_integer('hidden_size',16, "number of hidden unit")
 flags.DEFINE_float('learning_rate', 1e-2, "learning rate of trainig")
-flags.DEFINE_integer("num_train_steps",20, "output sequence length")
-flags.DEFINE_integer("num_test_steps",20, "output sequence length")
+flags.DEFINE_integer("num_train_steps",10, "output sequence length")
+flags.DEFINE_integer("num_test_steps",10, "output sequence length")
 
 FLAGS = flags.FLAGS
 
@@ -48,7 +48,7 @@ class TestConfig(object):
     horizon = 1
     hidden_size = 64
     max_epoch = 20
-    max_max_epoch =100
+    max_max_epoch =5
     keep_prob = 1.0
     lr_decay = 0.99
     batch_size = 5
@@ -90,14 +90,16 @@ def run_epoch(session, model, eval_op=None, verbose=False):
         state = vals["final_state"]
         predicts.append(predict)
         targets.append(target)
+        if eval_op is None:
+             print(target[:10,1])
 
-        if step % 20 == 0:
+        # if step % 20 == 0:
    
-            print("step", step, "input\n", vals["input"][0,0:5])
+        #     print("step", step, "input\n", vals["input"][0,0:5])
     
-            print("step", step, "target\n", vals["target"][0,0:5])
+        #     print("step", step, "target\n", vals["target"][0,0:5])
    
-            print("step", step, "predicts\n", vals["predict"][0,0:5])
+        #     print("step", step, "predicts\n", vals["predict"][0,0:5])
 
         costs += cost
         # print(cost, iters)

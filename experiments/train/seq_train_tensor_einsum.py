@@ -27,10 +27,10 @@ flags.DEFINE_bool("use_fp16", False,
 flags.DEFINE_bool("use_error_prop", False,
                   "Feed previous output as input in RNN")
 
-flags.DEFINE_integer("hidden_size", 32, "hidden layer size")
+flags.DEFINE_integer("hidden_size", 16, "hidden layer size")
 flags.DEFINE_float("learning_rate", 1e-1, "learning rate")
-flags.DEFINE_integer("num_train_steps",20,"Output sequence length")
-flags.DEFINE_integer("num_test_steps",20,"Output sequence length")
+flags.DEFINE_integer("num_train_steps",10,"Output sequence length")
+flags.DEFINE_integer("num_test_steps", 10,"Output sequence length")
 flags.DEFINE_integer("rank_val","1", "rank of tensor train model")
 
 FLAGS = flags.FLAGS
@@ -51,7 +51,7 @@ class TestConfig(object):
   rank_vals= [1]
   hidden_size = 64 # dim of h
   max_epoch = 20 # keep lr fixed
-  max_max_epoch = 100 # decaying lr
+  max_max_epoch = 5 # decaying lr
   keep_prob = 1.0 # dropout
   lr_decay = 0.99
   batch_size = 5
@@ -100,7 +100,8 @@ def run_epoch(session, model, eval_op=None, verbose=False):
     #    print("step", step, "target\n", vals["target"][0,0:5])
    
     #    print("step", step, "predicts\n",vals["predict"][0,0:5])
-
+    if eval_op is None:
+      print(target[:10,1])
 
     
     predicts.append(predict)

@@ -61,8 +61,8 @@ def ptb_producer(raw_data, is_training, batch_size, num_steps, horizon, name):
         raw_data = tf.convert_to_tensor(raw_data, name="raw_data", dtype=tf.float32)
 
         num_batches = data_len // batch_size
-        data = tf.reshape(raw_data[0 : batch_size * num_batches,:],
-                          [batch_size, num_batches, -1])
+        data = tf.reshape(raw_data[0 : batch_size * num_batches,:], [batch_size, num_batches, -1])
+
         epoch_size = (num_batches - 1) // num_steps
         assertion = tf.assert_positive(
             epoch_size,
@@ -70,9 +70,10 @@ def ptb_producer(raw_data, is_training, batch_size, num_steps, horizon, name):
         with tf.control_dependencies([assertion]):
               epoch_size = tf.identity(epoch_size, name="epoch_size")
 
-        i = tf.train.range_input_producer(epoch_size, shuffle=is_training).dequeue()
+        i = tf.train.range_input_producer(epoch_size, shuffle=False).dequeue()
         x = tf.slice(data, [0, i*num_steps, 0], [batch_size, num_steps, data_dim])
         y = tf.slice(data, [0, i*num_steps + horizon, 0], [batch_size, num_steps, data_dim])
+
 
         return x, y
 
@@ -109,18 +110,18 @@ class PTBInput(object):
         self.epoch_size = ((len(data) // batch_size) - 1) // num_steps
 
 
-        if config.rand_init == True:
-            self.input_size = np.shape(data)[2]
-            #print("feeding as random initial")
-            self.epoch_size = (len(data) // batch_size)
-            self.input_data, self.targets = seq_producer(
+        # if config.rand_init == True:
+        #     self.input_size = np.shape(data)[2]
+        #     #print("feeding as random initial")
+        #     self.epoch_size = (len(data) // batch_size)
+        #     self.input_data, self.targets = seq_producer(
+        #         data, is_training, batch_size, num_steps, horizon, name=name)
+        # else:
+        self.input_size = np.shape(data)[1]
+        if np.ndim(data)==2:
+            self.input_data, self.targets = ptb_producer(
                 data, is_training, batch_size, num_steps, horizon, name=name)
         else:
-            self.input_size = np.shape(data)[1]
-            if np.ndim(data)==2:
-                self.input_data, self.targets = ptb_producer(
-                    data, is_training, batch_size, num_steps, horizon, name=name)
-            else:
-                self.input_data, self.targets = ptb_producer_rnd(
-                    data, is_training, batch_size, num_steps, horizon, name=name)
+            self.input_data, self.targets = ptb_producer_rnd(
+                data, is_training, batch_size, num_steps, horizon, name=name)
 

@@ -90,8 +90,10 @@ def run_epoch(session, model, eval_op=None, verbose=False):
         state = vals["final_state"]
         predicts.append(predict)
         targets.append(target)
+
+        print("target step", step)
         if eval_op is None:
-             print(target[:10,1])
+             print(target[:5,1])
 
         # if step % 20 == 0:
    

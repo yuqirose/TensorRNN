@@ -1,7 +1,8 @@
 import tensorflow as tf
 import numpy as np
-from high_order_rnn import rnn_with_feed_prev
-from tensorflow.contrib.rnn import LSTMCell, MultiRNNCell, DropoutWrapper
+from models.high_order_rnn import rnn_with_feed_prev
+from tensorflow.contrib.rnn import BasicLSTMCell, MultiRNNCell, DropoutWrapper
+import inspect
 class PTBModel(object):
     """The PTB model."""
 
@@ -16,16 +17,19 @@ class PTBModel(object):
         # Slightly better results can be obtained with forget gate biases
         # initialized to 1 but the hyperparameters of the model would need to be
         # different than reported in the paper.
-
-
-        initializer = tf.random_uniform_initializer(-1,1)
-        #rnn_cell = tf.nn.rnn_cell.BasicRNNCell(size)
-        rnn_cell = LSTMCell(hidden_size)
-
+        def rnn_cell():
+            if 'reuse' in inspect.getargspec(
+                    BasicLSTMCell.__init__).args:
+                rnn_cell = BasicLSTMCell(hidden_size, state_is_tuple=True, reuse=tf.get_variable_scope().reuse)
+            else:
+                rnn_cell = BasicLSTMCell(hidden_size, state_is_tuple=True)
+            return rnn_cell
+        attn_cell = rnn_cell
         if is_training and config.keep_prob < 1:
-            rnn_cell = DropoutWrapper(rnn_cell, output_keep_prob=config.keep_prob)
-            
-        cell = MultiRNNCell([rnn_cell] * config.num_layers, state_is_tuple=True)
+            def attn_cell():
+                return DropoutWrapper(attn_cell(), output_keep_prob=config.keep_prob)
+
+        cell = MultiRNNCell([attn_cell() for _ in range(config.num_layers)], state_is_tuple=True)
 
         self._initial_state = cell.zero_state(batch_size, dtype= tf.float32)
 

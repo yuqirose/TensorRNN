@@ -1,7 +1,9 @@
 import tensorflow as tf
 import numpy as np
 from tensorflow.contrib.rnn import BasicRNNCell,  MultiRNNCell, DropoutWrapper
-from high_order_rnn import rnn_with_feed_prev
+from models.high_order_rnn import rnn_with_feed_prev
+import inspect
+
 class PTBModel(object):
     """The PTB model."""
 
@@ -17,16 +19,20 @@ class PTBModel(object):
         # initialized to 1 but the hyperparameters of the model would need to be
         # different than reported in the paper.
 
-
-        initializer = tf.random_uniform_initializer(-1,1)
-        rnn_cell = BasicRNNCell(hidden_size)
-
-
+        #initializer = tf.random_uniform_initializer(-1,1)
+        def rnn_cell():
+            if 'reuse' in inspect.getargspec(
+                    BasicRNNCell.__init__).args:
+                rnn_cell = BasicRNNCell(hidden_size, reuse=tf.get_variable_scope().reuse)
+            else:
+                rnn_cell = BasicRNNCell(hidden_size)
+            return rnn_cell
+        attn_cell = rnn_cell
         if is_training and config.keep_prob < 1:
-            rnn_cell = DropoutWrapper(rnn_cell, output_keep_prob=config.keep_prob)
+            def attn_cell():
+                return DropoutWrapper(attn_cell(), output_keep_prob=config.keep_prob)
 
-        cell = MultiRNNCell([rnn_cell] * config.num_layers, state_is_tuple=True)
-
+        cell = MultiRNNCell([attn_cell() for _ in range(config.num_layers)], state_is_tuple=True)
 
         self._initial_state = cell.zero_state(batch_size, dtype= tf.float32)
 

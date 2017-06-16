@@ -2,19 +2,18 @@ import tensorflow as tf
 import numpy as np
 import pandas as pd
 import os
-import cPickle as pickle
 
 def normalize_columns(arr):
     rows, cols = arr.shape
-    for col in xrange(cols):
+    for col in range(cols):
         arr_col = arr[:,col]
         arr[:,col] = (arr_col - arr_col.min() )/ (arr_col.max()- arr_col.min())
     return arr
 
-def seq_raw_data(data_path="logistic.pkl", val_size = 0.1, test_size = 0.1):
+def seq_raw_data(data_path="logistic.npy", val_size = 0.1, test_size = 0.1):
     """ this approach is fundamentally flawed if time series is non-statinary"""
     print("loading sequence data ...")
-    data = pickle.load(open(data_path))
+    data = np.load(data_path)
     if (np.ndim(data)==1):
         data = np.expand_dims(data, axis=1)
     print("input type ",type( data), np.shape(data))

@@ -14,7 +14,7 @@ d=$(echo ${d} | tr '/' '-')
 
 start_time="$d-$t"
 
-use_error=False #--use_error_prop
+use_error=True #--use_error_prop
 
 #data_path=../../../data/lorenz_series.pkl
 #chaotic_ts_mat.pkl  chaotic_ts.pkl  lorenz_series_mat.pkl  lorenz_series.pkl  traffic_9sensors.pkl  ushcn_CA.pkl
@@ -29,7 +29,7 @@ num_test_steps=20
 for exp in lorenz 
 do 
 
-data_path=/home/roseyu/data/tensorRNN/${exp}.pkl
+data_path=/home/roseyu/Data/TensorRNN/${exp}.npy
 
 for hidden_size in 32 64 128 256
 do
@@ -60,3 +60,4 @@ python seq_train_tensor_einsum.py --data_path=$data_path --save_path=$save_path 
 done
 done
 done
+cp $(pwd)/run_exps.sh $base_dir/run_exps.sh

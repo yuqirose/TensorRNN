@@ -1,4 +1,11 @@
+import numpy as np
 
+def normalize_columns(arr):
+    rows, cols = arr.shape
+    for col in range(cols):
+        arr_col = arr[:,col]
+        arr[:,col] = (arr_col - arr_col.min() )/ (arr_col.max()- arr_col.min())
+    return arr
 
 def seq_raw_data(data_path="logistic.npy", val_size = 0.1, test_size = 0.1):
     """ this approach is fundamentally flawed if time series is non-statinary"""

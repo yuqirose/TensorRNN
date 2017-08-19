@@ -4,8 +4,9 @@ import torch
 import torch.nn as nn 
 from torch.autograd import Variable
 import torch.optim as optim
+import numpy as np
 from model import *
-from io import *
+from seq_io import seq_raw_data
 
 
 def train(args):
@@ -44,6 +45,9 @@ def train(args):
         future = 1000 #forecast horizon
         pred = seq(input[:3], future = future)
         y = pred.data.numpy()
+
+def eval(args):
+    pass
     
 def main():
 
@@ -58,11 +62,11 @@ def main():
     train_arg_parser.add_argument("--data-path", type=str, required=True,
                                   help="path to training dataset, the path should point to a folder "
                                        "containing another folder with all the training images")
-    train_arg_parser.add_argument("--save-model-dir", type=str, required=True,
+    train_arg_parser.add_argument("--save-path", type=str, required=True,
                                   help="path to folder where trained model will be saved.")
     train_arg_parser.add_argument("--checkpoint-model-dir", type=str, default=None,
                                   help="path to folder where checkpoints of trained models will be saved")
-    train_arg_parser.add_argument("--cuda", type=int, required=True,
+    train_arg_parser.add_argument("--cuda", type=int, default=0,
                                   help="set it to 1 for running on GPU, 0 for CPU")
     train_arg_parser.add_argument("--seed", type=int, default=42,
                                   help="random seed for training")
@@ -76,14 +80,14 @@ def main():
     eval_arg_parser = subparsers.add_parser("eval", help="parser for evaluation/stylizing arguments")
     eval_arg_parser.add_argument("--content-image", type=str, required=True,
                                  help="path to content image you want to stylize")
-    eval_arg_parser.add_argument("--content-scale", type=float, default=None,
-                                 help="factor for scaling down the content image")
-    eval_arg_parser.add_argument("--output-image", type=str, required=True,
-                                 help="path for saving the output image")
-    eval_arg_parser.add_argument("--model", type=str, required=True,
-                                 help="saved model to be used for stylizing the image")
-    eval_arg_parser.add_argument("--cuda", type=int, required=True,
-                                 help="set it to 1 for running on GPU, 0 for CPU")
+    # eval_arg_parser.add_argument("--content-scale", type=float, default=None,
+    #                              help="factor for scaling down the content image")
+    # eval_arg_parser.add_argument("--output-image", type=str, required=True,
+    #                              help="path for saving the output image")
+    # eval_arg_parser.add_argument("--model", type=str, required=True,
+    #                              help="saved model to be used for stylizing the image")
+    # eval_arg_parser.add_argument("--cuda", type=int, required=True,
+    #                              help="set it to 1 for running on GPU, 0 for CPU")
 
     args = main_arg_parser.parse_args()
 
@@ -95,10 +99,11 @@ def main():
         sys.exit(1)
 
     if args.subcommand == "train":
-        check_paths(args)
+        # check_paths(args)
         train(args)
     else:
-        stylize(args)
+        eval(args)
+        # stylize(args)
 
 if __name__ == '__main__':
     main()

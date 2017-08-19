@@ -1,9 +1,11 @@
 import torch
 import torch.nn as nn 
+from torch.autograd import Variable
+
 
 class Seq_LSTM(nn.Module):
     def __init__(self):
-        super(Sequence, self).__init__()
+        super(Seq_LSTM, self).__init__()
         self.lstm1 = nn.LSTMCell(1, 51)
         self.lstm2 = nn.LSTMCell(51, 1)
 

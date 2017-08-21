@@ -1,4 +1,7 @@
 import numpy as np
+import torch
+from torch.autograd import Variable
+
 
 def normalize_columns(arr):
     rows, cols = arr.shape
@@ -23,3 +26,31 @@ def seq_raw_data(data_path="logistic.npy", val_size = 0.1, test_size = 0.1):
     nval = int(round(len(data[:ntest]) * (1 - val_size)))
     train_data, valid_data, test_data = data[:nval, ], data[nval:ntest, ], data[ntest:,]
     return train_data, valid_data, test_data
+
+def seq_to_batch(data, bsz, is_cuda=False):
+    """sequence to mini-batches, generate batch_size x bptt x dim
+    
+    Args:
+        data (TYPE): Description
+        bsz (TYPE): Description
+    
+    Returns:
+        TYPE: Description
+    """
+    # Work out how cleanly we can divide the dataset into bsz parts.
+    data = torch.Tensor(data)
+    nbatch = data.size(0) // bsz
+    # Trim off any extra elements that wouldn't cleanly fit (remainders).
+    data = data.narrow(0, 0, nbatch * bsz)
+    # Evenly divide the data across the bsz batches.
+    data = data.view(bsz, nbatch, -1).contiguous()
+    data = torch.transpose(data, 0, 1)
+    if is_cuda:
+        data = data.cuda()
+    return data
+
+def get_batch(source, i, bptt, evaluation=False):
+    seq_len = min(bptt, len(source) - 1 - i)
+    data = Variable(source[i:i+seq_len,:], volatile=evaluation)
+    target = Variable(source[i+1:i+1+seq_len,:])
+    return data, target

@@ -16,8 +16,6 @@ def seq_raw_data(data_path="logistic.npy", val_size = 0.1, test_size = 0.1):
     data = np.load(data_path)
     if (np.ndim(data)==1):
         data = np.expand_dims(data, axis=1)
-    print("input type ",type( data), np.shape(data))
-
     """normalize the data"""
     print("normalize to (0-1)")
     data = normalize_columns(data)
@@ -38,7 +36,7 @@ def seq_to_batch(data, bsz, is_cuda=False):
         TYPE: Description
     """
     # Work out how cleanly we can divide the dataset into bsz parts.
-    data = torch.Tensor(data)
+    data = torch.Tensor(data).float()
     nbatch = data.size(0) // bsz
     # Trim off any extra elements that wouldn't cleanly fit (remainders).
     data = data.narrow(0, 0, nbatch * bsz)

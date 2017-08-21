@@ -2,6 +2,7 @@ import argparse
 import sys
 import time
 import torch
+import math
 import torch.nn as nn 
 from torch.autograd import Variable
 import torch.optim as optim
@@ -10,60 +11,34 @@ from seq_model import *
 from seq_io import *
 
 
-def train(args):
-    # set ramdom seed to 0
-    np.random.seed(0)
-    torch.manual_seed(0)
-
-    # load data and make training set
-    train_seq, valid_seq, test_seq = seq_raw_data(args.data)
-
-    eval_batch_size = 10
-    train_data = seq_to_batch(train_seq, args.batch_size)
-    val_data = seq_to_batch(valid_seq, eval_batch_size)
-    test_data = seq_to_batch(test_seq, eval_batch_size)
-
-    # build the model
-    ndim = train_data.size(2)
-    model = Seq_LSTM(ndim, args.nhid, args.nlayers)
-
-    model.double()
-    criterion = nn.MSELoss()
-    # use LBFGS as optimizer since we can load the whole data to train
-    optimizer = optim.LBFGS(model.parameters(), lr= 0.01)
-
+def train(model,train_data,criterion, args):
+    model.train()
     hidden = model.init_hidden(args.batch_size)
     for batch, i in enumerate(range(0, train_data.size(0) - 1, args.bptt)):
+        input, target = get_batch(train_data, i, args.bptt)
+        
         hidden = tuple(h.detach() for h in hidden)
         model.zero_grad()
-        input, targets = get_batch(train_data, i, args.bptt)
+        # print('input shape', input.data.size(), 'target shape', target.data.size())
         print('STEP: ', i)
-        def closure(): # closure allow recompute model, for L-BFGS
-            optimizer.zero_grad()
-            out = model(input, hidden)
-            loss = criterion(out, target)
-            print('loss:', loss.data.numpy()[0])
-            loss.backward()
-            return loss
-        optimizer.step(closure)
+        model.zero_grad()
+        out, hidden = model(input, hidden)
+        loss = criterion(out, target)
+        print('loss:', loss.data.numpy()[0])
+        loss.backward()
 
-        # begin to predict
-        future = 1000 #forecast horizon
-        pred = seq(input[:3], future = future)
-        y = pred.data.numpy()
 
-def eval(data_source, args):
+def eval(model, data_source, criterion,args):
     # Turn on evaluation mode which disables dropout.
     model.eval()
     total_loss = 0
-    ntokens = len(corpus.dictionary)
-    hidden = model.init_hidden(eval_batch_size)
+    hidden = model.init_hidden(args.eval_batch_size)
     for i in range(0, data_source.size(0) - 1, args.bptt):
-        data, targets = get_batch(data_source, i, evaluation=True)
+        data, targets = get_batch(data_source, i, args.bptt, evaluation=True)
         output, hidden = model(data, hidden)
-        output_flat = output.view(-1, ntokens)
-        total_loss += len(data) * criterion(output_flat, targets).data
-        hidden = repackage_hidden(hidden)
+
+        total_loss += len(data) * criterion(output, targets).data
+        hidden = tuple(h.detach() for h in hidden)
     return total_loss[0] / len(data_source)
 
     
@@ -86,6 +61,8 @@ def main():
                         help='upper epoch limit')
     parser.add_argument('--batch_size', type=int, default=20, metavar='N',
                         help='batch size')
+    parser.add_argument('--eval_batch_size', type=int, default=10, metavar='N',
+                        help='eval batch size')
     parser.add_argument('--bptt', type=int, default=35,
                         help='sequence length')
     parser.add_argument('--dropout', type=float, default=0.2,
@@ -106,13 +83,34 @@ def main():
     if not torch.cuda.is_available():
         print("WARNING: cuda is not available, try running on CPU")
 
+        
+    lr = args.lr
+    best_val_loss = None
+    # load data and make training set
+    train_seq, valid_seq, test_seq = seq_raw_data(args.data)
+
+    train_data = seq_to_batch(train_seq, args.batch_size)
+    val_data = seq_to_batch(valid_seq, args.eval_batch_size)
+    test_data = seq_to_batch(test_seq, args.eval_batch_size)
+
+    # set ramdom seed to 0
+    np.random.seed(0)
+    torch.manual_seed(0)
+
+    # build the model
+    ndim = train_data.size(2)
+    model = Seq_LSTM(ndim, args.nhid, args.nlayers)
+
+    # model.double()
+    criterion = nn.MSELoss()
+
     #begin to train
     # At any point you can hit Ctrl + C to break out of training early.
     try:
         for epoch in range(1, args.epochs+1):
             epoch_start_time = time.time()
-            train(args)
-            val_loss = eval(val_data)
+            train(model, train_data, criterion, args)
+            val_loss = eval(model, val_data, criterion,args)
             print('-' * 89)
             print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
                     'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),

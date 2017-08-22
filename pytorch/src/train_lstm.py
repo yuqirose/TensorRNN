@@ -13,19 +13,28 @@ from seq_io import *
 
 def train(model,train_data,criterion, args):
     model.train()
+    total_loss = 0.0   
+    start_time = time.time()
     hidden = model.init_hidden(args.batch_size)
+    print('train data size', train_data.size(0) - 1)
     for batch, i in enumerate(range(0, train_data.size(0) - 1, args.bptt)):
         input, target = get_batch(train_data, i, args.bptt)
         
         hidden = tuple(h.detach() for h in hidden)
         model.zero_grad()
         # print('input shape', input.data.size(), 'target shape', target.data.size())
-        print('STEP: ', i)
-        model.zero_grad()
+        # print('input tensor:', print(input.data.numpy()[:,0,0]), 'target tensor:', print(target.data.numpy()[:,0,0]))
+        print('STEP: ', batch)
         out, hidden = model(input, hidden)
+        # print('target tensor:', print(target.data.numpy()[:5,0,0]),'output tensor:',print(out.data.numpy()[:5,0,0]))
         loss = criterion(out, target)
-        print('loss:', loss.data.numpy()[0])
         loss.backward()
+
+        total_loss += loss.data
+    print('loss', total_loss.numpy()[0])
+    
+
+ 
 
 
 def eval(model, data_source, criterion,args):
@@ -46,14 +55,14 @@ def main():
 
     parser = argparse.ArgumentParser(description="parser for tensor-rnn")
     parser.add_argument('--data', type=str, default='./data/penn',
-                    help='location of the data corpus')
+                    help='location of the data')
     parser.add_argument('--model', type=str, default='LSTM',
                         help='type of recurrent net (RNN_TANH, RNN_RELU, LSTM, GRU)')
     parser.add_argument('--nhid', type=int, default=200,
                         help='number of hidden units per layer')
     parser.add_argument('--nlayers', type=int, default=2,
                         help='number of layers')
-    parser.add_argument('--lr', type=float, default=20,
+    parser.add_argument('--lr', type=float, default=1e-3,
                         help='initial learning rate')
     parser.add_argument('--clip', type=float, default=0.25,
                         help='gradient clipping')
@@ -73,7 +82,7 @@ def main():
                         help='random seed')
     parser.add_argument('--cuda', action='store_true',
                         help='use CUDA')
-    parser.add_argument('--log-interval', type=int, default=200, metavar='N',
+    parser.add_argument('--log-interval', type=int, default=1, metavar='N',
                         help='report interval')
     parser.add_argument('--save', type=str,  default='model.pt',
                         help='path to save the final model')
@@ -83,7 +92,7 @@ def main():
     if not torch.cuda.is_available():
         print("WARNING: cuda is not available, try running on CPU")
 
-        
+
     lr = args.lr
     best_val_loss = None
     # load data and make training set

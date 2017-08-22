@@ -26,10 +26,10 @@ learning_rate=0.01
 num_train_steps=20
 num_test_steps=20
 
-for exp in climate traffic 
+for exp in traffic_uci #climate traffic 
 do 
 
-data_path=/home/roseyu/Data/TensorRNN/${exp}.npy
+data_path=/home/roseyu/data/tensorRNN/${exp}.npy
 
 for hidden_size in 32 64 128 256
 do

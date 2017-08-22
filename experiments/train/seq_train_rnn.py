@@ -44,7 +44,7 @@ class TestConfig(object):
     max_grad_norm = 10
     num_layers = 2
     num_steps =35
-    horizon = 1
+    horizon = 24
     hidden_size = 64
     max_epoch = 20
     max_max_epoch = 100

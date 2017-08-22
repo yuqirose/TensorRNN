@@ -45,7 +45,7 @@ class TestConfig(object):
   max_grad_norm = 10
   num_layers = 1
   num_steps = 35 # stops gradients after num_steps
-  horizon = 1
+  horizon = 24
   num_lags = 3 # num prev hiddens
   num_orders = 2 # tensor prod order
   rank_vals= [1]

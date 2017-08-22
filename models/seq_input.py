@@ -22,8 +22,10 @@ def seq_raw_data(data_path="logistic.npy", val_size = 0.1, test_size = 0.1):
     print("normalize to (0-1)")
     data = normalize_columns(data)
 
-    ntest = int(round(len(data) * (1 - test_size)))
-    nval = int(round(len(data[:ntest]) * (1 - val_size)))
+    #ntest = int(round(len(data) * (1 - test_size)))
+    #nval = int(round(len(data[:ntest]) * (1 - val_size)))
+    nval = 9360
+    ntest = 10392
     train_data, valid_data, test_data = data[:nval, ], data[nval:ntest, ], data[ntest:,]
     return train_data, valid_data, test_data
 
@@ -73,7 +75,7 @@ def ptb_producer(raw_data, is_training, batch_size, num_steps, horizon, name):
         num_batches = data_len // batch_size
         data = tf.reshape(raw_data[0 : batch_size * num_batches,:], [batch_size, num_batches, -1])
 
-        epoch_size = (num_batches - 1) // num_steps
+        epoch_size = (num_batches - horizon) // num_steps
         assertion = tf.assert_positive(
             epoch_size,
             message="epoch_size == 0, decrease batch_size or num_steps")

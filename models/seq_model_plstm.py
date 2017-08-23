@@ -19,7 +19,7 @@ class PTBModel(object):
         # different than reported in the paper.
         def rnn_cell():
             if 'reuse' in inspect.getargspec(
-                    BasicLSTMCell.__init__).args:
+                    PhasedLSTMCell.__init__).args:
                 rnn_cell = PhasedLSTMCell(hidden_size, ratio_on=0.05, reuse=tf.get_variable_scope().reuse)
             else:
                 rnn_cell = PhasedLSTMCell(hidden_size, ratio_on=0.05)

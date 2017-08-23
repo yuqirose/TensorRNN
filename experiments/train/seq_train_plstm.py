@@ -10,7 +10,7 @@ import sys, os
 import argparse
 
 os.sys.path.append('../../')
-from models.seq_model_lstm import *
+from models.seq_model_plstm import *
 from models.seq_input import *
 
 #os.environ["CUDA_VISIBLE_DEVICES"]=""

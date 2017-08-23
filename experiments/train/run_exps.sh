@@ -26,7 +26,7 @@ learning_rate=0.01
 num_train_steps=20
 num_test_steps=20
 
-for exp in traffic_uci #climate traffic 
+for exp in lorenz traffic_uci climate traffic 
 do 
 
 data_path=/home/roseyu/data/tensorRNN/${exp}.npy
@@ -42,20 +42,20 @@ do
 base_dir=/var/tmp/tensorRNN/log/$exp/$start_time/hz_$hidden_size/lr_$learning_rate
 echo $base_dir
 
-save_path=$base_dir/basic_rnn/
-python seq_train_rnn.py --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_train_steps=$num_train_steps --num_test_steps=$num_test_steps --learning_rate=$learning_rate --use_error_prop=$use_error
+# save_path=$base_dir/basic_rnn/
+# python seq_train_rnn.py --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_train_steps=$num_train_steps --num_test_steps=$num_test_steps --learning_rate=$learning_rate --use_error_prop=$use_error
 
-save_path=$base_dir/basic_lstm/
-python seq_train_lstm.py --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_train_steps=$num_train_steps --num_test_steps=$num_test_steps --learning_rate=$learning_rate --use_error_prop=$use_error
+# save_path=$base_dir/basic_lstm/
+# python seq_train_lstm.py --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_train_steps=$num_train_steps --num_test_steps=$num_test_steps --learning_rate=$learning_rate --use_error_prop=$use_error
 
-save_path=$base_dir/matrix_rnn/
-python seq_train_matrix.py --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_train_steps=$num_train_steps --num_test_steps=$num_test_steps --learning_rate=$learning_rate --use_error_prop=$use_error
+# save_path=$base_dir/matrix_rnn/
+# python seq_train_matrix.py --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_train_steps=$num_train_steps --num_test_steps=$num_test_steps --learning_rate=$learning_rate --use_error_prop=$use_error
 
 #save_path=$base_dir/tensor_rnn/
 #python seq_train_tensor.py --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_steps=$num_steps --use_error_prop=$use_error
 
-save_path=$base_dir/tensor_rnn/
-python seq_train_tensor_einsum.py --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_train_steps=$num_train_steps --num_test_steps=$num_test_steps --learning_rate=$learning_rate --use_error_prop=$use_error
+save_path=$base_dir/phased_lstm/
+python seq_train_plstm.py --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_train_steps=$num_train_steps --num_test_steps=$num_test_steps --learning_rate=$learning_rate --use_error_prop=$use_error
 
 done
 done

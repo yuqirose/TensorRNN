@@ -22,8 +22,9 @@ def seq_raw_data(data_path="logistic.npy", val_size = 0.1, test_size = 0.1):
     print("normalize to (0-1)")
     data = normalize_columns(data)
 
-    #ntest = int(round(len(data) * (1 - test_size)))
-    #nval = int(round(len(data[:ntest]) * (1 - val_size)))
+    # ntest = int(round(len(data) * (1 - test_size)))
+    # nval = int(round(len(data[:ntest]) * (1 - val_size)))
+
     nval = 9360
     ntest = 10392
     train_data, valid_data, test_data = data[:nval, ], data[nval:ntest, ], data[ntest:,]
@@ -76,6 +77,7 @@ def ptb_producer(raw_data, is_training, batch_size, num_steps, horizon, name):
         data = tf.reshape(raw_data[0 : batch_size * num_batches,:], [batch_size, num_batches, -1])
 
         epoch_size = (num_batches - horizon) // num_steps
+        # print('num_batches', num_batches)
         assertion = tf.assert_positive(
             epoch_size,
             message="epoch_size == 0, decrease batch_size or num_steps")
@@ -83,8 +85,10 @@ def ptb_producer(raw_data, is_training, batch_size, num_steps, horizon, name):
               epoch_size = tf.identity(epoch_size, name="epoch_size")
 
         i = tf.train.range_input_producer(epoch_size, shuffle=False).dequeue()
-        x = tf.slice(data, [0, i*num_steps, 0], [batch_size, num_steps, data_dim])
-        y = tf.slice(data, [0, i*num_steps + horizon, 0], [batch_size, num_steps, data_dim])
+        x = tf.strided_slice(data, [0, i*num_steps, 0], [batch_size, (i+1)*num_steps, data_dim])
+        x.set_shape([batch_size, num_steps, data_dim])
+        y = tf.strided_slice(data, [0, i*num_steps + horizon, 0], [batch_size, (i+1)*num_steps+horizon, data_dim])
+        y.set_shape([batch_size, num_steps, data_dim])
 
 
         return x, y

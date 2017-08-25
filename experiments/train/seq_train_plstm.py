@@ -22,7 +22,7 @@ flags.DEFINE_string(
     "A type of model. Possible options are: small, medium, large.")
 flags.DEFINE_string("data_path", "/Users/roseyu/Documents/Python/data/lorenz.npy",
                     "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/lorenz/basic_lstm/",
+flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/lorenz/phased_lstm/",
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
@@ -46,7 +46,7 @@ class TestConfig(object):
     max_grad_norm = 10
     num_layers = 1
     num_steps =35
-    horizon = 24
+    horizon = 1
     hidden_size = 64
     max_epoch = 20
     max_max_epoch =100

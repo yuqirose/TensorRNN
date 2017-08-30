@@ -8,6 +8,7 @@ import tensorflow as tf
 import sys, os
 
 os.sys.path.append("../../")
+from models.seq_model_tensor_einsum import *
 from models.seq_input import *
 #os.environ["CUDA_VISIBLE_DEVICES"]=""
 
@@ -15,7 +16,7 @@ flags = tf.flags
 logging = tf.logging
 
 
-flags.DEFINE_string("data_path", "/Users/roseyu/Documents/Python/data/lorenz.npy",
+flags.DEFINE_string("data_path", "/Users/roseyu/Documents/Python/lorenz.pkl",
           "Where the training/test data is stored.")
 flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/lorenz/tt_rnn/",
           "Model output directory.")
@@ -142,7 +143,6 @@ def main(_):
 
   if FLAGS.use_error_prop:
         print("Using error prop in RNN!")
-
 
   with tf.Graph().as_default():
     initializer = tf.random_uniform_initializer(-config.init_scale,

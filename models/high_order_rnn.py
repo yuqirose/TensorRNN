@@ -108,7 +108,7 @@ class EinsumTensorRNNCell(RNNCell):
 
 class MTRNNCell(RNNCell):
     """Multi-resolution Tensor RNN cell """
-    def __init__(self, num_units, num_lags, rank_vals, input_size=None, state_is_tuple=True, activation=tanh):
+    def __init__(self, num_units, num_lags, num_freq, rank_vals, input_size=None, state_is_tuple=True, activation=tanh):
         self._num_units = num_units
         self._num_lags = num_lags
         self._num_freq =  num_freq # frequency for the 2nd tt state
@@ -130,7 +130,7 @@ class MTRNNCell(RNNCell):
         """Now we have multiple states, state->states"""
 
         with vs.variable_scope(scope or "tensor_rnn_cell"):
-            output = tensor_network_tt_einsum( inputs, states, self._num_units,self._rank_vals, True, scope=scope)
+            output = tensor_network_mtrnn( inputs, states, self._num_units,self._rank_vals, True, scope=scope)
             # dense = tf.contrib.layers.fully_connected(output, self._num_units, activation_fn=None, scope=scope)
             # output = tf.contrib.layers.batch_norm(output, center=True, scale=True, 
             #                               is_training=True, scope=scope)
@@ -415,24 +415,28 @@ def _linear(args, output_size, bias, bias_start=0.0, scope=None):
     return  nn_ops.bias_add(res,biases)
 
 
-def tensor_rnn(cell, inputs, num_steps, num_lags, initial_states):
-    """High Order Recurrent Neural Network Layer
-    """
-    #tuple of 2-d tensor (batch_size, s)
-    outputs = []
-    states_list = initial_states #list of high order states
-    with tf.variable_scope("tensor_rnn"):
-        for time_step in range(num_steps):
-            # take num_lags history
-            if time_step > 0:
-                tf.get_variable_scope().reuse_variables()
-            states = _list_to_states(states_list)
-            """input tensor is [batch_size, num_steps, input_size]"""
-            input_slice = inputs[:, time_step, :]#tf.slice(inputs, [0,time_step, 0], [-1,num_lags, -1])
-            (cell_output, state)=cell(input_slice, states)
-            outputs.append(cell_output)
-            states_list = _shift(states_list, state)
-    return outputs, states
+def tensor_network_mtrnn():
+    "states to output mapping for multi-resolution tensor rnn"
+
+
+# def tensor_rnn(cell, inputs, num_steps, num_lags, initial_states):
+#     """High Order Recurrent Neural Network Layer
+#     """
+#     #tuple of 2-d tensor (batch_size, s)
+#     outputs = []
+#     states_list = initial_states #list of high order states
+#     with tf.variable_scope("tensor_rnn"):
+#         for time_step in range(num_steps):
+#             # take num_lags history
+#             if time_step > 0:
+#                 tf.get_variable_scope().reuse_variables()
+#             states = _list_to_states(states_list)
+#             """input tensor is [batch_size, num_steps, input_size]"""
+#             input_slice = inputs[:, time_step, :]#tf.slice(inputs, [0,time_step, 0], [-1,num_lags, -1])
+#             (cell_output, state)=cell(input_slice, states)
+#             outputs.append(cell_output)
+#             states_list = _shift(states_list, state)
+#     return outputs, states
 
 
 def rnn_with_feed_prev(cell, inputs, num_steps, hidden_size, initial_state, input_size, feed_prev=False, burn_in_steps=0):
@@ -478,48 +482,6 @@ def rnn_with_feed_prev(cell, inputs, num_steps, hidden_size, initial_state, inpu
 
     return logits, _states, _weights
 
-def plstm_with_feed_prev(cell, inputs, num_steps, hidden_size, initial_state, input_size, feed_prev=False, burn_in_steps=0):
-    prev = None
-    _states = []
-    _cell_outputs = []
-    _outputs = []
-    _weights = {}
-
-    state = initial_state
-    inp_shape = inputs.get_shape().as_list()
-    inp_t = tf.expand_dims(tf.constant(np.arange(1,inp_shape[0]+1)), 1)
-
-    if feed_prev:
-      print("Creating model --> Feeding output back into input.")
-    else:
-      print("Creating model input = ground truth each timestep.")
-
-    with tf.variable_scope("RNN"):
-        for time_step in range(num_steps):
-            if time_step > 0:
-                tf.get_variable_scope().reuse_variables()
-
-            inp = inputs[:, time_step, :]
-
-            if feed_prev and prev is not None and time_step >= burn_in_steps:
-                inp, _, _ = _hidden_to_output(prev, hidden_size, input_size)
-                print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
-
-            (cell_output, state) = cell((inp_t, inp), state)
-            _cell_outputs.append(cell_output)
-            _states.append(state)
-
-            if feed_prev:
-              prev = cell_output
-
-            output, w, b = _hidden_to_output(cell_output, hidden_size, input_size)
-            _outputs.append(output)
-    _weights["softmax_w"] = w
-    _weights["softmax_b"] = b
-
-    logits = tf.stack(_outputs, 1)
-
-    return logits, _states, _weights
 
 def tensor_rnn_with_feed_prev(cell, inputs, num_steps, hidden_size, num_lags,
     initial_states, input_size, feed_prev=False, burn_in_steps=0):
@@ -573,56 +535,6 @@ def tensor_rnn_with_feed_prev(cell, inputs, num_steps, hidden_size, num_lags,
     return logits, states, weights
 
 
-def mtrnn_with_feed_prev(cell, inputs, num_steps, hidden_size, num_lags,
-    initial_states, input_size, feed_prev=False, burn_in_steps=0):
-    """Multi-resolution Tensor Recurrent Neural Network Layer
-    """
-    #tuple of 2-d tensor (batch_size, s)
-
-    _logits = []
-    _cell_outputs = []
-    _outputs = []
-    weights = {}
-    states_list = initial_states #list of high order states
-
-    prev = None
-
-    if feed_prev:
-      print("Creating model @ not training --> Feeding output back into input.")
-    else:
-      print("Creating model @ training --> input = ground truth each timestep.")
-
-    with tf.variable_scope("tensor_rnn"):
-      for time_step in range(num_steps):
-        if time_step > 0:
-          tf.get_variable_scope().reuse_variables()
-
-        inp = inputs[:, time_step, :]
-
-
-        if feed_prev and prev is not None and time_step >= burn_in_steps:
-          inp, _, _ = _hidden_to_output(prev, hidden_size, input_size)
-          print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
-
-        states = _list_to_states(states_list)
-        """input tensor is [batch_size, num_steps, input_size]"""
-        (cell_output, state)=cell(inp, states)
-        _cell_outputs.append(cell_output)
-
-        states_list = _shift(states_list, state)
-
-        if feed_prev:
-          prev = cell_output
-
-        output, w, b = _hidden_to_output(cell_output, hidden_size, input_size)
-        _outputs.append(output)
-
-      weights["softmax_w"] = w
-      weights["softmax_b"] = b
-
-    logits = tf.stack(_outputs,1)
-
-    return logits, states, weights
 
 def _hidden_to_output(h, hidden_size, input_size):
     softmax_w = tf.get_variable("softmax_w", [hidden_size, input_size], dtype= tf.float32)

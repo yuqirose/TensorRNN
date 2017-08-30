@@ -17,9 +17,7 @@ from models.seq_input import *
 flags = tf.flags
 logging = tf.logging
 
-flags.DEFINE_string(
-    "model", "small",
-    "A type of model. Possible options are: small, medium, large.")
+
 flags.DEFINE_string("data_path", "/Users/roseyu/Documents/Python/data/lorenz.npy",
                     "Where the training/test data is stored.")
 flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/lorenz/phased_lstm/",

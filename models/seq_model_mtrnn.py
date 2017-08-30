@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 from tensorflow.python.ops.math_ops import sigmoid
 from tensorflow.contrib.rnn import MultiRNNCell, DropoutWrapper
-from models.high_order_rnn import EinsumTensorRNNCell, tensor_rnn, tensor_rnn_with_feed_prev
+from models.high_order_rnn import MTRNNCell, mtrnn_with_feed_prev
 class PTBModel(object):
 
   def __init__(self, is_training, config, input_, use_error_prop=False):
@@ -13,11 +13,14 @@ class PTBModel(object):
     hidden_size = config.hidden_size
     input_size = input_.input_size
     num_lags = config.num_lags
-    num_orders = config.num_orders
+    num_freq = config.num_freq
+
     rank_vals = config.rank_vals
+    num_orders = config.num_orders
+
 
     initializer = tf.random_uniform_initializer(-1,1)
-    rnn_cell = EinsumTensorRNNCell(hidden_size, num_lags, rank_vals)
+    rnn_cell = MTRNNCell(hidden_size, num_lags, num_freq, rank_vals)
 
     if is_training and config.keep_prob < 1:
       rnn_cell = DropoutWrapper(rnn_cell, output_keep_prob=config.keep_prob)

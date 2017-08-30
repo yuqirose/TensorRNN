@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 from tensorflow.python.ops.math_ops import sigmoid
 from tensorflow.contrib.rnn import MultiRNNCell, DropoutWrapper
-from models.high_order_rnn import EinsumTensorRNNCell, tensor_rnn, tensor_rnn_with_feed_prev
+from models.high_order_rnn import EinsumTensorRNNCell, tensor_rnn_with_feed_prev
 class PTBModel(object):
 
   def __init__(self, is_training, config, input_, use_error_prop=False):

@@ -433,7 +433,7 @@ def tensor_network_mtrnn(inputs, states, output_size, rank_vals, num_freq, bias,
 
         print('-'*80)  
         print('1st layer tensor train\n')
-        print('|states res|', 1, '|states len|', len(cores), '|states size|', states_tensor.get_shape())
+        print('|states res|', 1, '|states len|', len(states), '|states size|', states_tensor.get_shape())
         h_1 = tensor_train_contraction(states_tensor, cores)
 
         # 2nd tensor train layer W_h2
@@ -461,7 +461,7 @@ def tensor_network_mtrnn(inputs, states, output_size, rank_vals, num_freq, bias,
              cores.append(mat_core)
         print('-'*80)  
         print('2nd layer tensor train\n')
-        print('|states res|', num_freq, '|states len|', len(cores), '|states size|', states_tensor.get_shape())
+        print('|states res|', num_freq, '|states len|', len(new_states), '|states size|', states_tensor.get_shape())
         h_2 = tensor_train_contraction(states_tensor, cores)
 
         # Combine two tensor train 

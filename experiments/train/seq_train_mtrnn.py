@@ -8,7 +8,7 @@ import tensorflow as tf
 import sys, os
 
 os.sys.path.append("../../")
-from models.seq_model_tensor_einsum import *
+from models.seq_model_mtrnn import *
 from models.seq_input import *
 #os.environ["CUDA_VISIBLE_DEVICES"]=""
 
@@ -16,7 +16,7 @@ flags = tf.flags
 logging = tf.logging
 
 
-flags.DEFINE_string("data_path", "/Users/roseyu/Documents/Python/lorenz.pkl",
+flags.DEFINE_string("data_path", "/Users/roseyu/Documents/Python/data/lorenz.npy",
           "Where the training/test data is stored.")
 flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/lorenz/tt_rnn/",
           "Model output directory.")
@@ -44,9 +44,10 @@ class TestConfig(object):
   num_layers = 1
   num_steps = 35 # stops gradients after num_steps
   horizon = 24
-  num_lags = 3 # num prev hiddens
+  num_lags = 4 # num prev hiddens
   num_orders = 2 # tensor prod order
   rank_vals= [1]
+  num_freq = 2
   hidden_size = 64 # dim of h
   max_epoch = 20 # keep lr fixed
   max_max_epoch = 100 # decaying lr

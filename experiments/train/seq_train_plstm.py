@@ -34,8 +34,6 @@ flags.DEFINE_integer("num_test_steps",10, "output sequence length")
 
 FLAGS = flags.FLAGS
 
-
-
 class TestConfig(object):
     """Tiny config, for testing."""
     burn_in_steps = 5

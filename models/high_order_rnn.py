@@ -10,6 +10,66 @@ from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import nn_ops
 
+
+def tensor_train_contraction(states_tensor, cores):
+  # print("input:", states_tensor.name, states_tensor.get_shape().as_list())
+  # print("mat_dims", mat_dims)
+  # print("mat_ranks", mat_ranks)
+  # print("mat_ps", mat_ps)
+  # print("mat_size", mat_size)
+
+  abc = "abcdefgh"
+  ijk = "ijklmnopqrstuvwxy"
+
+  def _get_indices(r):
+    indices = "%s%s%s" % (abc[r], ijk[r], abc[r+1])
+    return indices
+
+  def _get_einsum(i, s2):
+    #
+    s1 = _get_indices(i)
+    _s1 = s1.replace(s1[1], "")
+    _s2 = s2.replace(s2[1], "")
+    _s3 = _s2 + _s1
+    _s3 = _s3[:-3] + _s3[-1:]
+    s3 = s1 + "," + s2 + "->" + _s3
+    return s3, _s3
+
+  num_orders = len(cores)
+  # first factor
+  x = "z" + ijk[:num_orders] # "z" is the batch dimension
+  # print mat_core.get_shape().as_list()
+
+  _s3 = x[:1] + x[2:] + "ab"
+  einsum = "aib," + x + "->" + _s3
+  x = _s3
+  # print "order", i, einsum
+
+  out_h = tf.einsum(einsum, cores[0], states_tensor)
+  # print(out_h.name, out_h.get_shape().as_list())
+
+  # 2nd - penultimate latent factor
+  for i in range(1, num_orders):
+
+    # We now compute the tensor inner product W * H, where W is decomposed
+    # into a tensor-train with D factors A^i. Each factor A^i is a 3-tensor,
+    # with dimensions [mat_rank[i], hidden_size, mat_rank[i+1] ]
+    # The lag index, indexing the components of the state vector H,
+    # runs from 1 <= i < K.
+
+    # print mat_core.get_shape().as_list()
+
+    einsum, x = ss, _s3 = _get_einsum(i, x)
+
+    # print "order", i, ss
+
+    out_h = tf.einsum(einsum, cores[i], out_h)
+    # print(out_h.name, out_h.get_shape().as_list())
+
+  # print "Squeeze out the dimension-1 dummy dim (first dim of 1st latent factor)"
+  out_h = tf.squeeze(out_h, [1])
+  return out_h
+
 class MatrixRNNCell(RNNCell):
     """RNN cell with first order concatenation of hidden states"""
     def __init__(self, num_units, num_lags, input_size=None, state_is_tuple=True, activation=tanh):
@@ -130,7 +190,7 @@ class MTRNNCell(RNNCell):
         """Now we have multiple states, state->states"""
 
         with vs.variable_scope(scope or "tensor_rnn_cell"):
-            output = tensor_network_mtrnn( inputs, states, self._num_units,self._rank_vals, True, scope=scope)
+            output = tensor_network_mtrnn( inputs, states, self._num_units,self._rank_vals, self._num_freq,True, scope=scope)
             # dense = tf.contrib.layers.fully_connected(output, self._num_units, activation_fn=None, scope=scope)
             # output = tf.contrib.layers.batch_norm(output, center=True, scale=True, 
             #                               is_training=True, scope=scope)
@@ -278,96 +338,15 @@ def tensor_network_tt_einsum(inputs, states, output_size, rank_vals, bias, bias_
       states_tensor = _outer_product(batch_size, states_tensor, states_vector)
 
     # print("tensor product", states_tensor.name, states_tensor.get_shape().as_list())
-
-    def _tensor_net_tt_einsum(states_tensor):
-      # print("input:", states_tensor.name, states_tensor.get_shape().as_list())
-      # print("mat_dims", mat_dims)
-      # print("mat_ranks", mat_ranks)
-      # print("mat_ps", mat_ps)
-      # print("mat_size", mat_size)
-
-      abc = "abcdefgh"
-      ijk = "ijklmnopqrstuvwxy"
-
-      def _get_indices(r):
-        indices = "%s%s%s" % (abc[r], ijk[r], abc[r+1])
-        return indices
-
-      def _get_einsum(i, s2):
-        #
-        s1 = _get_indices(i)
-        _s1 = s1.replace(s1[1], "")
-        _s2 = s2.replace(s2[1], "")
-        _s3 = _s2 + _s1
-        _s3 = _s3[:-3] + _s3[-1:]
-        s3 = s1 + "," + s2 + "->" + _s3
-        return s3, _s3
-
-      x = "z" + ijk[:num_orders] # "z" is the batch dimension
-
-      # First latent factor
-      i = 0
-      mat_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]])
-      mat_core = tf.reshape(mat_core, [mat_ranks[i], total_state_size, mat_ranks[i + 1]])
-
-      # print mat_core.get_shape().as_list()
-
-      _s3 = x[:1] + x[2:] + "ab"
-      einsum = "aib," + x + "->" + _s3
-      x = _s3
-      # print "order", i, einsum
-
-      out_h = tf.einsum(einsum, mat_core, states_tensor)
-      # print(out_h.name, out_h.get_shape().as_list())
-
-      # 2nd - penultimate latent factor
-      for i in range(1, num_orders - 1):
-
-        # We now compute the tensor inner product W * H, where W is decomposed
-        # into a tensor-train with D factors A^i. Each factor A^i is a 3-tensor,
-        # with dimensions [mat_rank[i], hidden_size, mat_rank[i+1] ]
-        # The lag index, indexing the components of the state vector H,
-        # runs from 1 <= i < K.
-
+    cores = []
+    for i in range(num_orders):
         # Fetch the weights of factor A^i from our big serialized variable weights_h.
         mat_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]])
-        mat_core = tf.reshape(mat_core, [mat_ranks[i], total_state_size, mat_ranks[i + 1]])
-
-        # print mat_core.get_shape().as_list()
-
-        einsum, x = ss, _s3 = _get_einsum(i, x)
-
-        # print "order", i, ss
-
-        out_h = tf.einsum(einsum, mat_core, out_h)
-        print(out_h.name, out_h.get_shape().as_list())
-
-
-      # last latent factor
-      i = num_orders - 1
-      mat_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]])
-      mat_core = tf.reshape(mat_core, [mat_ranks[i], total_state_size, mat_ranks[i + 1]])
-      # print mat_core.get_shape().as_list()
-
-      einsum, _s3 = _get_einsum(num_orders - 1, x)
-      # print "order", i, einsum
-
-      out_h = tf.einsum(einsum, mat_core, out_h)
-      # print(out_h.name, out_h.get_shape().as_list())
-
-      # print "Squeeze out the dimension-1 dummy dim (first dim of 1st latent factor)"
-
-      out_h = tf.squeeze(out_h, [1])
-
-      # Compute h_t = U*x_t + W*H_{t-1}
-      res = tf.add(out_x, out_h)
-
-      # print res.get_shape()
-
-      # biases = vs.get_variable("biases", [output_size])
-      return res
-
-    res = _tensor_net_tt_einsum(states_tensor)
+        mat_core = tf.reshape(mat_core, [mat_ranks[i], total_state_size, mat_ranks[i + 1]])   
+        cores.append(mat_core)
+    out_h = tensor_train_contraction(states_tensor, cores)
+    # Compute h_t = U*x_t + W*H_{t-1}
+    res = tf.add(out_x, out_h)
 
     # print "END OF CELL CONSTRUCTION"
     # print "========================"
@@ -415,9 +394,85 @@ def _linear(args, output_size, bias, bias_start=0.0, scope=None):
     return  nn_ops.bias_add(res,biases)
 
 
-def tensor_network_mtrnn():
+def tensor_network_mtrnn(inputs, states, output_size, rank_vals, num_freq, bias, bias_start=0.0, scope=None):
     "states to output mapping for multi-resolution tensor rnn"
+    """tensor train decomposition for the full tenosr """
+    num_orders = len(rank_vals)+1#alpha_1 to alpha_{K-1}
+    num_lags = len(states)
+    batch_size = inputs.get_shape()[0].value
+    state_size = output_size #hidden layer size
+    input_size= inputs.get_shape()[1].value
 
+    with vs.variable_scope(scope or "tensor_network_mtrnn"):
+        # input weights W_x 
+        weights_x = vs.get_variable("weights_x", [input_size, output_size] )
+        out_x = tf.matmul(inputs, weights_x)
+
+
+        # 1st tensor train layer W_h
+        total_state_size = (state_size * num_lags + 1 )
+        mat_dims = np.ones((num_orders,)) * total_state_size
+        mat_ranks = np.concatenate(([1], rank_vals, [output_size]))
+        mat_ps = np.cumsum(np.concatenate(([0], mat_ranks[:-1] * mat_dims * mat_ranks[1:])),dtype=np.int32)
+        mat_size = mat_ps[-1]
+        mat = vs.get_variable("weights_h", mat_size) # h_z x h_z... x output_size
+
+        states_vector = tf.concat(states, 1)
+        states_vector = tf.concat([states_vector, tf.ones([batch_size, 1])],1)
+        """form high order state tensor"""
+        states_tensor = states_vector
+        for order in range(num_orders-1):
+            states_tensor = _outer_product(batch_size, states_tensor, states_vector)
+
+        cores = []
+        for i in range(num_orders):
+            # Fetch the weights of factor A^i from our big serialized variable weights_h.
+            mat_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]])
+            mat_core = tf.reshape(mat_core, [mat_ranks[i], total_state_size, mat_ranks[i + 1]])   
+            cores.append(mat_core)
+
+        print('-'*80)  
+        print('1st layer tensor train\n')
+        print('|states res|', 1, '|states len|', len(cores), '|states size|', states_tensor.get_shape())
+        h_1 = tensor_train_contraction(states_tensor, cores)
+
+        # 2nd tensor train layer W_h2
+        total_state_size = (state_size * num_lags//num_freq + 1 )
+        mat_dims = np.ones((num_orders,)) * total_state_size
+        mat_ranks = np.concatenate(([1], rank_vals, [output_size]))
+        mat_ps = np.cumsum(np.concatenate(([0], mat_ranks[:-1] * mat_dims * mat_ranks[1:])),dtype=np.int32)
+        mat_size = mat_ps[-1]
+        mat = vs.get_variable("weights_h2", mat_size) # h_z x h_z... x output_size
+
+
+        new_states = states[::num_freq]
+        states_vector = tf.concat(new_states,1)
+        states_vector = tf.concat([states_vector, tf.ones([batch_size, 1])],1)
+        """form high order state tensor"""
+        states_tensor = states_vector
+        for order in range(num_orders-1):
+            states_tensor = _outer_product(batch_size, states_tensor, states_vector)
+
+        cores = []
+        for i in range(num_orders):
+             # Fetch the weights of factor A^i from our big serialized variable weights_h.
+             mat_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]])
+             mat_core = tf.reshape(mat_core, [mat_ranks[i], total_state_size, mat_ranks[i + 1]])   
+             cores.append(mat_core)
+        print('-'*80)  
+        print('2nd layer tensor train\n')
+        print('|states res|', num_freq, '|states len|', len(cores), '|states size|', states_tensor.get_shape())
+        h_2 = tensor_train_contraction(states_tensor, cores)
+
+        # Combine two tensor train 
+        out_h = h_1 + h_2
+        # Compute h_t = W_x*x_t + W_h*H_{t-1}
+        res = tf.add(out_x, out_h)
+
+        if not bias:
+            return
+        biases = vs.get_variable("biases", [output_size])
+        return  nn_ops.bias_add(res,biases)
 
 # def tensor_rnn(cell, inputs, num_steps, num_lags, initial_states):
 #     """High Order Recurrent Neural Network Layer

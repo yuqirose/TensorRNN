@@ -8,6 +8,7 @@ import tensorflow as tf
 import sys, os
 
 os.sys.path.append("../../")
+from models.seq_model_tensor_einsum import *
 from models.seq_input import *
 #os.environ["CUDA_VISIBLE_DEVICES"]=""
 

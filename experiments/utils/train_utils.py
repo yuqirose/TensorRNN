@@ -1,5 +1,7 @@
 import tensorflow as tf
 import numpy as np
+
+
 def fill_feed_dict(batch, train_phase=True):
     """Fills the feed_dict for training the given step.
     A feed_dict takes the form of:

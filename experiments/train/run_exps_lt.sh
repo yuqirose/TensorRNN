@@ -22,14 +22,14 @@ use_error=True #--use_error_prop
 
 # hidden_size=128
 burn_in_steps=5 # just for naming purposes
-learning_rate=0.01
+#learning_rate=0.01
 num_train_steps=20
-num_test_steps=20
+num_test_steps= 100
 
-for exp in climate traffic 
+for exp in lorenz climate traffic 
 do 
 
-data_path=/home/roseyu/Data/TensorRNN/${exp}.npy
+data_path=/home/roseyu/data/tensorRNN/${exp}.npy
 
 for hidden_size in 32 64 128 256
 do
@@ -56,6 +56,10 @@ python seq_train_matrix.py --data_path=$data_path --save_path=$save_path --hidde
 
 save_path=$base_dir/tensor_rnn/
 python seq_train_tensor_einsum.py --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_train_steps=$num_train_steps --num_test_steps=$num_test_steps --learning_rate=$learning_rate --use_error_prop=$use_error
+
+
+save_path=$base_dir/phased_lstm/
+python seq_train_plstm.py --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_train_steps=$num_train_steps --num_test_steps=$num_test_steps --learning_rate=$learning_rate --use_error_prop=$use_error
 
 done
 done

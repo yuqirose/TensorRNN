@@ -22,7 +22,7 @@ class TrainConfig(object):
 
 
 
-class TrainConfig(object):
+class TestConfig(object):
   """Tiny config, for testing."""
   burn_in_steps = 5
   init_scale = 0.1

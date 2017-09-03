@@ -24,7 +24,7 @@ use_error=True #--use_error_prop
 burn_in_steps=5 # just for naming purposes
 #learning_rate=0.01
 num_train_steps=20
-num_test_steps= 100
+num_test_steps=100
 
 for exp in lorenz climate traffic 
 do 

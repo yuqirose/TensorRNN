@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from models.high_order_rnn import plstm_with_feed_prev
+from models.high_order_rnn import rnn_with_feed_prev
 from tensorflow.contrib.rnn import PhasedLSTMCell, MultiRNNCell, DropoutWrapper
 import inspect
 class PTBModel(object):

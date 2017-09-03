@@ -31,7 +31,7 @@ class PTBModel(object):
       initial_state =  cell.zero_state(batch_size, dtype= tf.float32)
       initial_states.append(initial_state)
 
-    self._initial_states = initial_states
+    self._initial_state = initial_states
 
     print("num_steps:", num_steps)
 
@@ -44,7 +44,7 @@ class PTBModel(object):
     # print("Predictions now computed inside cell.")
     feed_prev = not is_training if use_error_prop else False
     logits, state, weights  = tensor_rnn_with_feed_prev(cell, inputs, num_steps, hidden_size,
-      num_lags, self._initial_states, input_size, feed_prev=feed_prev, burn_in_steps=config.burn_in_steps)
+      num_lags, self._initial_state, input_size, feed_prev=feed_prev, burn_in_steps=config.burn_in_steps)
 
     # softmax_w, softmax_b = weights["softmax_w"], weights["softmax_b"]
 
@@ -89,8 +89,8 @@ class PTBModel(object):
     return self._predict
 
   @property
-  def initial_states(self):
-    return self._initial_states
+  def initial_state(self):
+    return self._initial_state
 
   @property
   def cost(self):

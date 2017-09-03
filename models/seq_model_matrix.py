@@ -33,7 +33,7 @@ class PTBModel(object):
       # initial_state: tuple of len num_layers, each element state_size(2 for lstm,c,h) x batch_size x input_size
       initial_state =  cell.zero_state(batch_size, dtype= tf.float32)
       initial_states.append(initial_state)
-    self._initial_states = initial_states
+    self._initial_state = initial_states
     with tf.device("/cpu:0"):
       inputs = input_.input_data
       """
@@ -74,7 +74,7 @@ class PTBModel(object):
 
     feed_prev = not is_training if use_error_prop else False
     logits, state, weights  = tensor_rnn_with_feed_prev(cell, inputs, num_steps, size,
-      num_lags, self._initial_states, input_size, feed_prev=feed_prev, burn_in_steps=config.burn_in_steps)
+      num_lags, self._initial_state, input_size, feed_prev=feed_prev, burn_in_steps=config.burn_in_steps)
 
 
     self._predict = logits
@@ -116,8 +116,8 @@ class PTBModel(object):
     return self._predict
 
   @property
-  def initial_states(self):
-    return self._initial_states
+  def initial_state(self):
+    return self._initial_state
 
   @property
   def cost(self):

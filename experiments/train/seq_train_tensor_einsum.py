@@ -8,14 +8,13 @@ import tensorflow as tf
 import sys, os
 
 os.sys.path.append("../../")
-from models.seq_model_tensor_einsum import *
 from models.seq_input import *
 #os.environ["CUDA_VISIBLE_DEVICES"]=""
 
 flags = tf.flags
 logging = tf.logging
 
-
+flags.DEFINE_string("model","trnn", "[rnn, lstm, plst, mrnn, trnn, mtrnn]")
 flags.DEFINE_string("data_path", "/Users/roseyu/Documents/Python/data/lorenz.npy",
           "Where the training/test data is stored.")
 flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/lorenz/tt_rnn/",
@@ -43,7 +42,7 @@ class TestConfig(object):
   max_grad_norm = 10
   num_layers = 1
   num_steps = 35 # stops gradients after num_steps
-  horizon = 24
+  horizon = 1
   num_lags = 3 # num prev hiddens
   num_orders = 2 # tensor prod order
   rank_vals= [1]
@@ -140,6 +139,12 @@ def main(_):
   eval_config.num_steps = FLAGS.num_test_steps
   eval_config.rank_vals = [FLAGS.rank_val]
   eval_config.batch_size = 1
+
+  if FLAGS.model=="trnn":
+      from models.seq_model_tensor_einsum import *
+  elif FLAGS.model=="rnn":
+      from models.seq_model_rnn import *
+  print("Training model:", FLAGS.model)
 
   if FLAGS.use_error_prop:
         print("Using error prop in RNN!")

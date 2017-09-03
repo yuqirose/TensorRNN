@@ -140,4 +140,3 @@ class PTBInput(object):
         else:
             self.input_data, self.targets = ptb_producer_rnd(
                 data, is_training, batch_size, num_steps, horizon, name=name)
-

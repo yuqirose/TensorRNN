@@ -8,54 +8,31 @@ import tensorflow as tf
 import sys, os
 
 os.sys.path.append("../../")
-from models.seq_model_tensor import *
 from models.seq_input import *
-#os.environ["CUDA_VISIBLE_DEVICES"]=""
+from models.seq_model_trnn import *
+from train_config import *
+
 
 flags = tf.flags
 logging = tf.logging
 
-flags.DEFINE_string(
-  "model", "small",
-  "A type of model. Possible options are: small, medium, large.")
-flags.DEFINE_string("data_path", "/Users/roseyu/Documents/Python/lorenz_series.pkl",
+flags.DEFINE_string("data_path", "/Users/roseyu/Documents/Python/data/lorenz.npy",
           "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/lorenz/tensor_rnn/",
+flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/lorenz/tt_rnn/",
           "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
           "Train using 16-bit floats instead of 32bit floats")
 flags.DEFINE_bool("use_error_prop", False,
                   "Feed previous output as input in RNN")
 
-flags.DEFINE_integer("hidden_size",128, "hidden layer size")
-flags.DEFINE_float("learning_rate", 1e-3, "learning rate")
-flags.DEFINE_integer("num_train_steps", 20,"Output sequence length")
-flags.DEFINE_integer("num_test_steps", 20,"Output sequence length")
-flags.DEFINE_integer("rank_val","2", "rank of tensor train model")
+flags.DEFINE_integer("hidden_size", 16, "hidden layer size")
+flags.DEFINE_float("learning_rate", 1e-1, "learning rate")
+flags.DEFINE_integer("num_train_steps",10,"Output sequence length")
+flags.DEFINE_integer("num_test_steps", 10,"Output sequence length")
+flags.DEFINE_integer("rank_val","1", "rank of tensor train model")
 
 FLAGS = flags.FLAGS
 
-
-
-class TestConfig(object):
-  """Tiny config, for testing."""
-  burn_in_steps = 5
-  init_scale = 1.0
-  learning_rate = 1e-3
-  max_grad_norm = 10
-  num_layers = 1
-  num_steps = 12 # stops gradients after num_steps
-  horizon = 1
-  num_lags = 3 # num prev hiddens
-  num_orders = 2 # tensor prod order
-  rank_vals= [1]
-  hidden_size = 256 # dim of h
-  max_epoch = 20 # keep lr fixed
-  max_max_epoch = 100 # decaying lr
-  keep_prob = 1.0 # dropout
-  lr_decay = 0.99
-  batch_size = 5
-  rand_init = False
 
 def run_epoch(session, model, eval_op=None, verbose=False):
   """Runs the model on the given data."""
@@ -64,7 +41,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
   iters = 0
   predicts = []
   targets = []
-  initial_states = session.run(model.initial_states)
+  initial_state = session.run(model.initial_state)
 
   fetches = {
     "cost": model.cost,
@@ -79,40 +56,45 @@ def run_epoch(session, model, eval_op=None, verbose=False):
 
   for step in range(model.input.epoch_size):
     feed_dict = {}
-    for i, states in enumerate(model.initial_states):
-      for j, state in enumerate(states):
-        feed_dict[state] = initial_states[i][j]
+    for i, s in enumerate(model.initial_state):
+      for j, ss in enumerate(s):
+        # This is different from the tutorial
+        # for every epoch, we reset the hidden state to zero
+        feed_dict[ss] = initial_state[i][j]
 
-    vals = session.run(fetches, feed_dict)
+  vals = session.run(fetches, feed_dict)
 
-    cost = vals["cost"]
-    target = vals["target"]
-    predict = vals["predict"]#batch_size x num_step x input_size
-    # print("step {0}: predict{1}, cost {2}".format(step, predict, cost))
-    # print("cost at step {0}: {1}".format(step, cost))
-    state = vals["final_state"]
-    predicts.append(predict)
-    targets.append(target)
+  cost = vals["cost"]
+  target = vals["target"]
+  predict = vals["predict"] # batch_size x num_step x input_size
+  state = vals["final_state"]
 
-    # if step % 20 == 0:
-      
-    #    print("step", step, "input\n", vals["input"][0,0:5])
+  # print("step {0}: predict{1}, cost {2}".format(step, predict, cost))
+  # print("cost at step {0}: {1}".format(step, cost))
+
+  # if step %20 == 0:
     
-    #    print("step", step, "target\n", vals["target"][0,0:5])
-    
-    #    print("step", step, "predicts\n", predict[0:5])
-
-    costs += cost
-    iters += 1 #model.input.num_steps
-
-    if verbose and step % (model.input.epoch_size // 10) == 10:
-      print("%.3f error: %.3f speed: %.0f wps" %
-          (step * 1.0 / model.input.epoch_size, np.sqrt(costs / iters),
-           iters * model.input.batch_size / (time.time() - start_time)))
-
-  # predicts = np.stack(predicts,1).reshape(-1,model.input.input_size) # test_len x input_size
-  # targets = np.stack(targets,1).reshape(-1,model.input.input_size) # test_len x input_size
+  #    print("step", step, "input\n", vals["input"][0,0:5])
   
+  #    print("step", step, "target\n", vals["target"][0,0:5])
+ 
+  #    print("step", step, "predicts\n",vals["predict"][0,0:5])
+  # if eval_op is None:
+  #   print("target step", step)
+  #   print(target[0,:5,1])
+
+  
+  predicts.append(predict)
+  targets.append(target)
+
+  costs += cost
+  iters += 1 #model.input.num_steps
+
+  if verbose and step % (model.input.epoch_size // 10) == 10:
+    print("%.3f error: %.3f speed: %.0f wps" %
+        (step * 1.0 / model.input.epoch_size, np.sqrt(costs / iters),
+         iters * model.input.batch_size / (time.time() - start_time)))
+
   final_cost = np.sqrt(costs/iters)
   final_rslt = (targets, predicts) 
     
@@ -125,7 +107,7 @@ def main(_):
 
   raw_data = seq_raw_data(FLAGS.data_path)#seq raw data
   train_data, valid_data, test_data = raw_data
-  config = TestConfig()
+  config = TrainConfig()
   config.learning_rate = FLAGS.learning_rate
   config.hidden_size = FLAGS.hidden_size
   config.num_steps = FLAGS.num_train_steps
@@ -133,13 +115,12 @@ def main(_):
 
   eval_config = TestConfig()
   eval_config.hidden_size = FLAGS.hidden_size
-  eval_config.num_steps = FLags.num_test_steps
-  eval_config.batch_size = 1
+  eval_config.num_steps = FLAGS.num_test_steps
   eval_config.rank_vals = [FLAGS.rank_val]
-
 
   if FLAGS.use_error_prop:
         print("Using error prop in RNN!")
+
 
   with tf.Graph().as_default():
     initializer = tf.random_uniform_initializer(-config.init_scale,
@@ -164,9 +145,10 @@ def main(_):
       tf.summary.scalar("Test_Loss", mtest.cost)
 
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.1)
-    sv = tf.train.Supervisor(logdir=FLAGS.save_path)
+
+    sv = tf.train.Supervisor(logdir=FLAGS.save_path,save_summaries_secs=10)
     with sv.managed_session(config = tf.ConfigProto(gpu_options=gpu_options)) as session:
-      valid_err_old = float('inf')
+      valid_err_old = float('inf') 
       for i in range(config.max_max_epoch):
         lr_decay = config.lr_decay ** max(i + 1 - config.max_epoch, 0.0)
         m.assign_lr(session, config.learning_rate * lr_decay)
@@ -178,10 +160,11 @@ def main(_):
         valid_err, _ = run_epoch(session, mvalid)
         print("Epoch: %d Valid Error: %.3f" % (i + 1, valid_err))
         # early stopping
-        # if valid_err >= valid_err_old:
+        # if valid_err >= valid_err_old :
         #   print("Early stopping after %d epoch" % i)
         #   break
         valid_err_old = valid_err
+
 
 
   #  if i and i % 10 == 0:
@@ -194,7 +177,6 @@ def main(_):
         f.write('num_layers:'+ str(config.num_layers) +'\t'+'hidden_size:'+ str(config.hidden_size)+
             '\t'+ 'num_steps:'+ str(config.num_steps) +
             '\t'+ 'learning_rate:'+ str(config.learning_rate)  +'\t'+ 'err_prop:'+ str(FLAGS.use_error_prop) + '\n')
- 
         f.write('train_error:'+ str(train_err) + '\t' + 'valid_error:'+ str(valid_err) + 
                         '\t'+ 'test_error:'+ str(test_err) + '\n')
 

@@ -536,7 +536,49 @@ def rnn_with_feed_prev(cell, inputs, num_steps, hidden_size, initial_state, inpu
     logits = tf.stack(_outputs, 1)
 
     return logits, _states, _weights
+    
+def plstm_with_feed_prev(cell, inputs, num_steps, hidden_size, initial_state, input_size, feed_prev=False, burn_in_steps=0):
+    prev = None
+    _states = []
+    _cell_outputs = []
+    _outputs = []
+    _weights = {}
 
+    state = initial_state
+    inp_shape = inputs.get_shape().as_list()
+    inp_t = tf.expand_dims(tf.constant(np.arange(1,inp_shape[0]+1)), 1)
+
+    if feed_prev:
+      print("Creating model --> Feeding output back into input.")
+    else:
+      print("Creating model input = ground truth each timestep.")
+
+    with tf.variable_scope("RNN"):
+        for time_step in range(num_steps):
+            if time_step > 0:
+                tf.get_variable_scope().reuse_variables()
+
+            inp = inputs[:, time_step, :]
+
+            if feed_prev and prev is not None and time_step >= burn_in_steps:
+                inp, _, _ = _hidden_to_output(prev, hidden_size, input_size)
+                print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
+
+            (cell_output, state) = cell((inp_t, inp), state)
+            _cell_outputs.append(cell_output)
+            _states.append(state)
+
+            if feed_prev:
+              prev = cell_output
+
+            output, w, b = _hidden_to_output(cell_output, hidden_size, input_size)
+            _outputs.append(output)
+    _weights["softmax_w"] = w
+    _weights["softmax_b"] = b
+
+    logits = tf.stack(_outputs, 1)
+
+    return logits, _states, _weights
 
 def tensor_rnn_with_feed_prev(cell, inputs, num_steps, hidden_size, num_lags,
     initial_states, input_size, feed_prev=False, burn_in_steps=0):

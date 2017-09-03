@@ -9,12 +9,14 @@ import sys, os
 os.sys.path.append("../../")
 from models.seq_model_matrix import *
 from models.seq_input import *
+from train_config import *
+
 
 flags = tf.flags
 logging = tf.logging
 
 
-flags.DEFINE_string("data_path", "/Users/roseyu/Documents/Python/lorenz.pkl",
+flags.DEFINE_string("data_path", "/Users/roseyu/Documents/Python/data/lorenz.npy",
                     "Where the training/test data is stored.")
 flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/lorenz/matrix_rnn/",
                     "Model output directory.")
@@ -31,25 +33,6 @@ flags.DEFINE_integer("num_test_steps", 10,  "output sequence length")
 FLAGS = flags.FLAGS
 
 
-
-class TestConfig(object):
-    """Tiny config, for testing."""
-    burn_in_steps = 5
-    init_scale = 1.0
-    learning_rate = 1e-3
-    max_grad_norm = 10
-    num_layers = 1
-    num_steps = 35
-    horizon = 24
-    num_lags = 3
-    hidden_size = 64
-    max_epoch = 20
-    max_max_epoch = 100
-    keep_prob = 1.0
-    lr_decay = 0.99
-    batch_size = 5
-    rand_init = False
-
 def run_epoch(session, model, eval_op=None, verbose=False):
     """Runs the model on the given data."""
     start_time = time.time()
@@ -57,7 +40,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
     iters = 0
     predicts = []
     targets = []
-    initial_states = session.run(model.initial_states)
+    initial_state = session.run(model.initial_state)
 
     fetches = {
         "cost": model.cost,
@@ -72,9 +55,9 @@ def run_epoch(session, model, eval_op=None, verbose=False):
 
     for step in range(model.input.epoch_size):
         feed_dict = {}
-        for i, states in enumerate(model.initial_states):
-            for j, state in enumerate(states):
-                feed_dict[state] = initial_states[i][j]
+        for i, s in enumerate(model.initial_state):
+            for j, ss in enumerate(s):
+                feed_dict[ss] = initial_state[i][j]
 
 
         vals = session.run(fetches, feed_dict)
@@ -121,7 +104,7 @@ def main(_):
     raw_data = seq_raw_data(FLAGS.data_path)#seq raw data
     train_data, valid_data, test_data = raw_data
 
-    config = TestConfig()
+    config = TrainConfig()
     config.learning_rate = FLAGS.learning_rate
     config.hidden_size = FLAGS.hidden_size
     config.num_steps = FLAGS.num_train_steps
@@ -130,7 +113,6 @@ def main(_):
     eval_config = TestConfig()
     eval_config.hidden_size = FLAGS.hidden_size
     eval_config.num_steps = FLAGS.num_test_steps
-    eval_config.batch_size = 1
 
 
     if FLAGS.use_error_prop:

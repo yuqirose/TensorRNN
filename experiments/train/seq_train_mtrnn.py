@@ -10,7 +10,7 @@ import sys, os
 os.sys.path.append("../../")
 from models.seq_model_mtrnn import *
 from models.seq_input import *
-#os.environ["CUDA_VISIBLE_DEVICES"]=""
+from train_config import *
 
 flags = tf.flags
 logging = tf.logging
@@ -18,7 +18,7 @@ logging = tf.logging
 
 flags.DEFINE_string("data_path", "/Users/roseyu/Documents/Python/data/lorenz.npy",
           "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/lorenz/tt_rnn/",
+flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/lorenz/mt_rnn/",
           "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
           "Train using 16-bit floats instead of 32bit floats")
@@ -34,28 +34,6 @@ flags.DEFINE_integer("rank_val","1", "rank of tensor train model")
 FLAGS = flags.FLAGS
 
 
-
-class TestConfig(object):
-  """Tiny config, for testing."""
-  burn_in_steps = 5
-  init_scale = 0.1
-  learning_rate = 1e-3
-  max_grad_norm = 10
-  num_layers = 1
-  num_steps = 35 # stops gradients after num_steps
-  horizon = 24
-  num_lags = 4 # num prev hiddens
-  num_orders = 2 # tensor prod order
-  rank_vals= [1]
-  num_freq = 2
-  hidden_size = 64 # dim of h
-  max_epoch = 20 # keep lr fixed
-  max_max_epoch = 100 # decaying lr
-  keep_prob = 1.0 # dropout
-  lr_decay = 0.99
-  batch_size = 5
-  rand_init = False
-
 def run_epoch(session, model, eval_op=None, verbose=False):
   """Runs the model on the given data."""
   start_time = time.time()
@@ -63,7 +41,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
   iters = 0
   predicts = []
   targets = []
-  initial_states = session.run(model.initial_states)
+  initial_state = session.run(model.initial_state)
 
   fetches = {
     "cost": model.cost,
@@ -78,9 +56,9 @@ def run_epoch(session, model, eval_op=None, verbose=False):
 
   for step in range(model.input.epoch_size):
     feed_dict = {}
-    for i, states in enumerate(model.initial_states):
-      for j, state in enumerate(states):
-        feed_dict[state] = initial_states[i][j]
+    for i, s in enumerate(model.initial_state):
+      for j, ss in enumerate(s):
+        feed_dict[ss] = initial_state[i][j]
 
     vals = session.run(fetches, feed_dict)
 
@@ -114,10 +92,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
       print("%.3f error: %.3f speed: %.0f wps" %
           (step * 1.0 / model.input.epoch_size, np.sqrt(costs / iters),
            iters * model.input.batch_size / (time.time() - start_time)))
-
-  # predicts = np.stack(predicts,1).reshape(-1,model.input.input_size) # test_len x input_size
-  # targets = np.stack(targets,1).reshape(-1,model.input.input_size) # test_len x input_size
-  
+             
   final_cost = np.sqrt(costs/iters)
   final_rslt = (targets, predicts) 
     
@@ -130,7 +105,7 @@ def main(_):
 
   raw_data = seq_raw_data(FLAGS.data_path)#seq raw data
   train_data, valid_data, test_data = raw_data
-  config = TestConfig()
+  config = TrainConfig()
   config.learning_rate = FLAGS.learning_rate
   config.hidden_size = FLAGS.hidden_size
   config.num_steps = FLAGS.num_train_steps
@@ -140,7 +115,6 @@ def main(_):
   eval_config.hidden_size = FLAGS.hidden_size
   eval_config.num_steps = FLAGS.num_test_steps
   eval_config.rank_vals = [FLAGS.rank_val]
-  eval_config.batch_size = 1
 
   if FLAGS.use_error_prop:
         print("Using error prop in RNN!")

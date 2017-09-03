@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from models.high_order_rnn import rnn_with_feed_prev
+from models.high_order_rnn import plstm_with_feed_prev
 from tensorflow.contrib.rnn import PhasedLSTMCell, MultiRNNCell, DropoutWrapper
 import inspect
 class PTBModel(object):
@@ -74,7 +74,7 @@ class PTBModel(object):
 
         feed_prev = not is_training if use_error_prop else False
 
-        logits, states, weights = rnn_with_feed_prev(cell, inputs,
+        logits, states, weights = plstm_with_feed_prev(cell, inputs,
             num_steps, hidden_size, self._initial_state, input_size, feed_prev=feed_prev, burn_in_steps=config.burn_in_steps)
         state = states[-1]
 

@@ -12,6 +12,7 @@ import argparse
 os.sys.path.append('../../')
 from models.seq_model_lstm import *
 from models.seq_input import *
+from train_config import *
 
 #os.environ["CUDA_VISIBLE_DEVICES"]=""
 flags = tf.flags
@@ -34,23 +35,6 @@ flags.DEFINE_integer("num_test_steps",10, "output sequence length")
 FLAGS = flags.FLAGS
 
 
-
-class TestConfig(object):
-    """Tiny config, for testing."""
-    burn_in_steps = 5
-    init_scale = 1.0
-    learning_rate = 1e-2
-    max_grad_norm = 10
-    num_layers = 1
-    num_steps =35
-    horizon = 1
-    hidden_size = 64
-    max_epoch = 20
-    max_max_epoch =100
-    keep_prob = 1.0
-    lr_decay = 0.99
-    batch_size = 5
-    rand_init = False
 
 def run_epoch(session, model, eval_op=None, verbose=False):
     """Runs the model on the given data."""
@@ -127,7 +111,7 @@ def main(_):
 
     raw_data = seq_raw_data(FLAGS.data_path)#seq raw data
     train_data, valid_data, test_data = raw_data
-    config = TestConfig()
+    config = TrainConfig()
 
     config.learning_rate = FLAGS.learning_rate
     config.hidden_size = FLAGS.hidden_size
@@ -136,7 +120,6 @@ def main(_):
     eval_config = TestConfig()
     eval_config.hidden_size = FLAGS.hidden_size
     eval_config.num_steps = FLAGS.num_test_steps
-    eval_config.batch_size = 1
 
 
     if FLAGS.use_error_prop:

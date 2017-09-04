@@ -76,9 +76,7 @@ class PTBModel(object):
 
         logits, states, weights = rnn_with_feed_prev(cell, inputs,
             num_steps, hidden_size, self._initial_state, input_size, feed_prev=feed_prev, burn_in_steps=config.burn_in_steps)
-        state = states[-1]
-
-
+       
         self._predict = tf.reshape(logits, [batch_size, num_steps, -1])
         self._cost = cost = tf.reduce_mean(tf.squared_difference(
             tf.reshape(logits, [-1,input_size]), tf.reshape(input_.targets, [batch_size*num_steps,-1]) ))

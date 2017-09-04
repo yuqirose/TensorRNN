@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from models.high_order_rnn import plstm_with_feed_prev
+from models.high_order_rnn import plstm_with_feed_prev, rnn_with_feed_prev
 from tensorflow.contrib.rnn import PhasedLSTMCell, MultiRNNCell, DropoutWrapper
 import inspect
 class PTBModel(object):
@@ -76,8 +76,6 @@ class PTBModel(object):
 
         logits, states, weights = plstm_with_feed_prev(cell, inputs,
             num_steps, hidden_size, self._initial_state, input_size, feed_prev=feed_prev, burn_in_steps=config.burn_in_steps)
-        state = states[-1]
-
 
         self._predict = tf.reshape(logits, [batch_size, num_steps, -1])
         self._cost = cost = tf.reduce_mean(tf.squared_difference(

@@ -28,7 +28,7 @@ class TestConfig(object):
   init_scale = 0.1
   learning_rate = 1e-3
   max_grad_norm = 10
-  num_layers = 2
+  num_layers = 1
   num_steps = 35 # stops gradients after num_steps
   horizon = 1
   num_lags = 4 # num prev hiddens
@@ -42,3 +42,4 @@ class TestConfig(object):
   lr_decay = 0.99
   batch_size = 1
   rand_init = False
+

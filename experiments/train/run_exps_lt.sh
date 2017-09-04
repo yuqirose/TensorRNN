@@ -23,7 +23,7 @@ use_error=True #--use_error_prop
 # hidden_size=128
 burn_in_steps=5 # just for naming purposes
 #learning_rate=0.01
-num_train_steps=100
+num_train_steps=20
 num_test_steps=100
 
 for exp in lorenz climate traffic 
@@ -64,4 +64,5 @@ python seq_train_trnn.py --data_path=$data_path --save_path=$save_path --hidden_
 done
 done
 done
-cp $(pwd)/run_exps.sh $base_dir/run_exps.sh
+cp $(pwd)/run_exps_lt.sh $base_dir/run_exps_lt.sh
+cp $(pwd)/train_config.py $base_dir/train_config.py

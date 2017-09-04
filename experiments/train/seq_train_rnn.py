@@ -23,7 +23,7 @@ flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/lorenz/basic_rn
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
-flags.DEFINE_bool("use_error_prop", False,
+flags.DEFINE_bool("use_error_prop", True,
                   "Feed previous output as input in RNN")
 
 flags.DEFINE_integer('hidden_size', 16, "number of hidden unit")

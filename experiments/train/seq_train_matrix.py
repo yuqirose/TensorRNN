@@ -22,11 +22,11 @@ flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/lorenz/matrix_r
                     "Model output directory.")
 flags.DEFINE_bool("use_fp16", False,
                   "Train using 16-bit floats instead of 32bit floats")
-flags.DEFINE_bool("use_error_prop", False,
+flags.DEFINE_bool("use_error_prop", True,
                   "Feed previous output as input in RNN")
 
 flags.DEFINE_integer('hidden_size', 16, "number of hidden unit")
-flags.DEFINE_float('learning_rate', 1e-1, "learning rate of trainig")
+flags.DEFINE_float('learning_rate', 1e-2, "learning rate of trainig")
 flags.DEFINE_integer("num_train_steps", 10,  "output sequence length")
 flags.DEFINE_integer("num_test_steps", 10,  "output sequence length")
 

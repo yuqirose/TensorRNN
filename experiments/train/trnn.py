@@ -4,10 +4,10 @@ import tensorflow as tf
 from tensorflow.python.ops import array_ops
 
 def _hidden_to_output(h, hidden_size, input_size):
-    softmax_w = tf.get_variable("softmax_w", [hidden_size, input_size], dtype= tf.float32)
-    softmax_b = tf.get_variable("softmax_b", [input_size], dtype=tf.float32)
-    output = tf.matmul(h, softmax_w) + softmax_b
-    return output, softmax_w, softmax_b
+    out_w = tf.get_variable("out_w", [hidden_size, input_size], dtype= tf.float32)
+    out_b = tf.get_variable("out_b", [input_size], dtype=tf.float32)
+    output = tf.matmul(h, out_w) + out_b
+    return output
 
 
 def rnn_with_feed_prev(cell, inputs, feed_prev, config):
@@ -43,14 +43,18 @@ def rnn_with_feed_prev(cell, inputs, feed_prev, config):
                 tf.get_variable_scope().reuse_variables()
 
             if feed_prev and prev is not None and time_step >= burn_in_steps:
-                inp, _, _ = _hidden_to_output(prev, output_size, input_size)
+                inp = _hidden_to_output(prev, output_size, input_size)
                 print('feed_prev inp shape', inp.get_shape())
                 print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
 
             (cell_output, state) = cell(inp, state)
-            outputs.append(cell_output)
 
             if feed_prev:
               prev = cell_output
+
+            output = _hidden_to_output(cell_output, output_size, input_size)
+            outputs.append(output)
+
+    outputs = tf.stack(outputs, 1)
 
     return outputs, state

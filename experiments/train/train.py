@@ -1,7 +1,7 @@
 # %load train.py
 """ Recurrent Neural Network Time Series.
 
-A Recurrent Neural Network (LSTM) multivariate time series forecasting implementation 
+A Recurrent Neural Network (LSTM) multivariate time series test_preding implementation 
 Minimalist example using TensorFlow library.
 
 Links:
@@ -15,8 +15,6 @@ import tensorflow as tf
 from tensorflow.contrib import rnn
 
 # Import dataset data
-import os
-os.sys.path.append('../../')
 from reader import read_data_sets
 from model import LSTM
 from train_config import *
@@ -24,7 +22,7 @@ from train_config import *
 
 
 '''
-To forecast time series using a recurrent neural network, we consider every 
+To test_pred time series using a recurrent neural network, we consider every 
 row as a sequence of short time series. Because dataset times series has 9 dim, we will then
 handle 9 sequences for every sample.
 '''
@@ -36,39 +34,28 @@ training_steps = 500
 display_step = 200
 
 # Network Parameters
-num_input = 3 # dataset data input (time series dimension: 9)
-timesteps = 10 # timesteps
-num_hidden = 128 # hidden layer num of features
-num_layers = 2 # number of layers
+num_steps = config.num_steps
+num_input = 3 # dataset data input (time series dimension: 3)
 
 # Construct dataset
-dataset = read_data_sets("./data.npy", config.num_steps, config.num_test_steps)
+dataset = read_data_sets("./data.npy", num_steps)
 
 # tf Graph input
-X = tf.placeholder("float", [None, timesteps, num_input])
-Y = tf.placeholder("float", [None, timesteps, num_input])
-
-# Define weights
-weights = {
-    'out': tf.Variable(tf.random_normal([num_hidden, num_input]))
-}
-biases = {
-    'out': tf.Variable(tf.random_normal([num_input]))
-}
+X = tf.placeholder("float", [None, num_steps, num_input])
+Y = tf.placeholder("float", [None, num_steps, num_input])
 
 with tf.name_scope("Train"):
     with tf.variable_scope("Model", reuse=None):
-        prediction = LSTM(X,  weights, biases, True, config)
+        train_pred = LSTM(X, True, config)
 
+with tf.name_scope("Test"):
+    with tf.variable_scope("Model", reuse=True):
+        test_pred = LSTM(X, False, config)
 
 # Define loss and optimizer
-loss_op = tf.reduce_mean(tf.squared_difference(prediction, Y))
+loss_op = tf.reduce_mean(tf.squared_difference(train_pred, Y))
 optimizer = tf.train.RMSPropOptimizer(learning_rate=config.learning_rate)
 train_op = optimizer.minimize(loss_op)
-
-# Evaluate model (with test logits, for dropout to be disabled)
-correct_pred = tf.equal(tf.argmax(prediction, 1), tf.argmax(Y, 1))
-accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()
@@ -85,27 +72,36 @@ with tf.Session() as sess:
         sess.run(train_op, feed_dict={X: batch_x, Y: batch_y})
         if step % display_step == 0 or step == 1:
             # Calculate batch loss and accuracy
-            loss, acc = sess.run([loss_op, accuracy], feed_dict={X: batch_x,
-                                                                 Y: batch_y})
+            loss = sess.run(loss_op, feed_dict={X: batch_x,Y: batch_y})
             print("Step " + str(step) + ", Minibatch Loss= " + \
-                  "{:.4f}".format(loss) + ", Training Accuracy= " + \
-                  "{:.3f}".format(acc))
+                  "{:.4f}".format(loss) )
 
     print("Optimization Finished!")
 
-    # Calculate accuracy for test inps
-    test_data = dataset.test.inps.reshape((-1, config.num_test_steps, num_input))
-    test_label = dataset.test.outs
-    
-    # Fetch the forecasts 
-    with tf.name_scope("Test"):
-        with tf.variable_scope("Model", reuse=True):
-            forecast = LSTM(X,  weights, biases, False, config)
 
+    # Calculate test with error propogation
+    num_test_steps = 20
+    preds = []
+    if config.use_error_prop:
+        test_data = dataset.test.inps[:num_steps].reshape((-1, num_steps, num_input))
+        test_label = dataset.test.outs[:num_steps]
+        pred = sess.run(test_pred, feed_dict={X: test_data, Y: test_label})
+        preds.append(pred)
+        for i in range(num_test_steps//num_steps):
+            test_data = pred
+            test_label = dataset.test.outs[(i+1)*num_steps:(i+2)*num_steps]
+            pred = sess.run(test_pred, feed_dict={X: test_data, Y: test_label})
+            preds.append(pred)
+
+   
+    # Calculate accuracy for test inps
+    test_data = dataset.test.inps.reshape((-1, num_steps, num_input))
+    test_label = dataset.test.outs
+    # Fetch the test_preds 
     fetches = {
         "true":Y,
-        "pred":forecast,
-        "accuracy":accuracy
+        "pred":test_pred,
+        "loss":loss_op
     }
     vals = sess.run(fetches, feed_dict={X: test_data, Y: test_label})
-    print("Testing Accuracy:", vals["accuracy"])
+    print("Testing Loss:", vals["loss"])

@@ -8,7 +8,6 @@ class TrainConfig(object):
   num_layers = 1
   burn_in_steps = 5
   num_steps = 10 # stops gradients after num_steps
-  num_test_steps = 10
   horizon = 1
   num_lags = 4 # num prev hiddens
   num_orders = 2 # tensor prod order
@@ -19,7 +18,7 @@ class TrainConfig(object):
   keep_prob = 1.0 # dropout
   lr_decay = 0.99
   batch_size = 128
-  use_error_prop = False
+  use_error_prop = True
 
 
 

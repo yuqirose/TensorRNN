@@ -16,7 +16,7 @@ flags = tf.flags
 logging = tf.logging
 
 
-flags.DEFINE_string("data_path", "/Users/roseyu/Documents/Python/data/lorenz.npy",
+flags.DEFINE_string("data_path", "/Users/roseyu/Documents/Python/data/traffic.npy",
                     "Where the training/test data is stored.")
 flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/lorenz/matrix_rnn/",
                     "Model output directory.")
@@ -62,6 +62,7 @@ def run_epoch(session, model, eval_op=None, verbose=False):
 
         vals = session.run(fetches, feed_dict)
         cost = vals["cost"]
+        input = vals["input"]
         target = vals["target"]
         predict = vals["predict"]
         ##print("cost at step {0}: {1}".format(step, cost))
@@ -74,11 +75,11 @@ def run_epoch(session, model, eval_op=None, verbose=False):
         #     print(target[0,:5,1])
         # if step % 20 == 0:
        
-        #   print("step", step, "input\n", vals["input"][0,0:5])
-      
-        #   print("step", step, "target\n", vals["target"][0,0:5])
-      
-        #   print("step", step, "predicts\n", vals["predict"][0,0:5])
+        print("step", step, "input\n", vals["input"][0,0:5,0])
+
+        print("step", step, "target\n", vals["target"][0,0:5,0])
+
+        # print("step", step, "predicts\n", vals["predict"][0,0:5,0])
 
         costs += cost
         iters += 1 #model.input.num_steps
@@ -103,6 +104,8 @@ def main(_):
 
     raw_data = seq_raw_data(FLAGS.data_path)#seq raw data
     train_data, valid_data, test_data = raw_data
+
+    print('test data', train_data[0,:])
 
     config = TrainConfig()
     config.learning_rate = FLAGS.learning_rate

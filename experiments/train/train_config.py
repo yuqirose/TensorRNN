@@ -1,45 +1,26 @@
 
 class TrainConfig(object):
   """Tiny config, for testing."""
-  burn_in_steps = 5
   init_scale = 0.1
-  learning_rate = 1e-3
+  learning_rate = 1e-2
   max_grad_norm = 10
+  hidden_size = 128 # dim of h
   num_layers = 1
-  num_steps = 35 # stops gradients after num_steps
+  burn_in_steps = 5
+  num_steps = 10 # stops gradients after num_steps
+  num_test_steps = 10
   horizon = 1
   num_lags = 4 # num prev hiddens
   num_orders = 2 # tensor prod order
   rank_vals= [1]
   num_freq = 2
-  hidden_size = 64 # dim of h
-  max_epoch = 20 # keep lr fixed
-  max_max_epoch = 100 # decaying lr
+  max_epoch = 1 # keep lr fixed
+  max_max_epoch = 2 # decaying lr
   keep_prob = 1.0 # dropout
   lr_decay = 0.99
-  batch_size = 5
-  rand_init = False
+  batch_size = 128
+  use_error_prop = False
 
 
 
-class TestConfig(object):
-  """Tiny config, for testing."""
-  burn_in_steps = 5
-  init_scale = 0.1
-  learning_rate = 1e-3
-  max_grad_norm = 10
-  num_layers = 1
-  num_steps = 35 # stops gradients after num_steps
-  horizon = 1
-  num_lags = 4 # num prev hiddens
-  num_orders = 2 # tensor prod order
-  rank_vals= [1]
-  num_freq = 2
-  hidden_size = 64 # dim of h
-  max_epoch = 20 # keep lr fixed
-  max_max_epoch = 100 # decaying lr
-  keep_prob = 1.0 # dropout
-  lr_decay = 0.99
-  batch_size = 1
-  rand_init = False
 

@@ -16,7 +16,7 @@ from tensorflow.contrib import rnn
 
 # Import dataset data
 from reader import read_data_sets
-from model import TRNN
+from model import TRNN, LSTM
 from train_config import *
 
 
@@ -30,8 +30,8 @@ handle 9 sequences for every sample.
 
 # Training Parameters
 config = TrainConfig()
-training_steps = 500
-display_step = 200
+training_steps = 100
+display_step = 100
 
 # Network Parameters
 num_steps = config.num_steps

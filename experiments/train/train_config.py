@@ -4,7 +4,7 @@ class TrainConfig(object):
   init_scale = 0.1
   learning_rate = 1e-2
   max_grad_norm = 10
-  hidden_size = 128 # dim of h
+  hidden_size = 16 # dim of h
   num_layers = 1
   burn_in_steps = 5
   num_steps = 10 # stops gradients after num_steps

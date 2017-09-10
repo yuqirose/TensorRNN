@@ -6,11 +6,12 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import nn_ops
 from tensorflow.python.ops.math_ops import tanh
 from tensorflow.contrib.rnn import RNNCell
+from tensorflow.python.util import nest
+
 
 import numpy as np
 import copy
 from collections import deque
-
 
 def _hidden_to_output(h, hidden_size, input_size):
     out_w = tf.get_variable("out_w", [hidden_size, input_size], dtype= tf.float32)
@@ -37,12 +38,11 @@ def rnn_with_feed_prev(cell, inputs, feed_prev, config):
         batch_size = tf.shape(inputs)[0] 
         num_steps = inputs_shape[1]
         input_size = inputs_shape[2]
-        
-
-
         burn_in_steps = config.burn_in_steps
-        # print('batch size','input_size', batch_size, input_size)
         output_size = cell.output_size
+
+        inp_t = tf.expand_dims(tf.range(1,batch_size+1), 1)
+
         initial_state = cell.zero_state(batch_size, dtype= tf.float32)
         state = initial_state
 
@@ -57,7 +57,11 @@ def rnn_with_feed_prev(cell, inputs, feed_prev, config):
                 print('feed_prev inp shape', inp.get_shape())
                 print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
 
-            (cell_output, state) = cell(inp, state)
+            if isinstance(cell, tf.contrib.rnn.PhasedLSTMCell):
+                (cell_output, state) = cell((inp_t, inp), state)
+            else:
+                (cell_output, state) = cell(inp, state)
+
 
             if feed_prev:
               prev = cell_output
@@ -69,6 +73,92 @@ def rnn_with_feed_prev(cell, inputs, feed_prev, config):
 
     return outputs, state
 
+class MatrixRNNCell(RNNCell):
+    """RNN cell with first order concatenation of hidden states"""
+    def __init__(self, num_units, num_lags, input_size=None, state_is_tuple=True, activation=tanh):
+        self._num_units = num_units
+        self._num_lags = num_lags
+    #rank of the tensor, tensor-train model is order+1
+        self._state_is_tuple= state_is_tuple
+        self._activation = activation
+
+    @property
+    def state_size(self):
+        return self._num_units
+
+    @property
+    def output_size(self):
+        return self._num_units
+
+    def __call__(self, inputs, states, scope=None):
+        """Now we have multiple states, state->states"""
+
+        with vs.variable_scope(scope or "tensor_rnn_cell"):
+            output = tensor_network_linear( inputs, states, self._num_units, True, scope=scope)
+            new_state = self._activation(output)
+        if self._state_is_tuple:
+            new_state = (new_state)
+        return new_state, new_state
+
+def tensor_network_linear(inputs, states, output_size, bias, bias_start=0.0, scope=None):
+    """tensor network [inputs, states]-> output with tensor models"""
+    # each coordinate of hidden state is independent- parallel
+    states_tensor  = nest.flatten(states)
+    total_inputs = [inputs]
+    total_inputs.extend(states)
+    output = _linear(total_inputs, output_size, True, scope=scope)
+    return output
+
+def _linear(args, output_size, bias, bias_start=0.0, scope=None):
+    total_arg_size = 0
+    shapes= [a.get_shape() for a in args]
+    for shape in shapes:
+        total_arg_size += shape[1].value
+    dtype = [a.dtype for a in args][0]
+
+    scope = vs.get_variable_scope()
+
+    with vs.variable_scope(scope) as outer_scope:
+        weights = vs.get_variable("weights", [total_arg_size, output_size], dtype=dtype)
+        """y = [batch_size x total_arg_size] * [total_arg_size x output_size]"""
+        res = tf.matmul(tf.concat(args, 1), weights)
+        if not bias:
+            return res
+        with vs.variable_scope(outer_scope) as inner_scope:
+            biases = vs.get_variable("biases", [output_size], dtype=dtype)
+    return  nn_ops.bias_add(res,biases)
+
+class EinsumTensorRNNCell(RNNCell):
+    """RNN cell with high order correlations"""
+    def __init__(self, num_units, num_lags, rank_vals, input_size=None, state_is_tuple=True, activation=tanh):
+            self._num_units = num_units
+            self._num_lags = num_lags
+    #rank of the tensor, tensor-train model is order+1
+            self._rank_vals = rank_vals
+            #self._num_orders = num_orders
+            self._state_is_tuple= state_is_tuple
+            self._activation = activation
+
+    @property
+    def state_size(self):
+            return self._num_units
+
+    @property
+    def output_size(self):
+            return self._num_units
+
+    def __call__(self, inputs, states, scope=None):
+            """Now we have multiple states, state->states"""
+
+            with vs.variable_scope(scope or "tensor_rnn_cell"):
+                    output = tensor_network_tt_einsum( inputs, states, self._num_units,self._rank_vals, True, scope=scope)
+                    # dense = tf.contrib.layers.fully_connected(output, self._num_units, activation_fn=None, scope=scope)
+                    # output = tf.contrib.layers.batch_norm(output, center=True, scale=True, 
+                    #                               is_training=True, scope=scope)
+                    new_state = self._activation(output)
+            if self._state_is_tuple:
+                    new_state = (new_state)
+            return new_state, new_state
 
 def tensor_train_contraction(states_tensor, cores):
     # print("input:", states_tensor.name, states_tensor.get_shape().as_list())
@@ -201,40 +291,6 @@ def tensor_network_tt_einsum(inputs, states, output_size, rank_vals, bias, bias_
 
     return nn_ops.bias_add(res,biases)
 
-
-class EinsumTensorRNNCell(RNNCell):
-    """RNN cell with high order correlations"""
-    def __init__(self, num_units, num_lags, rank_vals, input_size=None, state_is_tuple=True, activation=tanh):
-            self._num_units = num_units
-            self._num_lags = num_lags
-    #rank of the tensor, tensor-train model is order+1
-            self._rank_vals = rank_vals
-            #self._num_orders = num_orders
-            self._state_is_tuple= state_is_tuple
-            self._activation = activation
-
-    @property
-    def state_size(self):
-            return self._num_units
-
-    @property
-    def output_size(self):
-            return self._num_units
-
-    def __call__(self, inputs, states, scope=None):
-            """Now we have multiple states, state->states"""
-
-            with vs.variable_scope(scope or "tensor_rnn_cell"):
-                    output = tensor_network_tt_einsum( inputs, states, self._num_units,self._rank_vals, True, scope=scope)
-                    # dense = tf.contrib.layers.fully_connected(output, self._num_units, activation_fn=None, scope=scope)
-                    # output = tf.contrib.layers.batch_norm(output, center=True, scale=True, 
-                    #                               is_training=True, scope=scope)
-                    new_state = self._activation(output)
-            if self._state_is_tuple:
-                    new_state = (new_state)
-            return new_state, new_state
-
-
 def _outer_product(batch_size, tensor, vector):
     """tensor-vector outer-product"""
     tensor_flat= tf.expand_dims(tf.reshape(tensor, [batch_size,-1]), 2)
@@ -292,6 +348,7 @@ def tensor_rnn_with_feed_prev(cell, inputs, feed_prev, config):
         num_steps = inputs_shape[1]
         input_size = inputs_shape[2]
         output_size = cell.output_size
+        burn_in_steps =  config.burn_in_steps
 
         initial_states =[]
         for lag in range(config.num_lags):
@@ -307,9 +364,9 @@ def tensor_rnn_with_feed_prev(cell, inputs, feed_prev, config):
             inp = inputs[:, time_step, :]
 
 
-            if feed_prev and prev is not None and time_step >= config.burn_in_steps:
+            if feed_prev and prev is not None and time_step >= burn_in_steps:
                 inp = _hidden_to_output(prev, output_size, input_size)
-                print("t", time_step, ">=", config.burn_in_steps, "--> feeding back output into input.")
+                print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
 
             states = _list_to_states(states_list)
             """input tensor is [batch_size, num_steps, input_size]"""

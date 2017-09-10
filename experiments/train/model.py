@@ -27,9 +27,51 @@ def LSTM(inputs, is_training, config):
     prediction = tf.nn.tanh(outputs)
     return prediction
 
+def PLSTM(inputs, is_training, config):
+    def rnn_cell():
+        return tf.contrib.rnn.PhasedLSTMCell(config.hidden_size)
+        
+    cell = tf.contrib.rnn.MultiRNNCell(
+        [rnn_cell() for _ in range(config.num_layers)])
+
+    feed_prev = not is_training if config.use_error_prop else False
+    
+    outputs, state  = rnn_with_feed_prev(cell, inputs, feed_prev, config)
+
+    prediction = tf.nn.tanh(outputs)
+    return prediction
+
+def RNN(inputs, is_training, config):
+    def rnn_cell():
+        return tf.contrib.rnn.BasicRNNCell(config.hidden_size)
+        
+    cell = tf.contrib.rnn.MultiRNNCell(
+        [rnn_cell() for _ in range(config.num_layers)])
+
+    feed_prev = not is_training if config.use_error_prop else False
+    
+    outputs, state  = rnn_with_feed_prev(cell, inputs, feed_prev, config)
+
+    prediction = tf.nn.tanh(outputs)
+    return prediction
+
+def MRNN(inputs, is_training, config):
+    def mrnn_cell():
+        return MatrixRNNCell(config.hidden_size,config.num_lags)
+        
+    cell = tf.contrib.rnn.MultiRNNCell(
+        [mrnn_cell() for _ in range(config.num_layers)])
+
+    feed_prev = not is_training if config.use_error_prop else False
+    
+    outputs, state  = tensor_rnn_with_feed_prev(cell, inputs, feed_prev, config)
+
+    prediction = tf.nn.tanh(outputs)
+    return prediction
+
 def TRNN(inputs, is_training, config):
     def trnn_cell():
-        return EinsumTensorRNNCell(config.hidden_size,config.num_lags, config.rank_vals)
+        return EinsumTensorRNNCell(config.hidden_size, config.num_lags, config.rank_vals)
         
     cell = tf.contrib.rnn.MultiRNNCell(
         [trnn_cell() for _ in range(config.num_layers)])

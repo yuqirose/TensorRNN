@@ -57,7 +57,7 @@ def rnn_with_feed_prev(cell, inputs, feed_prev, config):
                 print('feed_prev inp shape', inp.get_shape())
                 print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
 
-            if isinstance(cell, tf.contrib.rnn.PhasedLSTMCell):
+            if isinstance(cell._cells[0], tf.contrib.rnn.PhasedLSTMCell):
                 (cell_output, state) = cell((inp_t, inp), state)
             else:
                 (cell_output, state) = cell(inp, state)

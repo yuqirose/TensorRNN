@@ -16,7 +16,7 @@ from tensorflow.contrib import rnn
 
 # Import dataset data
 from reader import read_data_sets
-from model import LSTM
+from model import TRNN
 from train_config import *
 
 
@@ -46,11 +46,11 @@ Y = tf.placeholder("float", [None, num_steps, num_input])
 
 with tf.name_scope("Train"):
     with tf.variable_scope("Model", reuse=None):
-        train_pred = LSTM(X, True, config)
+        train_pred = TRNN(X, True, config)
 
 with tf.name_scope("Test"):
     with tf.variable_scope("Model", reuse=True):
-        test_pred = LSTM(X, False, config)
+        test_pred = TRNN(X, False, config)
 
 # Define loss and optimizer
 loss_op = tf.reduce_mean(tf.squared_difference(train_pred, Y))

@@ -1,5 +1,0 @@
-{
-   "cmd": ["/Users/roseyu/anaconda3/bin/python", "-u", "$file", 
-   	"--data", "../../../data/lorenz.npy"],
-   "selector": "source.python"
-}

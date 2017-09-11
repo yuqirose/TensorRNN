@@ -8,19 +8,22 @@ Source code for tensor recurrent neural network (RNN), improving vanilla RNN w.r
 3. dimension reduction with tensor network model
 
 
-## model
+## experiments
 Baseline and tensor RNN models. Baselines include
 
-1. seq\_rnn: vanilla RNN
+- RNN: vanilla RNN
 
-2. seq\_lstm: LSTM
+- LSTM: vanilla LSTM
 
-3. seq\_matrix: high-order RNN with first order interaction
+- PLST: phased LSTM
 
-## experiments
+- MRNN: high-order matrix RNN with first order interaction
 
-### plot
+- TRNN: tensor RNN
 
-### train
+- MTRNN: multi-resolution tensor RNN
 
-### utils 
+## notebook
+
+Notebooks for loading and plotting results
+

@@ -8,6 +8,7 @@ class TrainConfig(object):
   num_layers = 1
   burn_in_steps = 5
   num_steps = 10 # stops gradients after num_steps
+  num_test_steps = 20 # long term forecasting steps
   horizon = 1
   num_lags = 4 # num prev hiddens
   num_orders = 2 # tensor prod order

@@ -101,6 +101,7 @@ class DataSet(object):
 
 def read_data_sets(data_path, 
                   n_steps = 10,
+                  n_test_steps = 20,
                   val_size = 0.1, 
                   test_size = 0.1, 
                   seed=None):
@@ -120,9 +121,10 @@ def read_data_sets(data_path,
     train_data, valid_data, test_data = data[:nval, ], data[nval:ntest, ], data[ntest:,]
 
     train_options = dict(num_steps=n_steps, seed=seed)
+    test_options = dict(num_steps=n_test_steps, seed=seed)
     train = DataSet(train_data, **train_options)
     valid = DataSet(valid_data, **train_options)
-    test = DataSet(test_data, **train_options)
+    test = DataSet(test_data, **test_options)
 
     stats ={}
     stats['num_examples'] = data.shape[0]

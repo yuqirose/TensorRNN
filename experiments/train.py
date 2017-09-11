@@ -55,31 +55,50 @@ config.num_test_steps = FLAGS.num_test_steps
 training_steps = 1000
 display_step = 200
 num_steps = config.num_steps
-
+num_test_steps = config.num_test_steps
+batch_size = config.batch_size
 
 # Construct dataset
-dataset, stats = read_data_sets("./data.npy", num_steps)
+dataset, stats = read_data_sets(FLAGS.data_path, num_steps, num_test_steps)
 
 # Network Parameters
 num_input = stats['num_input'] # dataset data input (time series dimension: 3)
 
+# Print exp settings
+print('='*80) 
 
-# tf Graph input
-X = tf.placeholder("float", [None, num_steps, num_input])
-Y = tf.placeholder("float", [None, num_steps, num_input])
+print('|data set|', FLAGS.data_path, '|batch size|', batch_size, '|learn rate|', FLAGS.learning_rate)
 
+print('_'*80)
+print('|train steps|', num_steps, '|test steps|', num_test_steps, '|error prop|', config.use_error_prop )
+
+print('='*80)
+
+# Construct train model
 with tf.name_scope("Train"):
+    # tf Graph train input
+    X = tf.placeholder("float", [None, num_steps, num_input])
+    Y = tf.placeholder("float", [None, num_steps, num_input])
     with tf.variable_scope("Model", reuse=None):
         train_pred = RNN(X, True, config)
+        # Define train loss 
+        train_loss = tf.reduce_mean(tf.squared_difference(train_pred, Y))
 
+# Construct test model
 with tf.name_scope("Test"):
-    with tf.variable_scope("Model", reuse=True):
-        test_pred = RNN(X, False, config)
+    # tf Graph test input
+    X_test = tf.placeholder("float", [None, num_test_steps, num_input])
+    Y_test = tf.placeholder("float", [None, num_test_steps, num_input])
+    with tf.variable_scope("Model", reuse=True):      
+        test_pred = RNN(X_test, False, config)
+        # Define test loss 
+        test_loss = tf.reduce_mean(tf.squared_difference(test_pred, Y_test))
 
-# Define loss and optimizer
-loss_op = tf.reduce_mean(tf.squared_difference(train_pred, Y))
+
+# Define optimizer
 optimizer = tf.train.RMSPropOptimizer(learning_rate=config.learning_rate)
-train_op = optimizer.minimize(loss_op)
+train_op = optimizer.minimize(train_loss)
+
 
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()
@@ -94,31 +113,16 @@ with tf.Session() as sess:
     sess.run(init)
 
     for step in range(1, training_steps+1):
-        batch_x, batch_y = dataset.train.next_batch(config.batch_size)
+        batch_x, batch_y = dataset.train.next_batch(batch_size)
         # Run optimization op (backprop)
         sess.run(train_op, feed_dict={X: batch_x, Y: batch_y})
         if step % display_step == 0 or step == 1:
             # Calculate batch loss and accuracy
-            loss = sess.run(loss_op, feed_dict={X: batch_x,Y: batch_y})
+            tr_loss = sess.run(train_loss, feed_dict={X: batch_x,Y: batch_y})
             print("Step " + str(step) + ", Minibatch Loss= " + \
-                  "{:.4f}".format(loss) )
-
+                  "{:.4f}".format(tr_loss) )
     print("Optimization Finished!")
 
-
-    # Calculate test with error propogation
-    num_test_steps = 20
-    preds = []
-    if config.use_error_prop:
-        test_data = dataset.test.inps[:num_steps].reshape((-1, num_steps, num_input))
-        test_label = dataset.test.outs[:num_steps]
-        pred = sess.run(test_pred, feed_dict={X: test_data, Y: test_label})
-        preds.append(pred)
-        for i in range(num_test_steps//num_steps):
-            test_data = pred
-            test_label = dataset.test.outs[(i+1)*num_steps:(i+2)*num_steps]
-            pred = sess.run(test_pred, feed_dict={X: test_data, Y: test_label})
-            preds.append(pred)
 
     # Save the variables to disk.
     save_path = saver.save(sess, FLAGS.save_path)
@@ -126,13 +130,14 @@ with tf.Session() as sess:
 
    
     # Calculate accuracy for test inps
-    test_data = dataset.test.inps.reshape((-1, num_steps, num_input))
+    test_data = dataset.test.inps.reshape((-1, num_test_steps, num_input))
     test_label = dataset.test.outs
-    # Fetch the test_preds 
+
+    # Fetch test prediction
     fetches = {
-        "true":Y,
+        "true":Y_test,
         "pred":test_pred,
-        "loss":loss_op
+        "loss":test_loss
     }
-    vals = sess.run(fetches, feed_dict={X: test_data, Y: test_label})
+    vals = sess.run(fetches, feed_dict={X_test: test_data, Y_test: test_label})
     print("Testing Loss:", vals["loss"])

@@ -16,7 +16,7 @@ from tensorflow.contrib import rnn
 
 # Import dataset data
 from reader import read_data_sets
-from model import RNN, MRNN, TRNN, LSTM, PLSTM
+from model import RNN, MRNN, TRNN, MTRNN, LSTM, PLSTM
 from train_config import *
 
 
@@ -30,8 +30,8 @@ handle 9 sequences for every sample.
 
 # Training Parameters
 config = TrainConfig()
-training_steps = 100
-display_step = 100
+training_steps = 1000
+display_step = 200
 
 # Network Parameters
 num_steps = config.num_steps
@@ -46,11 +46,11 @@ Y = tf.placeholder("float", [None, num_steps, num_input])
 
 with tf.name_scope("Train"):
     with tf.variable_scope("Model", reuse=None):
-        train_pred = PLSTM(X, True, config)
+        train_pred = MTRNN(X, True, config)
 
 with tf.name_scope("Test"):
     with tf.variable_scope("Model", reuse=True):
-        test_pred = PLSTM(X, False, config)
+        test_pred = MTRNN(X, False, config)
 
 # Define loss and optimizer
 loss_op = tf.reduce_mean(tf.squared_difference(train_pred, Y))

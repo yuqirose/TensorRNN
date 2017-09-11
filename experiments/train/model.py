@@ -82,3 +82,17 @@ def TRNN(inputs, is_training, config):
 
     prediction = tf.nn.tanh(outputs)
     return prediction
+
+def MTRNN(inputs, is_training, config):
+    def mtrnn_cell():
+        return MTRNNCell(config.hidden_size, config.num_lags, config.num_freq, config.rank_vals)
+        
+    cell = tf.contrib.rnn.MultiRNNCell(
+        [mtrnn_cell() for _ in range(config.num_layers)])
+
+    feed_prev = not is_training if config.use_error_prop else False
+    
+    outputs, state  = tensor_rnn_with_feed_prev(cell, inputs, feed_prev, config)
+
+    prediction = tf.nn.tanh(outputs)
+    return prediction

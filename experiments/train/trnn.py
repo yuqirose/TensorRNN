@@ -13,6 +13,98 @@ import numpy as np
 import copy
 from collections import deque
 
+class MatrixRNNCell(RNNCell):
+    """RNN cell with first order concatenation of hidden states"""
+    def __init__(self, num_units, num_lags, input_size=None, state_is_tuple=True, activation=tanh):
+        self._num_units = num_units
+        self._num_lags = num_lags
+    #rank of the tensor, tensor-train model is order+1
+        self._state_is_tuple= state_is_tuple
+        self._activation = activation
+
+    @property
+    def state_size(self):
+        return self._num_units
+
+    @property
+    def output_size(self):
+        return self._num_units
+
+    def __call__(self, inputs, states, scope=None):
+        """Now we have multiple states, state->states"""
+
+        with vs.variable_scope(scope or "tensor_rnn_cell"):
+            output = tensor_network_linear( inputs, states, self._num_units, True, scope=scope)
+            new_state = self._activation(output)
+        if self._state_is_tuple:
+            new_state = (new_state)
+        return new_state, new_state
+
+class EinsumTensorRNNCell(RNNCell):
+    """RNN cell with high order correlations"""
+    def __init__(self, num_units, num_lags, rank_vals, input_size=None, state_is_tuple=True, activation=tanh):
+            self._num_units = num_units
+            self._num_lags = num_lags
+    #rank of the tensor, tensor-train model is order+1
+            self._rank_vals = rank_vals
+            #self._num_orders = num_orders
+            self._state_is_tuple= state_is_tuple
+            self._activation = activation
+
+    @property
+    def state_size(self):
+            return self._num_units
+
+    @property
+    def output_size(self):
+            return self._num_units
+
+    def __call__(self, inputs, states, scope=None):
+            """Now we have multiple states, state->states"""
+
+            with vs.variable_scope(scope or "tensor_rnn_cell"):
+                    output = tensor_network_tt_einsum( inputs, states, self._num_units,self._rank_vals, True, scope=scope)
+                    # dense = tf.contrib.layers.fully_connected(output, self._num_units, activation_fn=None, scope=scope)
+                    # output = tf.contrib.layers.batch_norm(output, center=True, scale=True, 
+                    #                               is_training=True, scope=scope)
+                    new_state = self._activation(output)
+            if self._state_is_tuple:
+                    new_state = (new_state)
+            return new_state, new_state
+
+class MTRNNCell(RNNCell):
+    """Multi-resolution Tensor RNN cell """
+    def __init__(self, num_units, num_lags, num_freq, rank_vals, input_size=None, state_is_tuple=True, activation=tanh):
+        self._num_units = num_units
+        self._num_lags = num_lags
+        self._num_freq =  num_freq # frequency for the 2nd tt state
+    #rank of the tensor, tensor-train model is order+1
+        self._rank_vals = rank_vals
+        #self._num_orders = num_orders
+        self._state_is_tuple= state_is_tuple
+        self._activation = activation
+
+    @property
+    def state_size(self):
+        return self._num_units
+
+    @property
+    def output_size(self):
+        return self._num_units
+
+    def __call__(self, inputs, states, scope=None):
+        """Now we have multiple states, state->states"""
+
+        with vs.variable_scope(scope or "tensor_rnn_cell"):
+            output = tensor_network_mtrnn( inputs, states, self._num_units,self._rank_vals, self._num_freq,True, scope=scope)
+            # dense = tf.contrib.layers.fully_connected(output, self._num_units, activation_fn=None, scope=scope)
+            # output = tf.contrib.layers.batch_norm(output, center=True, scale=True, 
+            #                               is_training=True, scope=scope)
+            new_state = self._activation(output)
+        if self._state_is_tuple:
+            new_state = (new_state)
+        return new_state, new_state
+
 def _hidden_to_output(h, hidden_size, input_size):
     out_w = tf.get_variable("out_w", [hidden_size, input_size], dtype= tf.float32)
     out_b = tf.get_variable("out_b", [input_size], dtype=tf.float32)
@@ -73,32 +165,7 @@ def rnn_with_feed_prev(cell, inputs, feed_prev, config):
 
     return outputs, state
 
-class MatrixRNNCell(RNNCell):
-    """RNN cell with first order concatenation of hidden states"""
-    def __init__(self, num_units, num_lags, input_size=None, state_is_tuple=True, activation=tanh):
-        self._num_units = num_units
-        self._num_lags = num_lags
-    #rank of the tensor, tensor-train model is order+1
-        self._state_is_tuple= state_is_tuple
-        self._activation = activation
 
-    @property
-    def state_size(self):
-        return self._num_units
-
-    @property
-    def output_size(self):
-        return self._num_units
-
-    def __call__(self, inputs, states, scope=None):
-        """Now we have multiple states, state->states"""
-
-        with vs.variable_scope(scope or "tensor_rnn_cell"):
-            output = tensor_network_linear( inputs, states, self._num_units, True, scope=scope)
-            new_state = self._activation(output)
-        if self._state_is_tuple:
-            new_state = (new_state)
-        return new_state, new_state
 
 def tensor_network_linear(inputs, states, output_size, bias, bias_start=0.0, scope=None):
     """tensor network [inputs, states]-> output with tensor models"""
@@ -128,37 +195,87 @@ def _linear(args, output_size, bias, bias_start=0.0, scope=None):
             biases = vs.get_variable("biases", [output_size], dtype=dtype)
     return  nn_ops.bias_add(res,biases)
 
-class EinsumTensorRNNCell(RNNCell):
-    """RNN cell with high order correlations"""
-    def __init__(self, num_units, num_lags, rank_vals, input_size=None, state_is_tuple=True, activation=tanh):
-            self._num_units = num_units
-            self._num_lags = num_lags
-    #rank of the tensor, tensor-train model is order+1
-            self._rank_vals = rank_vals
-            #self._num_orders = num_orders
-            self._state_is_tuple= state_is_tuple
-            self._activation = activation
 
-    @property
-    def state_size(self):
-            return self._num_units
 
-    @property
-    def output_size(self):
-            return self._num_units
+def tensor_network_mtrnn(inputs, states, output_size, rank_vals, num_freq, bias, bias_start=0.0, scope=None):
+    "states to output mapping for multi-resolution tensor rnn"
+    """tensor train decomposition for the full tenosr """
+    num_orders = len(rank_vals)+1#alpha_1 to alpha_{K-1}
+    num_lags = len(states)
+    batch_size = tf.shape(inputs)[0] 
+    state_size = output_size #hidden layer size
+    input_size= inputs.get_shape()[1].value
 
-    def __call__(self, inputs, states, scope=None):
-            """Now we have multiple states, state->states"""
+    with vs.variable_scope(scope or "tensor_network_mtrnn"):
+        # input weights W_x 
+        weights_x = vs.get_variable("weights_x", [input_size, output_size] )
+        out_x = tf.matmul(inputs, weights_x)
 
-            with vs.variable_scope(scope or "tensor_rnn_cell"):
-                    output = tensor_network_tt_einsum( inputs, states, self._num_units,self._rank_vals, True, scope=scope)
-                    # dense = tf.contrib.layers.fully_connected(output, self._num_units, activation_fn=None, scope=scope)
-                    # output = tf.contrib.layers.batch_norm(output, center=True, scale=True, 
-                    #                               is_training=True, scope=scope)
-                    new_state = self._activation(output)
-            if self._state_is_tuple:
-                    new_state = (new_state)
-            return new_state, new_state
+
+        # 1st tensor train layer W_h
+        total_state_size = (state_size * num_lags + 1 )
+        mat_dims = np.ones((num_orders,)) * total_state_size
+        mat_ranks = np.concatenate(([1], rank_vals, [output_size]))
+        mat_ps = np.cumsum(np.concatenate(([0], mat_ranks[:-1] * mat_dims * mat_ranks[1:])),dtype=np.int32)
+        mat_size = mat_ps[-1]
+        mat = vs.get_variable("weights_h", mat_size) # h_z x h_z... x output_size
+
+        states_vector = tf.concat(states, 1)
+        states_vector = tf.concat([states_vector, tf.ones([batch_size, 1])],1)
+        """form high order state tensor"""
+        states_tensor = states_vector
+        for order in range(num_orders-1):
+            states_tensor = _outer_product(batch_size, states_tensor, states_vector)
+
+        cores = []
+        for i in range(num_orders):
+            # Fetch the weights of factor A^i from our big serialized variable weights_h.
+            mat_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]])
+            mat_core = tf.reshape(mat_core, [mat_ranks[i], total_state_size, mat_ranks[i + 1]])   
+            cores.append(mat_core)
+
+        print('-'*80)  
+        print('1st layer tensor train\n')
+        print('|states res|', 1, '|states len|', len(states), '|states size|', states_tensor.get_shape())
+        h_1 = tensor_train_contraction(states_tensor, cores)
+
+        # 2nd tensor train layer W_h2
+        total_state_size = (state_size * num_lags//num_freq + 1 )
+        mat_dims = np.ones((num_orders,)) * total_state_size
+        mat_ranks = np.concatenate(([1], rank_vals, [output_size]))
+        mat_ps = np.cumsum(np.concatenate(([0], mat_ranks[:-1] * mat_dims * mat_ranks[1:])),dtype=np.int32)
+        mat_size = mat_ps[-1]
+        mat = vs.get_variable("weights_h2", mat_size) # h_z x h_z... x output_size
+
+
+        new_states = states[::num_freq]
+        states_vector = tf.concat(new_states,1)
+        states_vector = tf.concat([states_vector, tf.ones([batch_size, 1])],1)
+        """form high order state tensor"""
+        states_tensor = states_vector
+        for order in range(num_orders-1):
+            states_tensor = _outer_product(batch_size, states_tensor, states_vector)
+
+        cores = []
+        for i in range(num_orders):
+             # Fetch the weights of factor A^i from our big serialized variable weights_h.
+             mat_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]])
+             mat_core = tf.reshape(mat_core, [mat_ranks[i], total_state_size, mat_ranks[i + 1]])   
+             cores.append(mat_core)
+        print('-'*80)  
+        print('2nd layer tensor train\n')
+        print('|states res|', num_freq, '|states len|', len(new_states), '|states size|', states_tensor.get_shape())
+        h_2 = tensor_train_contraction(states_tensor, cores)
+
+        # Combine two tensor train 
+        out_h = h_1 + h_2
+        # Compute h_t = W_x*x_t + W_h*H_{t-1}
+        res = tf.add(out_x, out_h)
+
+        if not bias:
+            return
+        biases = vs.get_variable("biases", [output_size])
+        return  nn_ops.bias_add(res,biases)
 
 def tensor_train_contraction(states_tensor, cores):
     # print("input:", states_tensor.name, states_tensor.get_shape().as_list())

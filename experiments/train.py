@@ -13,6 +13,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 from tensorflow.contrib import rnn
+import numpy
 
 # Import dataset data
 from reader import read_data_sets
@@ -33,9 +34,9 @@ flags.DEFINE_string("data_path", "./data.npy",
           "Where the training/test data is stored.")
 flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/log/",
           "Model output directory.")
+
 flags.DEFINE_bool("use_error_prop", True,
                   "Feed previous output as input in RNN")
-
 flags.DEFINE_integer("hidden_size", 16, "hidden layer size")
 flags.DEFINE_float("learning_rate", 1e-2, "learning rate")
 flags.DEFINE_integer("num_steps",10,"Training sequence length")
@@ -47,6 +48,7 @@ FLAGS = flags.FLAGS
 # Training Parameters
 config = TrainConfig()
 # Update config with cmd args
+config.use_error_prop = FLAGS.use_error_prop
 config.hidden_size = FLAGS.hidden_size
 config.learning_rate = FLAGS.learning_rate
 config.num_steps = FLAGS.num_steps
@@ -74,23 +76,32 @@ print('|train steps|', num_steps, '|test steps|', num_test_steps, '|error prop|'
 
 print('='*80)
 
+Model = LSTM
 # Construct train model
 with tf.name_scope("Train"):
     # tf Graph train input
     X = tf.placeholder("float", [None, num_steps, num_input])
     Y = tf.placeholder("float", [None, num_steps, num_input])
     with tf.variable_scope("Model", reuse=None):
-        train_pred = TRNN(X, True, config)
+        train_pred = Model(X, True, config)
         # Define train loss 
         train_loss = tf.reduce_mean(tf.squared_difference(train_pred, Y))
-
+# Construct valid model
+with tf.name_scope("Valid"):
+    # tf Graph train input
+    X_valid = tf.placeholder("float", [None, num_steps, num_input])
+    Y_valid = tf.placeholder("float", [None, num_steps, num_input])
+    with tf.variable_scope("Model", reuse=True):
+        valid_pred = Model(X_valid, True, config)
+        # Define train loss 
+        valid_loss = tf.reduce_mean(tf.squared_difference(valid_pred, Y_valid))
 # Construct test model
 with tf.name_scope("Test"):
     # tf Graph test input
     X_test = tf.placeholder("float", [None, num_test_steps, num_input])
     Y_test = tf.placeholder("float", [None, num_test_steps, num_input])
     with tf.variable_scope("Model", reuse=True):      
-        test_pred = MRNN(X_test, False, config)
+        test_pred = Model(X_test, False, config)
         # Define test loss 
         test_loss = tf.reduce_mean(tf.squared_difference(test_pred, Y_test))
 
@@ -123,11 +134,11 @@ with tf.Session() as sess:
                   "{:.4f}".format(tr_loss) )
     print("Optimization Finished!")
 
-
-
-    # Calculate accuracy for test inps
-    test_data = dataset.test.inps.reshape((-1, num_test_steps, num_input))
-    test_label = dataset.test.outs
+    # Calculate accuracy for valid inps
+    valid_data = dataset.validation.inps.reshape((-1, num_steps, num_input))
+    valid_label = dataset.validation.outs
+    va_loss = sess.run(valid_loss, feed_dict={X_valid: valid_data, Y_valid: valid_label})
+    print("Validation Loss:", va_loss)
 
     # Fetch test prediction
     fetches = {
@@ -135,19 +146,22 @@ with tf.Session() as sess:
         "pred":test_pred,
         "loss":test_loss
     }
-    vals = sess.run(fetches, feed_dict={X_test: test_data, Y_test: test_label})
-    print("Testing Loss:", vals["loss"])
+    # Calculate accuracy for test inps
+    test_data = dataset.test.inps.reshape((-1, num_test_steps, num_input))
+    test_label = dataset.test.outs
+    test_vals = sess.run(fetches, feed_dict={X_test: test_data, Y_test: test_label})
+    print("Testing Loss:", test_vals["loss"])
 
     # Save the variables to disk.
-    save_path = saver.save(sess, FLAGS.save_path)
+    save_path = saver.save(sess, FLAGS.save_path+Model.__name__+"/")
     print("Model saved in file: %s" % save_path)
     # Save predictions 
-    np.save(FLAGS.save_path+"predict.npy", (vals["true"], vals["pred"]))
+    numpy.save(save_path+"predict.npy", (test_vals["true"], test_vals["pred"]))
     # Save config file
-    with open(FLAGS.save_path+"config.out", 'w') as f:
+    with open(save_path+"config.out", 'w') as f:
         f.write('num_layers:'+ str(config.num_layers) +'\t'+'hidden_size:'+ str(config.hidden_size)+
             '\t'+ 'num_steps:'+ str(config.num_steps) +
-            '\t'+ 'learning_rate:'+ str(config.learning_rate)  +'\t'+ 'err_prop:'+ str(FLAGS.use_error_prop) + '\n')
-        f.write('train_error:'+ str(train_err) + '\t' + 'valid_error:'+ str(valid_err) + 
-                '\t'+ 'test_error:'+ str(test_err) + '\n')
+            '\t'+ 'learning_rate:'+ str(config.learning_rate)  +'\t'+ 'err_prop:'+ str(config.use_error_prop) + '\n')
+        f.write('train_error:'+ str(tr_loss) + '\t' + 'valid_error:'+ str(va_loss) + 
+                '\t'+ 'test_error:'+ str(test_vals["loss"]) + '\n')
 

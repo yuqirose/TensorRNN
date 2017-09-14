@@ -24,7 +24,7 @@ def LSTM(inputs, is_training, config):
     outputs, state  = rnn_with_feed_prev(cell, inputs, feed_prev, config)
 
     # Tanh activation
-    prediction = tf.nn.tanh(outputs)
+    prediction = tf.sigmoid(outputs)
     return prediction
 
 def PLSTM(inputs, is_training, config):
@@ -38,7 +38,7 @@ def PLSTM(inputs, is_training, config):
     
     outputs, state  = rnn_with_feed_prev(cell, inputs, feed_prev, config)
 
-    prediction = tf.nn.tanh(outputs)
+    prediction = tf.sigmoid(outputs)
     return prediction
 
 def RNN(inputs, is_training, config):
@@ -52,7 +52,7 @@ def RNN(inputs, is_training, config):
     
     outputs, state  = rnn_with_feed_prev(cell, inputs, feed_prev, config)
 
-    prediction = tf.nn.tanh(outputs)
+    prediction = tf.sigmoid(outputs)
     return prediction
 
 def MRNN(inputs, is_training, config):
@@ -66,7 +66,7 @@ def MRNN(inputs, is_training, config):
     
     outputs, state  = tensor_rnn_with_feed_prev(cell, inputs, feed_prev, config)
 
-    prediction = tf.nn.tanh(outputs)
+    prediction = tf.sigmoid(outputs)
     return prediction
 
 def TRNN(inputs, is_training, config):
@@ -80,7 +80,7 @@ def TRNN(inputs, is_training, config):
     
     outputs, state  = tensor_rnn_with_feed_prev(cell, inputs, feed_prev, config)
 
-    prediction = tf.nn.tanh(outputs)
+    prediction = tf.sigmoid(outputs)
     return prediction
 
 def MTRNN(inputs, is_training, config):
@@ -94,5 +94,5 @@ def MTRNN(inputs, is_training, config):
     
     outputs, state  = tensor_rnn_with_feed_prev(cell, inputs, feed_prev, config)
 
-    prediction = tf.nn.tanh(outputs)
+    prediction = tf.sigmoid(outputs)
     return prediction

@@ -21,7 +21,14 @@ def slide_window(a, window):
     out = examples[1:]
     return inp, out
 
-        
+
+def normalize_columns(arr):
+    rows, cols = arr.shape
+    for col in range(cols):
+        arr_col = arr[:,col]
+        arr[:,col] = (arr_col - arr_col.min() )/ (arr_col.max()- arr_col.min())
+    return arr
+          
 class DataSet(object):
 
   def __init__(self,
@@ -112,9 +119,9 @@ def read_data_sets(data_path,
         data = np.expand_dims(data, axis=1)
     print("input type ",type( data), np.shape(data))
 
-    # """normalize the data"""
-    # print("normalize to (0-1)")
-    # data = normalize_columns(data)
+    # Normalize the data
+    print("normalize to (0-1)")
+    data = normalize_columns(data)
     ntest = int(round(len(data) * (1.0 - test_size)))
     nval = int(round(len(data[:ntest]) * (1.0 - val_size)))
 

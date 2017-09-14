@@ -80,7 +80,7 @@ with tf.name_scope("Train"):
     X = tf.placeholder("float", [None, num_steps, num_input])
     Y = tf.placeholder("float", [None, num_steps, num_input])
     with tf.variable_scope("Model", reuse=None):
-        train_pred = RNN(X, True, config)
+        train_pred = TRNN(X, True, config)
         # Define train loss 
         train_loss = tf.reduce_mean(tf.squared_difference(train_pred, Y))
 
@@ -90,7 +90,7 @@ with tf.name_scope("Test"):
     X_test = tf.placeholder("float", [None, num_test_steps, num_input])
     Y_test = tf.placeholder("float", [None, num_test_steps, num_input])
     with tf.variable_scope("Model", reuse=True):      
-        test_pred = RNN(X_test, False, config)
+        test_pred = MRNN(X_test, False, config)
         # Define test loss 
         test_loss = tf.reduce_mean(tf.squared_difference(test_pred, Y_test))
 
@@ -124,11 +124,7 @@ with tf.Session() as sess:
     print("Optimization Finished!")
 
 
-    # Save the variables to disk.
-    save_path = saver.save(sess, FLAGS.save_path)
-    print("Model saved in file: %s" % save_path)
 
-   
     # Calculate accuracy for test inps
     test_data = dataset.test.inps.reshape((-1, num_test_steps, num_input))
     test_label = dataset.test.outs
@@ -141,3 +137,17 @@ with tf.Session() as sess:
     }
     vals = sess.run(fetches, feed_dict={X_test: test_data, Y_test: test_label})
     print("Testing Loss:", vals["loss"])
+
+    # Save the variables to disk.
+    save_path = saver.save(sess, FLAGS.save_path)
+    print("Model saved in file: %s" % save_path)
+    # Save predictions 
+    np.save(FLAGS.save_path+"predict.npy", (vals["true"], vals["pred"]))
+    # Save config file
+    with open(FLAGS.save_path+"config.out", 'w') as f:
+        f.write('num_layers:'+ str(config.num_layers) +'\t'+'hidden_size:'+ str(config.hidden_size)+
+            '\t'+ 'num_steps:'+ str(config.num_steps) +
+            '\t'+ 'learning_rate:'+ str(config.learning_rate)  +'\t'+ 'err_prop:'+ str(FLAGS.use_error_prop) + '\n')
+        f.write('train_error:'+ str(train_err) + '\t' + 'valid_error:'+ str(valid_err) + 
+                '\t'+ 'test_error:'+ str(test_err) + '\n')
+

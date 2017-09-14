@@ -2,7 +2,7 @@
 class TrainConfig(object):
   """Tiny config, for testing."""
   init_scale = 0.1
-  learning_rate = 1e-2
+  learning_rate = 1e-3
   max_grad_norm = 10
   hidden_size = 64 # dim of h
   num_layers = 1

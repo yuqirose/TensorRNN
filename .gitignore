@@ -2,7 +2,7 @@
 *.swp
 
 ./experiments/result
-./experiments/data
+./experiments/data.npy
 ./experiments/log
 .ipynb_checkpoints
 

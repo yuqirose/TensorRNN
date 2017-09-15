@@ -54,7 +54,7 @@ config.learning_rate = FLAGS.learning_rate
 config.num_steps = FLAGS.num_steps
 config.num_test_steps = FLAGS.num_test_steps
 
-training_steps = 5000
+training_steps = 1000
 display_step = 200
 num_steps = config.num_steps
 num_test_steps = config.num_test_steps

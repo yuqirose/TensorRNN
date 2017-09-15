@@ -29,7 +29,7 @@ handle 9 sequences for every sample.
 
 # Command line arguments 
 flags = tf.flags
-
+flags.DEFINE_string("model", "RNN", "Model used for learning.")
 flags.DEFINE_string("data_path", "./data.npy",
           "Where the training/test data is stored.")
 flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/log/",
@@ -76,7 +76,7 @@ print('|train steps|', num_steps, '|test steps|', num_test_steps, '|error prop|'
 
 print('='*80)
 
-Model = LSTM
+Model = globals()[FLAGS.model]
 # Construct train model
 with tf.name_scope("Train"):
     # tf Graph train input

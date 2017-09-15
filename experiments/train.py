@@ -32,7 +32,7 @@ flags = tf.flags
 flags.DEFINE_string("model", "RNN", "Model used for learning.")
 flags.DEFINE_string("data_path", "./data.npy",
           "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/log/",
+flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/log/RNN",
           "Model output directory.")
 
 flags.DEFINE_bool("use_error_prop", True,
@@ -153,7 +153,7 @@ with tf.Session() as sess:
     print("Testing Loss:", test_vals["loss"])
 
     # Save the variables to disk.
-    save_path = saver.save(sess, FLAGS.save_path+Model.__name__+"/")
+    save_path = saver.save(sess, FLAGS.save_path)
     print("Model saved in file: %s" % save_path)
     # Save predictions 
     numpy.save(save_path+"predict.npy", (test_vals["true"], test_vals["pred"]))

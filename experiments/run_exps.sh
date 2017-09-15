@@ -38,14 +38,12 @@ do
             #do
             save_path=/var/tmp/tensorRNN/log/$exp/$start_time/hz_$hidden_size/lr_$learning_rate/RNN/
             echo $save_path
+	    mkdir -p $save_path
             python train.py --model=RNN --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_train_steps=$num_train_steps --num_test_steps=$num_test_steps --learning_rate=$learning_rate --use_error_prop=$use_error
-            #done
-            save_path=/var/tmp/tensorRNN/log/$exp/$start_time/hz_$hidden_size/lr_$learning_rate/MRNN/
-            echo $save_path
-            python train.py --model=RNN --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --num_train_steps=$num_train_steps --num_test_steps=$num_test_steps --learning_rate=$learning_rate --use_error_prop=$use_error
-        
-        done
+                  
+    
+    	    done
     done
 done
 
-cp $(pwd)/run_exps.sh $save_path/run_exps.sh
+cp $(pwd)/run_exps.sh $save_path{run_exps.sh}

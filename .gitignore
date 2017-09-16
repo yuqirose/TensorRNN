@@ -1,8 +1,7 @@
 *.pyc
 *.swp
-
-./experiments/result
-./experiments/data.npy
-./experiments/log
+experiments/result
+experiments/data.npy
+experiments/log
 .ipynb_checkpoints
 

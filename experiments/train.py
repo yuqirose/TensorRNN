@@ -32,7 +32,7 @@ flags = tf.flags
 flags.DEFINE_string("model", "RNN", "Model used for learning.")
 flags.DEFINE_string("data_path", "./data.npy",
           "Where the training/test data is stored.")
-flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/log/RNN",
+flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/log/RNN/",
           "Model output directory.")
 
 flags.DEFINE_bool("use_error_prop", True,
@@ -97,7 +97,6 @@ with tf.name_scope("Valid"):
         valid_pred = Model(X_valid, True, config)
         # Define train loss 
         valid_loss = tf.reduce_mean(tf.squared_difference(valid_pred, Y_valid))
-    tf.summary.scalar('loss', valid_loss)
 # Construct test model
 with tf.name_scope("Test"):
     # tf Graph test input
@@ -107,17 +106,10 @@ with tf.name_scope("Test"):
         test_pred = Model(X_test, False, config)
         # Define test loss 
         test_loss = tf.reduce_mean(tf.squared_difference(test_pred, Y_test))
-    tf.summary.scalar('loss', test_loss)
 
 # Define optimizer
 optimizer = tf.train.RMSPropOptimizer(learning_rate=config.learning_rate)
 train_op = optimizer.minimize(train_loss)
-
-# Merge all the summaries and write them out to /tmp/mnist_logs (by default)
-merged = tf.summary.merge_all()
-train_writer = tf.summary.FileWriter(FLAGS.save_path + '/train',
-                                      sess.graph)
-test_writer = tf.summary.FileWriter(FLAGS.save_path + '/test')
 
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()
@@ -128,6 +120,10 @@ saver = tf.train.Saver()
 
 # Start training
 with tf.Session() as sess:
+    # Merge all the summaries and write them out to /tmp/mnist_logs (by default)
+    merged = tf.summary.merge_all()
+    train_writer = tf.summary.FileWriter(FLAGS.save_path + '/train',sess.graph)
+    test_writer = tf.summary.FileWriter(FLAGS.save_path + '/test')
 
     # Run the initializer
     sess.run(init)
@@ -138,9 +134,11 @@ with tf.Session() as sess:
         sess.run(train_op, feed_dict={X: batch_x, Y: batch_y})
         if step % display_step == 0 or step == 1:
             # Calculate batch loss and accuracy
-            summary, tr_loss = sess.run([merged,train_loss], feed_dict={X: batch_x,Y: batch_y})
+            run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+            run_metadata = tf.RunMetadata()
+            summary, tr_loss = sess.run([merged, train_loss], feed_dict={X: batch_x,Y: batch_y})
+            train_writer.add_run_metadata(run_metadata, 'step%03d' % step)
             train_writer.add_summary(summary, step)
-
             print("Step " + str(step) + ", Minibatch Loss= " + \
                   "{:.4f}".format(tr_loss) )
     print("Optimization Finished!")

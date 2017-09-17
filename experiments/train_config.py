@@ -5,7 +5,7 @@ class TrainConfig(object):
   learning_rate = 1e-3
   max_grad_norm = 10
   hidden_size = 64 # dim of h
-  num_layers = 1
+  num_layers = 2
   burn_in_steps = 5
   num_steps = 10 # stops gradients after num_steps
   num_test_steps = 20 # long term forecasting steps
@@ -14,8 +14,7 @@ class TrainConfig(object):
   num_orders = 2 # tensor prod order
   rank_vals= [1]
   num_freq = 2
-  max_epoch = 1 # keep lr fixed
-  max_max_epoch = 2 # decaying lr
+  training_steps = 100000
   keep_prob = 1.0 # dropout
   lr_decay = 0.99
   batch_size = 128

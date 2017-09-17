@@ -113,6 +113,11 @@ with tf.name_scope("Test"):
 optimizer = tf.train.RMSPropOptimizer(learning_rate=config.learning_rate)
 train_op = optimizer.minimize(train_loss)
 
+# Merge all the summaries and write them out to /tmp/mnist_logs (by default)
+merged = tf.summary.merge_all()
+train_writer = tf.summary.FileWriter(FLAGS.save_path + '/train',
+                                      sess.graph)
+test_writer = tf.summary.FileWriter(FLAGS.save_path + '/test')
 
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()
@@ -133,7 +138,9 @@ with tf.Session() as sess:
         sess.run(train_op, feed_dict={X: batch_x, Y: batch_y})
         if step % display_step == 0 or step == 1:
             # Calculate batch loss and accuracy
-            tr_loss = sess.run(train_loss, feed_dict={X: batch_x,Y: batch_y})
+            summary, tr_loss = sess.run([merged,train_loss], feed_dict={X: batch_x,Y: batch_y})
+            train_writer.add_summary(summary, step)
+
             print("Step " + str(step) + ", Minibatch Loss= " + \
                   "{:.4f}".format(tr_loss) )
     print("Optimization Finished!")

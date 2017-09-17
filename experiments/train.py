@@ -12,6 +12,7 @@ Links:
 from __future__ import print_function
 
 import tensorflow as tf
+from tensorflow.python.profiler.profile_context import ProfileContext
 from tensorflow.contrib import rnn
 import numpy
 
@@ -121,7 +122,7 @@ init = tf.global_variables_initializer()
 saver = tf.train.Saver()
 
 # Profile the time and memory information.
-with tf.profiler.ProfileContext(FLAGS.save_path) as pctx:
+with ProfileContext(FLAGS.save_path) as pctx:
     # Start training
     with tf.Session() as sess:
 

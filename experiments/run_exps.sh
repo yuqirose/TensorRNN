@@ -47,4 +47,4 @@ data_path=/home/roseyu/data/tensorRNN/${exp}.npy
     done
 done
 
-cp $(pwd)/run_exps.sh $save_path{run_exps.sh}
+cp $(pwd)/run_exps.sh $(save_path)run_exps.sh

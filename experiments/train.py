@@ -86,6 +86,8 @@ with tf.name_scope("Train"):
         train_pred = Model(X, True, config)
         # Define train loss 
         train_loss = tf.reduce_mean(tf.squared_difference(train_pred, Y))
+    tf.summary.scalar('loss', train_loss)
+
 # Construct valid model
 with tf.name_scope("Valid"):
     # tf Graph train input
@@ -95,6 +97,7 @@ with tf.name_scope("Valid"):
         valid_pred = Model(X_valid, True, config)
         # Define train loss 
         valid_loss = tf.reduce_mean(tf.squared_difference(valid_pred, Y_valid))
+    tf.summary.scalar('loss', valid_loss)
 # Construct test model
 with tf.name_scope("Test"):
     # tf Graph test input
@@ -104,7 +107,7 @@ with tf.name_scope("Test"):
         test_pred = Model(X_test, False, config)
         # Define test loss 
         test_loss = tf.reduce_mean(tf.squared_difference(test_pred, Y_test))
-
+    tf.summary.scalar('loss', test_loss)
 
 # Define optimizer
 optimizer = tf.train.RMSPropOptimizer(learning_rate=config.learning_rate)
@@ -117,51 +120,53 @@ init = tf.global_variables_initializer()
 # Add ops to save and restore all the variables.
 saver = tf.train.Saver()
 
-# Start training
-with tf.Session() as sess:
+# Profile the time and memory information.
+with tf.contrib.tfprof.ProfileContext(FLAGS.save_path) as pctx:
+    # Start training
+    with tf.Session() as sess:
 
-    # Run the initializer
-    sess.run(init)
+        # Run the initializer
+        sess.run(init)
 
-    for step in range(1, training_steps+1):
-        batch_x, batch_y = dataset.train.next_batch(batch_size)
-        # Run optimization op (backprop)
-        sess.run(train_op, feed_dict={X: batch_x, Y: batch_y})
-        if step % display_step == 0 or step == 1:
-            # Calculate batch loss and accuracy
-            tr_loss = sess.run(train_loss, feed_dict={X: batch_x,Y: batch_y})
-            print("Step " + str(step) + ", Minibatch Loss= " + \
-                  "{:.4f}".format(tr_loss) )
-    print("Optimization Finished!")
+        for step in range(1, training_steps+1):
+            batch_x, batch_y = dataset.train.next_batch(batch_size)
+            # Run optimization op (backprop)
+            sess.run(train_op, feed_dict={X: batch_x, Y: batch_y})
+            if step % display_step == 0 or step == 1:
+                # Calculate batch loss and accuracy
+                tr_loss = sess.run(train_loss, feed_dict={X: batch_x,Y: batch_y})
+                print("Step " + str(step) + ", Minibatch Loss= " + \
+                      "{:.4f}".format(tr_loss) )
+        print("Optimization Finished!")
 
-    # Calculate accuracy for valid inps
-    valid_data = dataset.validation.inps.reshape((-1, num_steps, num_input))
-    valid_label = dataset.validation.outs
-    va_loss = sess.run(valid_loss, feed_dict={X_valid: valid_data, Y_valid: valid_label})
-    print("Validation Loss:", va_loss)
+        # Calculate accuracy for valid inps
+        valid_data = dataset.validation.inps.reshape((-1, num_steps, num_input))
+        valid_label = dataset.validation.outs
+        va_loss = sess.run(valid_loss, feed_dict={X_valid: valid_data, Y_valid: valid_label})
+        print("Validation Loss:", va_loss)
 
-    # Fetch test prediction
-    fetches = {
-        "true":Y_test,
-        "pred":test_pred,
-        "loss":test_loss
-    }
-    # Calculate accuracy for test inps
-    test_data = dataset.test.inps.reshape((-1, num_test_steps, num_input))
-    test_label = dataset.test.outs
-    test_vals = sess.run(fetches, feed_dict={X_test: test_data, Y_test: test_label})
-    print("Testing Loss:", test_vals["loss"])
+        # Fetch test prediction
+        fetches = {
+            "true":Y_test,
+            "pred":test_pred,
+            "loss":test_loss
+        }
+        # Calculate accuracy for test inps
+        test_data = dataset.test.inps.reshape((-1, num_test_steps, num_input))
+        test_label = dataset.test.outs
+        test_vals = sess.run(fetches, feed_dict={X_test: test_data, Y_test: test_label})
+        print("Testing Loss:", test_vals["loss"])
 
-    # Save the variables to disk.
-    save_path = saver.save(sess, FLAGS.save_path)
-    print("Model saved in file: %s" % save_path)
-    # Save predictions 
-    numpy.save(save_path+"predict.npy", (test_vals["true"], test_vals["pred"]))
-    # Save config file
-    with open(save_path+"config.out", 'w') as f:
-        f.write('num_layers:'+ str(config.num_layers) +'\t'+'hidden_size:'+ str(config.hidden_size)+
-            '\t'+ 'num_steps:'+ str(config.num_steps) +
-            '\t'+ 'learning_rate:'+ str(config.learning_rate)  +'\t'+ 'err_prop:'+ str(config.use_error_prop) + '\n')
-        f.write('train_error:'+ str(tr_loss) + '\t' + 'valid_error:'+ str(va_loss) + 
-                '\t'+ 'test_error:'+ str(test_vals["loss"]) + '\n')
+        # Save the variables to disk.
+        save_path = saver.save(sess, FLAGS.save_path)
+        print("Model saved in file: %s" % save_path)
+        # Save predictions 
+        numpy.save(save_path+"predict.npy", (test_vals["true"], test_vals["pred"]))
+        # Save config file
+        with open(save_path+"config.out", 'w') as f:
+            f.write('num_layers:'+ str(config.num_layers) +'\t'+'hidden_size:'+ str(config.hidden_size)+
+                '\t'+ 'num_steps:'+ str(config.num_steps) +
+                '\t'+ 'learning_rate:'+ str(config.learning_rate)  +'\t'+ 'err_prop:'+ str(config.use_error_prop) + '\n')
+            f.write('train_error:'+ str(tr_loss) + '\t' + 'valid_error:'+ str(va_loss) + 
+                    '\t'+ 'test_error:'+ str(test_vals["loss"]) + '\n')
 

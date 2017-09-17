@@ -121,7 +121,7 @@ init = tf.global_variables_initializer()
 saver = tf.train.Saver()
 
 # Profile the time and memory information.
-with tf.contrib.tfprof.ProfileContext(FLAGS.save_path) as pctx:
+with tf.profiler.ProfileContext(FLAGS.save_path) as pctx:
     # Start training
     with tf.Session() as sess:
 

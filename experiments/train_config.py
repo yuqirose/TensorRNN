@@ -8,15 +8,14 @@ class TrainConfig(object):
   num_layers = 2
   burn_in_steps = 5
   num_steps = 10 # stops gradients after num_steps
-  num_test_steps = 20 # long term forecasting steps
+  num_test_steps = 10 # long term forecasting steps
   horizon = 1
-  num_lags = 4 # num prev hiddens
+  num_lags = 2 # num prev hiddens
   num_orders = 2 # tensor prod order
-  rank_vals= [1]
+  rank_vals= [2]
   num_freq = 2
-  training_steps = 100000
+  training_steps = 5000
   keep_prob = 1.0 # dropout
-  lr_decay = 0.99
   batch_size = 128
   use_error_prop = True
 

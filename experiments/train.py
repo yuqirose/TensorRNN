@@ -85,7 +85,7 @@ with tf.name_scope("Train"):
     with tf.variable_scope("Model", reuse=None):
         train_pred = Model(X, True, config)
         # Define train loss 
-        train_loss = tf.reduce_mean(tf.squared_difference(train_pred, Y))
+        train_loss = tf.sqrt(tf.reduce_mean(tf.squared_difference(train_pred, Y)))
     tf.summary.scalar('loss', train_loss)
 
 # Construct valid model
@@ -96,7 +96,7 @@ with tf.name_scope("Valid"):
     with tf.variable_scope("Model", reuse=True):
         valid_pred = Model(X_valid, True, config)
         # Define train loss 
-        valid_loss = tf.reduce_mean(tf.squared_difference(valid_pred, Y_valid))
+        valid_loss = tf.sqrt(tf.reduce_mean(tf.squared_difference(valid_pred, Y_valid)))
 # Construct test model
 with tf.name_scope("Test"):
     # tf Graph test input
@@ -105,7 +105,7 @@ with tf.name_scope("Test"):
     with tf.variable_scope("Model", reuse=True):      
         test_pred = Model(X_test, False, config)
         # Define test loss 
-        test_loss = tf.reduce_mean(tf.squared_difference(test_pred, Y_test))
+        test_loss = tf.sqrt(tf.reduce_mean(tf.squared_difference(test_pred, Y_test)))
 
 # Define optimizer
 optimizer = tf.train.RMSPropOptimizer(learning_rate=config.learning_rate)

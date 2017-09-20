@@ -34,9 +34,9 @@ data_path=/home/roseyu/data/tensorRNN/${exp}.npy
     do
         for learning_rate in 1e-2 
         do
-            for num_test_steps in 20 40 60 80 100 
+            for model in MRNN LSTM PLSTM TRNN
             do
-            for model in MRNN TRNN LSTM PLSTM
+            for num_test_steps in 20 40 60 80 100 
             do
             save_path=/var/tmp/tensorRNN/log/$exp/$start_time/$model/st_$num_test_steps/
             echo $save_path

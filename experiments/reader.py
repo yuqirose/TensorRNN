@@ -21,12 +21,19 @@ def slide_window(a, window):
     out = examples[1:]
     return inp, out
 
-
 def normalize_columns(arr):
-    rows, cols = arr.shape
-    for col in range(cols):
-        arr_col = arr[:,col]
-        arr[:,col] = (arr_col - arr_col.min() )/ (arr_col.max()- arr_col.min())
+    def _norm_col(arr):
+        rows, cols = arr.shape
+        for col in range(cols):
+            arr_col = arr[:,col]
+            arr[:,col] = (arr_col - arr_col.min() )/ (arr_col.max()- arr_col.min())
+        return arr
+    if np.ndim(arr) ==3:
+        for i in range(arr.shape[0]):
+            arr[i,:,:] = _norm_col(arr[i,:,:])
+        
+    else:
+        arr = _norm_col(arr)
     return arr
           
 class DataSet(object):
@@ -42,7 +49,9 @@ class DataSet(object):
     # If op level seed is not set, use whatever graph level seed is returned
     np.random.seed(seed1 if seed is None else seed2)
    
-    inps, outs = slide_window(data, num_steps)
+    #inps, outs = slide_window(data, num_steps)
+    inps = data[:,:num_steps,:]
+    outs = data[:,1:num_steps+1,:]
 
     assert inps.shape[0] == outs.shape[0], (
         'inps.shape: %s outs.shape: %s' % (inps.shape, outs.shape))
@@ -135,7 +144,7 @@ def read_data_sets(data_path,
 
     stats ={}
     stats['num_examples'] = data.shape[0]
-    stats['num_input'] = data.shape[1]
+    stats['num_input'] = data.shape[2]
 
     return base.Datasets(train=train, validation=valid, test=test), stats
 

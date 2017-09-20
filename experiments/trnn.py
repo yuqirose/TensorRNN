@@ -7,6 +7,7 @@ from tensorflow.python.ops import nn_ops
 from tensorflow.python.ops.math_ops import tanh
 from tensorflow.contrib.rnn import RNNCell
 from tensorflow.python.util import nest
+from tensorflow.contrib.distributions import Bernoulli
 
 
 import numpy as np
@@ -112,10 +113,14 @@ def _hidden_to_output(h, hidden_size, input_size):
     return output
 
 
-def rnn_with_feed_prev(cell, inputs, feed_prev, config):
+def rnn_with_feed_prev(cell, inputs, is_training, config):
     
     prev = None
     outputs = []
+    sample_prob = config.sample_prob # scheduled sampling probability
+
+    feed_prev = not is_training if config.use_error_prop else False
+    is_sample = is_training and sample_prob > 0 
 
     if feed_prev:
       print("Creating model --> Feeding output back into input.")
@@ -133,7 +138,13 @@ def rnn_with_feed_prev(cell, inputs, feed_prev, config):
         burn_in_steps = config.burn_in_steps
         output_size = cell.output_size
 
+        # phased lstm input
         inp_t = tf.expand_dims(tf.range(1,batch_size+1), 1)
+
+        dist = Bernoulli(probs=sample_prob)
+        samples = dist.sample(sample_shape=num_steps)
+        # with tf.Session() as sess:
+        #     print('bernoulli',samples.eval())
 
         initial_state = cell.zero_state(batch_size, dtype= tf.float32)
         state = initial_state
@@ -142,11 +153,13 @@ def rnn_with_feed_prev(cell, inputs, feed_prev, config):
 
             if time_step > 0:
                 tf.get_variable_scope().reuse_variables()
+
             inp = inputs[:, time_step, :]
+            if is_sample and time_step > 0: 
+                inp = tf.cond(tf.cast(samples[time_step], tf.bool), lambda:_hidden_to_output(prev, output_size, input_size), lambda:tf.identity(inp) )
 
             if feed_prev and prev is not None and time_step >= burn_in_steps:
                 inp = _hidden_to_output(prev, output_size, input_size)
-                print('feed_prev inp shape', inp.get_shape())
                 print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
 
             if isinstance(cell._cells[0], tf.contrib.rnn.PhasedLSTMCell):
@@ -155,8 +168,7 @@ def rnn_with_feed_prev(cell, inputs, feed_prev, config):
                 (cell_output, state) = cell(inp, state)
 
 
-            if feed_prev:
-              prev = cell_output
+            prev = cell_output
 
             output = _hidden_to_output(cell_output, output_size, input_size)
             outputs.append(output)
@@ -444,12 +456,15 @@ def _list_to_states(states_list):
             # new cell has s*num_lags states
     return output_states
 
-def tensor_rnn_with_feed_prev(cell, inputs, feed_prev, config):
+def tensor_rnn_with_feed_prev(cell, inputs, is_training, config):
     """High Order Recurrent Neural Network Layer
     """
     #tuple of 2-d tensor (batch_size, s)
     outputs = []
     prev = None
+    sample_prob = config.sample_prob # scheduled sampling probability
+    feed_prev = not is_training if config.use_error_prop else False
+    is_sample = is_training and sample_prob > 0 
 
     if feed_prev:
         print("Creating model @ not training --> Feeding output back into input.")
@@ -467,6 +482,9 @@ def tensor_rnn_with_feed_prev(cell, inputs, feed_prev, config):
         output_size = cell.output_size
         burn_in_steps =  config.burn_in_steps
 
+        dist = Bernoulli(probs=sample_prob)
+        samples = dist.sample(sample_shape=num_steps)
+
         initial_states =[]
         for lag in range(config.num_lags):
             initial_state =  cell.zero_state(batch_size, dtype= tf.float32)
@@ -480,6 +498,8 @@ def tensor_rnn_with_feed_prev(cell, inputs, feed_prev, config):
 
             inp = inputs[:, time_step, :]
 
+            if is_sample and time_step > 0: 
+                inp = tf.cond(tf.cast(samples[time_step], tf.bool), lambda:_hidden_to_output(prev, output_size, input_size), lambda:tf.identity(inp) )
 
             if feed_prev and prev is not None and time_step >= burn_in_steps:
                 inp = _hidden_to_output(prev, output_size, input_size)
@@ -491,8 +511,8 @@ def tensor_rnn_with_feed_prev(cell, inputs, feed_prev, config):
 
             states_list = _shift(states_list, state)
 
-            if feed_prev:
-                prev = cell_output
+            
+            prev = cell_output
 
             output = _hidden_to_output(cell_output, output_size, input_size)
             outputs.append(output)

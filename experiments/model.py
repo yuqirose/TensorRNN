@@ -19,9 +19,7 @@ def LSTM(inputs, is_training, config):
         [lstm_cell() for _ in range(config.num_layers)])
 
     # Get lstm cell output
-    feed_prev = not is_training if config.use_error_prop else False
-
-    outputs, state  = rnn_with_feed_prev(cell, inputs, feed_prev, config)
+    outputs, state  = rnn_with_feed_prev(cell, inputs, is_training, config)
 
     # Tanh activation
     prediction = tf.sigmoid(outputs)
@@ -34,9 +32,7 @@ def PLSTM(inputs, is_training, config):
     cell = tf.contrib.rnn.MultiRNNCell(
         [rnn_cell() for _ in range(config.num_layers)])
 
-    feed_prev = not is_training if config.use_error_prop else False
-    
-    outputs, state  = rnn_with_feed_prev(cell, inputs, feed_prev, config)
+    outputs, state  = rnn_with_feed_prev(cell, inputs, is_training, config)
 
     prediction = tf.sigmoid(outputs)
     return prediction
@@ -47,10 +43,8 @@ def RNN(inputs, is_training, config):
         
     cell = tf.contrib.rnn.MultiRNNCell(
         [rnn_cell() for _ in range(config.num_layers)])
-
-    feed_prev = not is_training if config.use_error_prop else False
     
-    outputs, state  = rnn_with_feed_prev(cell, inputs, feed_prev, config)
+    outputs, state  = rnn_with_feed_prev(cell, inputs, is_training, config)
 
     prediction = tf.sigmoid(outputs)
     return prediction
@@ -61,10 +55,8 @@ def MRNN(inputs, is_training, config):
         
     cell = tf.contrib.rnn.MultiRNNCell(
         [mrnn_cell() for _ in range(config.num_layers)])
-
-    feed_prev = not is_training if config.use_error_prop else False
     
-    outputs, state  = tensor_rnn_with_feed_prev(cell, inputs, feed_prev, config)
+    outputs, state  = tensor_rnn_with_feed_prev(cell, inputs, is_training, config)
 
     prediction = tf.sigmoid(outputs)
     return prediction
@@ -75,10 +67,8 @@ def TRNN(inputs, is_training, config):
         
     cell = tf.contrib.rnn.MultiRNNCell(
         [trnn_cell() for _ in range(config.num_layers)])
-
-    feed_prev = not is_training if config.use_error_prop else False
     
-    outputs, state  = tensor_rnn_with_feed_prev(cell, inputs, feed_prev, config)
+    outputs, state  = tensor_rnn_with_feed_prev(cell, inputs, is_training, config)
 
     prediction = tf.sigmoid(outputs)
     return prediction
@@ -89,10 +79,8 @@ def MTRNN(inputs, is_training, config):
         
     cell = tf.contrib.rnn.MultiRNNCell(
         [mtrnn_cell() for _ in range(config.num_layers)])
-
-    feed_prev = not is_training if config.use_error_prop else False
     
-    outputs, state  = tensor_rnn_with_feed_prev(cell, inputs, feed_prev, config)
+    outputs, state  = tensor_rnn_with_feed_prev(cell, inputs, is_training, config)
 
     prediction = tf.sigmoid(outputs)
     return prediction

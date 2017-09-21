@@ -52,8 +52,8 @@ class DataSet(object):
         np.random.seed(seed1 if seed is None else seed2)
      
         #inps, outs = slide_window(data, num_steps)
-        #inps = data[:,:num_steps,:]
-        #outs = data[:,1:num_steps+1,:]
+        inps = data[:,:num_steps,:]
+        outs = data[:,1:num_steps+1,:]
 
         assert inps.shape[0] == outs.shape[0], (
                 'inps.shape: %s outs.shape: %s' % (inps.shape, outs.shape))
@@ -205,7 +205,7 @@ class DataSetS2S(object):
         else:
             self._index_in_epoch += batch_size
             end = self._index_in_epoch
-            return self._enc_inps[start:end], self._dec_inps[start:end],self._dec_outs[start:end]
+            return self._enc_inps[start:end], self._dec_inps[start:end], self._dec_outs[start:end]
 def read_data_sets(data_path, 
                                 n_steps = 10,
                                 n_test_steps = 20,

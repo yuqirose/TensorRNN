@@ -21,6 +21,18 @@ def slide_window(a, window):
     out = examples[1:]
     return inp, out
 
+def seq_2_seq(a, window):
+    """ Extract examples from time series"""
+    EOS = -1
+    shape = (a.shape[0] - window + 1, window) + a.shape[1:]
+    strides = (a.strides[0],) + a.strides
+    examples = np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
+
+    enc_inp = examples[:-1]
+    dec_out = np.insert(examples[1:], window, EOS, axis=1)
+    dec_inp = np.insert(examples[1:], 0, EOS, axis=1)
+    return enc_inp, dec_out, dec_inp
+
 def normalize_columns(arr):
     def _norm_col(arr):
         rows, cols = arr.shape
@@ -49,9 +61,9 @@ class DataSet(object):
     # If op level seed is not set, use whatever graph level seed is returned
     np.random.seed(seed1 if seed is None else seed2)
    
-    inps, outs = slide_window(data, num_steps)
-    # inps = data[:,:num_steps,:]
-    # outs = data[:,1:num_steps+1,:]
+    #inps, outs = slide_window(data, num_steps)
+    #inps = data[:,:num_steps,:]
+    #outs = data[:,1:num_steps+1,:]
 
     assert inps.shape[0] == outs.shape[0], (
         'inps.shape: %s outs.shape: %s' % (inps.shape, outs.shape))

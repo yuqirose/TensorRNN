@@ -39,9 +39,7 @@ config.learning_rate = FLAGS.learning_rate
 # Training Parameters
 learning_rate = config.learning_rate
 training_steps = config.training_steps
-inp_steps = 50
-out_steps = 101-inp_steps
-num_test_steps = inp_steps #EOS
+burn_in_steps = config.burn_in_steps
 batch_size = config.batch_size
 display_step = 200
 
@@ -49,9 +47,11 @@ dataset, stats = read_data_sets("./lorenz.npy", inp_steps, inp_steps)
 
 # Network Parameters
 num_input = stats['num_input']  # dataset data input (time series dimension: 3)
+out_steps = 1+stats['num_steps']- burn_in_steps # adding EOS
+
 
 # tf Graph input
-X = tf.placeholder("float", [None, inp_steps, num_input])
+X = tf.placeholder("float", [None, burn_in_steps, num_input])
 Y = tf.placeholder("float", [None, out_steps, num_input])
 
 # Decoder output
@@ -84,6 +84,7 @@ def Model(enc_inps, dec_inps, is_training):
         enc_outs, enc_states = tensor_rnn_with_feed_prev(cell, enc_inps, True, config)
 
     with tf.variable_scope("Decoder", reuse=None):
+        config.burn_in_steps = 0
         dec_outs, dec_states =  tensor_rnn_with_feed_prev(cell, dec_inps, is_training, config, enc_states)
     
     return dec_outs

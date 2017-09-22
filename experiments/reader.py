@@ -235,6 +235,7 @@ def read_data_sets(data_path,
 
     stats ={}
     stats['num_examples'] = data.shape[0]
+    stats['num_steps'] = data.shape[1]
     stats['num_input'] = data.shape[-1]
 
     return base.Datasets(train=train, validation=valid, test=test), stats

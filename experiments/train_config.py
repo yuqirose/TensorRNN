@@ -2,24 +2,20 @@
 class TrainConfig(object):
   """Tiny config, for testing."""
   init_scale = 0.1
-  learning_rate = 1e-3
+  learning_rate = 1e-2
   max_grad_norm = 10
-  hidden_size = 64 # dim of h
-  num_layers = 2
+  hidden_size = 16 # dim of h
+  num_layers = 1
   burn_in_steps = 5
-  num_steps = 10 # stops gradients after num_steps
-  num_test_steps = 10 # long term forecasting steps
+  num_steps = 10
+  num_test_steps = 10
   horizon = 1
   num_lags = 2 # num prev hiddens
   num_orders = 2 # tensor prod order
   rank_vals= [2]
   num_freq = 2
-  training_steps = 1000
+  training_steps = 10000
   keep_prob = 1.0 # dropout
-  sample_prob = 0.5 # sample predictions
-  batch_size = 128
+  sample_prob = 0 # sample predictions
+  batch_size = 32
   use_error_prop = True
-
-
-
-

@@ -14,7 +14,7 @@ from tensorflow.python.framework import random_seed
 import tensorflow as tf
 from tensorflow.contrib import rnn
 from reader import read_data_sets
-from trnn import rnn_with_feed_prev,EinsumTensorRNNCell,tensor_rnn_with_feed_prev
+from trnn import *
 import numpy 
 from train_config import *
 
@@ -71,11 +71,11 @@ def Model(enc_inps, dec_inps, is_training):
 
     # cell = tf.contrib.rnn.MultiRNNCell(
     #     [lstm_cell() for _ in range(config.num_layers)])
-    def trnn_cell():
-        return EinsumTensorRNNCell(config.hidden_size, config.num_lags, config.rank_vals)
+    def hornn_cell():
+        return HighOrderRNNCell(config.hidden_size, config.num_lags, config.num_orders)
         
     cell = tf.contrib.rnn.MultiRNNCell(
-        [trnn_cell() for _ in range(config.num_layers)])
+        [hornn_cell() for _ in range(config.num_layers)])
 
     with tf.variable_scope("Encoder", reuse=None):
         enc_outs, enc_states = tensor_rnn_with_feed_prev(cell, enc_inps, True, config)

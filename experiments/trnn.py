@@ -42,6 +42,40 @@ class MatrixRNNCell(RNNCell):
             new_state = (new_state)
         return new_state, new_state
 
+
+class HighOrderRNNCell(RNNCell):
+    """RNN cell with high-order interactions of hidden states"""
+    def __init__(self, num_units, num_lags, num_orders, input_size=None, state_is_tuple=True, activation=tanh):
+        self._num_units = num_units
+        self._num_lags = num_lags
+        self._num_orders = num_orders
+    #rank of the tensor, tensor-train model is order+1
+        self._state_is_tuple= state_is_tuple
+        self._activation = activation
+
+    @property
+    def state_size(self):
+        return self._num_units
+
+    @property
+    def state_size(self):
+        return self._num_units
+
+    @property
+    def output_size(self):
+        return self._num_units
+
+
+    def __call__(self, inputs, states, scope=None):
+        """Now we have multiple states, state->states"""
+
+        with vs.variable_scope(scope or "tensor_rnn_cell"):
+            output = tensor_network_highorder( inputs, states, self._num_units, self._num_orders,True, scope=scope)
+            new_state = self._activation(output)
+        if self._state_is_tuple:
+            new_state = (new_state)
+        return new_state, new_state
+
 class EinsumTensorRNNCell(RNNCell):
     """RNN cell with high order correlations"""
     def __init__(self, num_units, num_lags, rank_vals, input_size=None, state_is_tuple=True, activation=tanh):
@@ -209,6 +243,27 @@ def _linear(args, output_size, bias, bias_start=0.0, scope=None):
             biases = vs.get_variable("biases", [output_size], dtype=dtype)
     return  nn_ops.bias_add(res,biases)
 
+def tensor_network_highorder(inputs, states, output_size, num_orders, bias, bias_start=0.0, scope=None):
+    """tensor network [inputs, states]-> output with tensor models"""
+    # each coordinate of hidden state is independent- parallel
+    num_lags = len(states)
+    batch_size = tf.shape(inputs)[0]
+    state_size = output_size #hidden layer size
+    total_state_size = (state_size * num_lags + 1 )
+
+    states_tensor  = nest.flatten(states)
+    total_inputs = [inputs]
+   
+    states_vector = tf.concat(states, 1)
+    states_vector = tf.concat( [states_vector, tf.ones([batch_size, 1])], 1)
+    """form high order state tensor"""
+    states_tensor = states_vector
+    for order in range(num_orders-1):
+        states_tensor = _outer_product(batch_size, states_tensor, states_vector)
+    states_tensor= tf.reshape(states_tensor, [-1,total_state_size**num_orders] )
+    total_inputs.append(states_tensor)
+    output = _linear(total_inputs, output_size, True, scope=scope)
+    return output
 
 
 def tensor_network_mtrnn(inputs, states, output_size, rank_vals, num_freq, bias, bias_start=0.0, scope=None):

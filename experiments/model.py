@@ -52,6 +52,16 @@ def MRNN(inputs, is_training, config):
     outputs, state  = tensor_rnn_with_feed_prev(cell, inputs, is_training, config)
     return outputs
 
+def HORNN(inputs, is_training, config):
+    def hornn_cell():
+        return HighOrderRNNCell(config.hidden_size,config.num_lags)
+        
+    cell = tf.contrib.rnn.MultiRNNCell(
+        [hornn_cell() for _ in range(config.num_layers)])
+    
+    outputs, state  = tensor_rnn_with_feed_prev(cell, inputs, is_training, config)
+    return outputs
+
 def TRNN(inputs, is_training, config):
     def trnn_cell():
         return EinsumTensorRNNCell(config.hidden_size, config.num_lags, config.rank_vals)

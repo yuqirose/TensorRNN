@@ -8,6 +8,7 @@ from tensorflow.python.ops.math_ops import tanh
 from tensorflow.contrib.rnn import RNNCell
 from tensorflow.python.util import nest
 from tensorflow.contrib.distributions import Bernoulli
+from tensorflow.contrib.layers import fully_connected
 
 
 import numpy as np
@@ -113,7 +114,7 @@ def _hidden_to_output(h, hidden_size, input_size):
     return output
 
 
-def rnn_with_feed_prev(cell, inputs, is_training, config):
+def rnn_with_feed_prev(cell, inputs, is_training, config, initial_state=None):
     
     prev = None
     outputs = []
@@ -123,9 +124,9 @@ def rnn_with_feed_prev(cell, inputs, is_training, config):
     is_sample = is_training and sample_prob > 0 
 
     if feed_prev:
-      print("Creating model --> Feeding output back into input.")
+      print("Creating model @ not training  --> Feeding output back into input.")
     else:
-      print("Creating model input = ground truth each timestep.")
+      print("Creating model @ training  input = ground truth each timestep.")
 
     with tf.variable_scope("rnn") as varscope:
         if varscope.caching_device is None:
@@ -134,7 +135,7 @@ def rnn_with_feed_prev(cell, inputs, is_training, config):
         inputs_shape = inputs.get_shape().with_rank_at_least(3)
         batch_size = tf.shape(inputs)[0] 
         num_steps = inputs_shape[1]
-        input_size = inputs_shape[2]
+        input_size = int(inputs_shape[2])
         burn_in_steps = config.burn_in_steps
         output_size = cell.output_size
 
@@ -145,8 +146,8 @@ def rnn_with_feed_prev(cell, inputs, is_training, config):
         samples = dist.sample(sample_shape=num_steps)
         # with tf.Session() as sess:
         #     print('bernoulli',samples.eval())
-
-        initial_state = cell.zero_state(batch_size, dtype= tf.float32)
+        if initial_state is None:
+            initial_state = cell.zero_state(batch_size, dtype= tf.float32)
         state = initial_state
 
         for time_step in range(num_steps):
@@ -156,22 +157,23 @@ def rnn_with_feed_prev(cell, inputs, is_training, config):
 
             inp = inputs[:, time_step, :]
             if is_sample and time_step > 0: 
-                inp = tf.cond(tf.cast(samples[time_step], tf.bool), lambda:_hidden_to_output(prev, output_size, input_size), lambda:tf.identity(inp) )
-
+                with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+                    inp = tf.cond(tf.cast(samples[time_step], tf.bool), lambda:fully_connected(cell_output, input_size, activation_fn=tf.sigmoid), \
+                        lambda:tf.identity(inp) )
             if feed_prev and prev is not None and time_step >= burn_in_steps:
-                inp = _hidden_to_output(prev, output_size, input_size)
-                print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
+                with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+                    inp = fully_connected(prev, input_size,  activation_fn=tf.sigmoid)
+                    print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
 
             if isinstance(cell._cells[0], tf.contrib.rnn.PhasedLSTMCell):
                 (cell_output, state) = cell((inp_t, inp), state)
             else:
                 (cell_output, state) = cell(inp, state)
 
-
             prev = cell_output
-
-            output = _hidden_to_output(cell_output, output_size, input_size)
-            outputs.append(output)
+            with tf.variable_scope(tf.get_variable_scope(), reuse=False):
+                output = fully_connected(cell_output, input_size, activation_fn=tf.sigmoid)
+                outputs.append(output)
 
     outputs = tf.stack(outputs, 1)
 
@@ -456,7 +458,7 @@ def _list_to_states(states_list):
             # new cell has s*num_lags states
     return output_states
 
-def tensor_rnn_with_feed_prev(cell, inputs, is_training, config):
+def tensor_rnn_with_feed_prev(cell, inputs, is_training, config, initial_states=None):
     """High Order Recurrent Neural Network Layer
     """
     #tuple of 2-d tensor (batch_size, s)
@@ -478,19 +480,20 @@ def tensor_rnn_with_feed_prev(cell, inputs, is_training, config):
         inputs_shape = inputs.get_shape().with_rank_at_least(3)
         batch_size = tf.shape(inputs)[0] 
         num_steps = inputs_shape[1]
-        input_size = inputs_shape[2]
+        input_size = int(inputs_shape[2])
         output_size = cell.output_size
         burn_in_steps =  config.burn_in_steps
 
         dist = Bernoulli(probs=sample_prob)
         samples = dist.sample(sample_shape=num_steps)
 
-        initial_states =[]
-        for lag in range(config.num_lags):
-            initial_state =  cell.zero_state(batch_size, dtype= tf.float32)
-            initial_states.append(initial_state)
-        states_list = initial_states #list of high order states
+        if initial_states is None:
+            initial_states =[]
+            for lag in range(config.num_lags):
+                initial_state =  cell.zero_state(batch_size, dtype= tf.float32)
+                initial_states.append(initial_state)
 
+        states_list = initial_states #list of high order states
     
         for time_step in range(num_steps):
             if time_step > 0:
@@ -499,11 +502,14 @@ def tensor_rnn_with_feed_prev(cell, inputs, is_training, config):
             inp = inputs[:, time_step, :]
 
             if is_sample and time_step > 0: 
-                inp = tf.cond(tf.cast(samples[time_step], tf.bool), lambda:_hidden_to_output(prev, output_size, input_size), lambda:tf.identity(inp) )
+                with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+                    inp = tf.cond(tf.cast(samples[time_step], tf.bool), lambda:fully_connected(cell_output, input_size, activation_fn=tf.sigmoid), \
+                        lambda:tf.identity(inp) )
 
             if feed_prev and prev is not None and time_step >= burn_in_steps:
-                inp = _hidden_to_output(prev, output_size, input_size)
-                print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
+                with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+                    inp = fully_connected(cell_output, input_size, activation_fn=tf.sigmoid)
+                    print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
 
             states = _list_to_states(states_list)
             """input tensor is [batch_size, num_steps, input_size]"""
@@ -511,15 +517,13 @@ def tensor_rnn_with_feed_prev(cell, inputs, is_training, config):
 
             states_list = _shift(states_list, state)
 
-            
             prev = cell_output
-
-            output = _hidden_to_output(cell_output, output_size, input_size)
-            outputs.append(output)
+            with tf.variable_scope(tf.get_variable_scope(), reuse=False):
+                output = fully_connected(cell_output, input_size, activation_fn=tf.sigmoid)
+                outputs.append(output)
 
     outputs = tf.stack(outputs,1)
-
-    return outputs, states
+    return outputs, states_list
 
 
 

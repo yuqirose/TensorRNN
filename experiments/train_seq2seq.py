@@ -14,7 +14,9 @@ from tensorflow.python.framework import random_seed
 import tensorflow as tf
 from tensorflow.contrib import rnn
 from reader import read_data_sets
+from trnn import rnn_with_feed_prev,EinsumTensorRNNCell,tensor_rnn_with_feed_prev
 import numpy 
+from train_config import *
 
 '''
 To forecast time series using a recurrent neural network, we consider every 
@@ -22,13 +24,14 @@ row as a sequence of short time series. Because dataset times series has 9 dim, 
 handle 9 sequences for every sample.
 '''
 
-
+# Training Parameters
+config = TrainConfig()
 # Training Parameters
 learning_rate = 0.01
-training_steps = 200
+training_steps = 1000
 inp_steps = 50
 out_steps = 101-inp_steps
-num_test_steps = 50 #EOS
+num_test_steps = inp_steps #EOS
 batch_size = 20
 display_step = 200
 
@@ -46,54 +49,47 @@ Y = tf.placeholder("float", [None, out_steps, num_input])
 # Decoder output
 Z = tf.placeholder("float", [None, out_steps, num_input])
 
-# Define weights
-weights = {
-    'out': tf.Variable(tf.random_normal([num_hidden, num_input]))
-}
-biases = {
-    'out': tf.Variable(tf.random_normal([num_input]))
-}
 
-def RNN(enc_inps, dec_inps,  weights, biases):
+def Model(enc_inps, dec_inps, is_training):
 
     # Prepare data shape to match `rnn` function requirements
     # Current data input shape: (batch_size, inp_steps, n_input)
     # Required shape: 'inp_steps' tensors list of shape (batch_size, n_input)
 
     # Unstack to get a list of 'inp_steps' tensors of shape (batch_size, n_input)
-    enc_inps = tf.unstack(enc_inps, inp_steps, 1)
-    dec_inps = tf.unstack(dec_inps, out_steps, 1)
+    # enc_inps = tf.unstack(enc_inps, inp_steps, 1)
 
+    # def lstm_cell():
+    #     return tf.contrib.rnn.BasicLSTMCell(config.hidden_size,forget_bias=1.0)
 
-    # Define a lstm cell with tensorflow
-    def lstm_cell():
-        return tf.contrib.rnn.BasicLSTMCell(num_hidden,forget_bias=1.0)
+    # cell = tf.contrib.rnn.MultiRNNCell(
+    #     [lstm_cell() for _ in range(config.num_layers)])
+    def trnn_cell():
+        return EinsumTensorRNNCell(config.hidden_size, config.num_lags, config.rank_vals)
+        
+    cell = tf.contrib.rnn.MultiRNNCell(
+        [trnn_cell() for _ in range(config.num_layers)])
 
+    with tf.variable_scope("Encoder", reuse=None):
+        enc_outs, enc_states = tensor_rnn_with_feed_prev(cell, enc_inps, True, config)
 
-#     lstm_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
-    stacked_lstm = tf.contrib.rnn.MultiRNNCell(
-        [lstm_cell() for _ in range(num_layers)])
+    with tf.variable_scope("Decoder", reuse=None):
+        dec_outs, dec_state =  tensor_rnn_with_feed_prev(cell, dec_inps, is_training, config, enc_states)
 
-    # Get lstm cell output --use as encoder
-    enc_outs, enc_states = rnn.static_rnn(stacked_lstm, enc_inps, dtype=tf.float32)
+    # dec_outs, dec_states  = rnn_with_feed_prev(stacked_lstm, dec_inps, is_training, config, enc_states)
     
-    dec_outs, dec_states = rnn.static_rnn(stacked_lstm, dec_inps, initial_state = enc_states, dtype=tf.float32)
-    
-    # Concatenate all hidden states with linear
-    logits = []
-    for output in dec_outs:
-        logit = tf.matmul(output, weights['out']) + biases['out']
-        logits.append(logit) 
-    logits= tf.stack(logits, 1)
-    return logits
+    return dec_outs
 
-with tf.variable_scope('LSTM'):
-    logits = RNN(X, Y, weights, biases)
-    # Using tanh activation function
-    prediction = tf.nn.tanh(logits)
+with tf.name_scope("Train"):
+    with tf.variable_scope("Model", reuse=None):
+        train_pred = Model(X, Y, True)
+with tf.name_scope("Test"):
+    with tf.variable_scope("Model", reuse=True):
+        test_pred = Model(X, Y, False)
+
 
 # Define loss and optimizer
-loss_op = tf.reduce_mean(tf.squared_difference(prediction, Z))
+loss_op = tf.sqrt(tf.reduce_mean(tf.squared_difference(train_pred, Z)))
 optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
 train_op = optimizer.minimize(loss_op)
 
@@ -119,7 +115,7 @@ with tf.Session() as sess:
     print("Optimization Finished!")
 
     # Calculate accuracy for 128 dataset test inps
-    test_len = 10
+    test_len = 100
     test_enc_inps = dataset.test.enc_inps[:test_len].reshape((-1, inp_steps, num_input))
     test_dec_inps = dataset.test.dec_inps[:test_len].reshape((-1, out_steps, num_input))
     test_dec_outs = dataset.test.dec_outs[:test_len].reshape((-1, out_steps, num_input))
@@ -127,11 +123,11 @@ with tf.Session() as sess:
     
     # Fetch the predictions 
     fetches = {
-        "true":Y,
-        "pred":prediction,
+        "true":Z,
+        "pred":test_pred,
         "loss":loss_op
     }
     vals = sess.run(fetches, feed_dict={X: test_enc_inps, Y: test_dec_inps, Z: test_dec_outs})
     print("Testing Loss:", vals["loss"])
 
-    numpy.save("./result/predict.npy", (vals["true"], vals["pred"]))
+    numpy.save("./result/trnn_seq2seq.npy", (vals["true"], vals["pred"]))

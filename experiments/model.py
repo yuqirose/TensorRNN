@@ -20,10 +20,7 @@ def LSTM(inputs, is_training, config):
 
     # Get lstm cell output
     outputs, state  = rnn_with_feed_prev(cell, inputs, is_training, config)
-
-    # Tanh activation
-    prediction = tf.sigmoid(outputs)
-    return prediction
+    return outputs
 
 def PLSTM(inputs, is_training, config):
     def rnn_cell():
@@ -33,9 +30,7 @@ def PLSTM(inputs, is_training, config):
         [rnn_cell() for _ in range(config.num_layers)])
 
     outputs, state  = rnn_with_feed_prev(cell, inputs, is_training, config)
-
-    prediction = tf.sigmoid(outputs)
-    return prediction
+    return outputs
 
 def RNN(inputs, is_training, config):
     def rnn_cell():
@@ -45,9 +40,7 @@ def RNN(inputs, is_training, config):
         [rnn_cell() for _ in range(config.num_layers)])
     
     outputs, state  = rnn_with_feed_prev(cell, inputs, is_training, config)
-
-    prediction = tf.sigmoid(outputs)
-    return prediction
+    return outputs
 
 def MRNN(inputs, is_training, config):
     def mrnn_cell():
@@ -57,9 +50,7 @@ def MRNN(inputs, is_training, config):
         [mrnn_cell() for _ in range(config.num_layers)])
     
     outputs, state  = tensor_rnn_with_feed_prev(cell, inputs, is_training, config)
-
-    prediction = tf.sigmoid(outputs)
-    return prediction
+    return outputs
 
 def TRNN(inputs, is_training, config):
     def trnn_cell():
@@ -69,9 +60,7 @@ def TRNN(inputs, is_training, config):
         [trnn_cell() for _ in range(config.num_layers)])
     
     outputs, state  = tensor_rnn_with_feed_prev(cell, inputs, is_training, config)
-
-    prediction = tf.sigmoid(outputs)
-    return prediction
+    return outputs
 
 def MTRNN(inputs, is_training, config):
     def mtrnn_cell():
@@ -81,6 +70,4 @@ def MTRNN(inputs, is_training, config):
         [mtrnn_cell() for _ in range(config.num_layers)])
     
     outputs, state  = tensor_rnn_with_feed_prev(cell, inputs, is_training, config)
-
-    prediction = tf.sigmoid(outputs)
-    return prediction
+    return outputs

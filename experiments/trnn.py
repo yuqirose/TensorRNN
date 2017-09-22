@@ -124,9 +124,9 @@ def rnn_with_feed_prev(cell, inputs, is_training, config, initial_state=None):
     is_sample = is_training and sample_prob > 0 
 
     if feed_prev:
-      print("Creating model @ not training  --> Feeding output back into input.")
+        print("Creating model @ not training  --> Feeding output back into input.")
     else:
-      print("Creating model @ training  input = ground truth each timestep.")
+        print("Creating model @ training  input = ground truth each timestep.")
 
     with tf.variable_scope("rnn") as varscope:
         if varscope.caching_device is None:

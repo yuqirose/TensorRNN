@@ -11,7 +11,7 @@ from tensorflow.contrib.learn.python.learn.datasets import base
 from tensorflow.python.framework import random_seed
 
 # end of sequences
-EOS = 1
+EOS = 0
 
 def slide_window(a, window):
     """ Extract examples from time series"""

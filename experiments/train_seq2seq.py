@@ -42,7 +42,7 @@ training_steps = config.training_steps
 burn_in_steps = config.burn_in_steps
 batch_size = config.batch_size
 display_step = 200
-
+inp_steps = burn_in_steps
 dataset, stats = read_data_sets("./lorenz.npy", inp_steps, inp_steps)
 
 # Network Parameters
@@ -56,9 +56,6 @@ Y = tf.placeholder("float", [None, out_steps, num_input])
 
 # Decoder output
 Z = tf.placeholder("float", [None, out_steps, num_input])
-
-saver = tf.train.Saver()
-
 
 def Model(enc_inps, dec_inps, is_training):
 
@@ -107,6 +104,8 @@ tf.summary.scalar('loss', loss_op)
 
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()
+
+saver = tf.train.Saver()
 
 # Start training
 with tf.Session() as sess:

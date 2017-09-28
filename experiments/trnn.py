@@ -9,7 +9,7 @@ from tensorflow.contrib.rnn import RNNCell
 from tensorflow.python.util import nest
 from tensorflow.contrib.distributions import Bernoulli
 from tensorflow.contrib.layers import fully_connected
-
+from tensorflow.python.ops.rnn_cell_impl import LSTMStateTuple
 
 import numpy as np
 import copy
@@ -17,11 +17,10 @@ from collections import deque
 
 class MatrixRNNCell(RNNCell):
     """RNN cell with first order concatenation of hidden states"""
-    def __init__(self, num_units, num_lags, input_size=None, state_is_tuple=True, activation=tanh):
+    def __init__(self, num_units, num_lags, activation=tanh, reuse=None):
+        super(MatrixRNNCell, self).__init__(_reuse=reuse)
         self._num_units = num_units
         self._num_lags = num_lags
-    #rank of the tensor, tensor-train model is order+1
-        self._state_is_tuple= state_is_tuple
         self._activation = activation
 
     @property
@@ -34,18 +33,15 @@ class MatrixRNNCell(RNNCell):
 
     def __call__(self, inputs, states, scope=None):
         """Now we have multiple states, state->states"""
-
         with vs.variable_scope(scope or "matrix_rnn_cell"):
             output = tensor_network_linear( inputs, states, self._num_units, True, scope=scope)
             new_state = self._activation(output)
-        if self._state_is_tuple:
-            new_state = (new_state)
         return new_state, new_state
-
 
 class HighOrderRNNCell(RNNCell):
     """RNN cell with high-order interactions of hidden states"""
-    def __init__(self, num_units, num_lags, num_orders, input_size=None, state_is_tuple=True, activation=tanh):
+    def __init__(self, num_units, num_lags, num_orders, activation=tanh, reuse=None):  
+        super(HighOrderRNNCell, self).__init__(_reuse=reuse) 
         self._num_units = num_units
         self._num_lags = num_lags
         self._num_orders = num_orders
@@ -58,8 +54,32 @@ class HighOrderRNNCell(RNNCell):
         return self._num_units
 
     @property
-    def state_size(self):
+    def output_size(self):
         return self._num_units
+
+
+    def __call__(self, inputs, states, scope=None):
+        """Now we have multiple states, state->states"""
+        with vs.variable_scope(scope or "highorder_rnn_cell"):
+            output = tensor_network_highorder( inputs, states, self._num_units, self._num_orders,True, scope=scope)
+            new_state = self._activation(output)
+        return new_state, new_state
+
+class HighOrderLSTMCell(RNNCell):
+    """RNN cell with high-order interactions of hidden states"""
+    def __init__(self, num_units, num_lags, num_orders, forget_bias=1.0, state_is_tuple=True, activation=tanh, reuse=None):
+        super(HighOrderLSTMCell, self).__init__(_reuse=reuse)
+        self._num_units = num_units
+        self._num_lags = num_lags
+        self._num_orders = num_orders
+        self._forget_bias = forget_bias
+        self._state_is_tuple= state_is_tuple
+        self._activation = activation
+
+    @property
+    def state_size(self):
+        return (LSTMStateTuple(self._num_units, self._num_units)
+                if self._state_is_tuple else 2 * self._num_units)
 
     @property
     def output_size(self):
@@ -68,24 +88,46 @@ class HighOrderRNNCell(RNNCell):
 
     def __call__(self, inputs, states, scope=None):
         """Now we have multiple states, state->states"""
-
-        with vs.variable_scope(scope or "highorder_rnn_cell"):
-            output = tensor_network_highorder( inputs, states, self._num_units, self._num_orders,True, scope=scope)
-            new_state = self._activation(output)
+        sigmoid = tf.sigmoid
+        # Parameters of gates are concatenated into one multiply for efficiency.
         if self._state_is_tuple:
-            new_state = (new_state)
-        return new_state, new_state
+          #c, h = state
+          hs = ()
+          for state in states:
+            # every state is a tuple of (c,h)
+            c, h = state
+            hs += (h,)
+        else:
+           #c, h = array_ops.split(value=state, num_or_size_splits=2, axis=1)
+           hs = ()
+           for state in states:
+                c, h = array_ops.split(value=state, num_or_size_splits=2, axis=1)
+                hs += (h,)
+
+        # concat = _linear([inputs, h], 4 * self._num_units, True)
+        output_size = 4 * self._num_units
+        concat = tensor_network_highorder(inputs, hs, output_size, self._num_orders, True)
+        # i = input_gate, j = new_input, f = forget_gate, o = output_gate
+        i, j, f, o = array_ops.split(value=concat, num_or_size_splits=4, axis=1)
+
+        new_c = (
+            c * sigmoid(f + self._forget_bias) + sigmoid(i) * self._activation(j))
+        new_h = self._activation(new_c) * sigmoid(o)
+
+        if self._state_is_tuple:
+          new_state = LSTMStateTuple(new_c, new_h)
+        else:
+          new_state = array_ops.concat([new_c, new_h], 1)
+        return new_h, new_state
 
 class EinsumTensorRNNCell(RNNCell):
     """RNN cell with high order correlations"""
-    def __init__(self, num_units, num_lags, rank_vals, input_size=None, state_is_tuple=True, activation=tanh):
-            self._num_units = num_units
-            self._num_lags = num_lags
-    #rank of the tensor, tensor-train model is order+1
-            self._rank_vals = rank_vals
-            #self._num_orders = num_orders
-            self._state_is_tuple= state_is_tuple
-            self._activation = activation
+    def __init__(self, num_units, num_lags, rank_vals, activation=tanh, reuse=None):
+        super(EinsumTensorRNNCell, self).__init__(_reuse=reuse)
+        self._num_units = num_units
+        self._num_lags = num_lags
+        self._rank_vals = rank_vals
+        self._activation = activation
 
     @property
     def state_size(self):
@@ -104,20 +146,16 @@ class EinsumTensorRNNCell(RNNCell):
                     # output = tf.contrib.layers.batch_norm(output, center=True, scale=True, 
                     #                               is_training=True, scope=scope)
                     new_state = self._activation(output)
-            if self._state_is_tuple:
-                    new_state = (new_state)
             return new_state, new_state
 
 class MTRNNCell(RNNCell):
     """Multi-resolution Tensor RNN cell """
-    def __init__(self, num_units, num_lags, num_freq, rank_vals, input_size=None, state_is_tuple=True, activation=tanh):
+    def __init__(self, num_units, num_lags, num_freq, rank_vals, activation=tanh):
+        super(MTRNNCell, self).__init__(_reuse=reuse)
         self._num_units = num_units
         self._num_lags = num_lags
         self._num_freq =  num_freq # frequency for the 2nd tt state
-    #rank of the tensor, tensor-train model is order+1
         self._rank_vals = rank_vals
-        #self._num_orders = num_orders
-        self._state_is_tuple= state_is_tuple
         self._activation = activation
 
     @property
@@ -137,8 +175,6 @@ class MTRNNCell(RNNCell):
             # output = tf.contrib.layers.batch_norm(output, center=True, scale=True, 
             #                               is_training=True, scope=scope)
             new_state = self._activation(output)
-        if self._state_is_tuple:
-            new_state = (new_state)
         return new_state, new_state
 
 def _hidden_to_output(h, hidden_size, input_size):
@@ -505,12 +541,12 @@ def _list_to_states(states_list):
     num_layers = len(states_list[0])# state = (layer1, layer2...), layer1 = (c,h), c = tensor(batch_size, num_steps)
     output_states = ()
     for layer in range(num_layers):
-            output_state = ()
-            for states in states_list:
-                    #c,h = states[layer] for LSTM
-                    output_state += (states[layer],)
-            output_states += (output_state,)
-            # new cell has s*num_lags states
+        output_state = ()
+        for states in states_list:
+                #c,h = states[layer] for LSTM
+                output_state += (states[layer],)
+        output_states += (output_state,)
+        # new cell has s*num_lags states
     return output_states
 
 def tensor_rnn_with_feed_prev(cell, inputs, is_training, config, initial_states=None):

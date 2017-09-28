@@ -17,7 +17,7 @@ import numpy
 
 # Import dataset data
 from reader import read_data_sets
-from model import RNN, MRNN, TRNN, MTRNN, LSTM, PLSTM
+from model import RNN, MRNN, TRNN, MTRNN, LSTM, PLSTM, HOLSTM
 from train_config import *
 
 '''
@@ -29,7 +29,7 @@ handle 9 sequences for every sample.
 
 # Command line arguments 
 flags = tf.flags
-flags.DEFINE_string("model", "TRNN", "Model used for learning.")
+flags.DEFINE_string("model", "HOLSTM", "Model used for learning.")
 flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/log/RNN/",
           "Model output directory.")
 
@@ -58,7 +58,7 @@ num_test_steps = config.num_test_steps
 batch_size = config.batch_size
 
 # Construct dataset
-dataset, stats = read_data_sets("./lorenz.npy", num_steps, num_steps)
+dataset, stats = read_data_sets("./data.npy", num_steps, num_steps)
 
 # Network Parameters
 num_input = stats['num_input'] # dataset data input (time series dimension: 3)

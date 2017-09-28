@@ -51,9 +51,9 @@ class DataSet(object):
         # If op level seed is not set, use whatever graph level seed is returned
         np.random.seed(seed1 if seed is None else seed2)
      
-        #inps, outs = slide_window(data, num_steps)
-        inps = data[:,:num_steps,:]
-        outs = data[:,1:num_steps+1,:]
+        inps, outs = slide_window(data, num_steps)
+        # inps = data[:,:num_steps,:]
+        # outs = data[:,1:num_steps+1,:]
 
         assert inps.shape[0] == outs.shape[0], (
                 'inps.shape: %s outs.shape: %s' % (inps.shape, outs.shape))

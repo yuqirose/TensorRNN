@@ -44,10 +44,20 @@ def RNN(inputs, is_training, config):
 
 def MRNN(inputs, is_training, config):
     def mrnn_cell():
-        return MatrixRNNCell(config.hidden_size,config.num_lags)
+        return MatrixRNNCell(config.hidden_size,config.num_lags, config.num_orders)
         
     cell = tf.contrib.rnn.MultiRNNCell(
         [mrnn_cell() for _ in range(config.num_layers)])
+    
+    outputs, state  = tensor_rnn_with_feed_prev(cell, inputs, is_training, config)
+    return outputs
+
+def HOLSTM(inputs, is_training, config):
+    def holstm_cell():
+        return HighOrderLSTMCell(config.hidden_size,config.num_lags,config.num_orders)
+        
+    cell = tf.contrib.rnn.MultiRNNCell(
+        [holstm_cell() for _ in range(config.num_layers)])
     
     outputs, state  = tensor_rnn_with_feed_prev(cell, inputs, is_training, config)
     return outputs

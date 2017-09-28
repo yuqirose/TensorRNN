@@ -14,16 +14,21 @@ from tensorflow.python.framework import random_seed
 import tensorflow as tf
 from tensorflow.contrib import rnn
 from reader import read_data_sets
+from model_seq2seq import *
 from trnn import *
 import numpy 
 from train_config import *
 
 
 flags = tf.flags
+flags.DEFINE_string("model", "RNN",
+          "Model used for learning.")
 flags.DEFINE_string("save_path", "./log/trnn/",
           "Model output directory.")
 flags.DEFINE_integer("hidden_size", 16, "hidden layer size")
 flags.DEFINE_float("learning_rate", 1e-2, "learning rate")
+flags.DEFINE_integer("rank", 2, "rank for tt decomposition")
+
 FLAGS = flags.FLAGS
 
 '''
@@ -36,67 +41,40 @@ handle 9 sequences for every sample.
 config = TrainConfig()
 config.hidden_size = FLAGS.hidden_size
 config.learning_rate = FLAGS.learning_rate
+config.rank_vals = [FLAGS.rank]
 # Training Parameters
-learning_rate = config.learning_rate
 training_steps = config.training_steps
-burn_in_steps = config.burn_in_steps
 batch_size = config.batch_size
 display_step = 200
-inp_steps = burn_in_steps
+inp_steps = config.burn_in_steps
+
+# Read Dataset
 dataset, stats = read_data_sets("./lorenz.npy", inp_steps, inp_steps)
 
 # Network Parameters
 num_input = stats['num_input']  # dataset data input (time series dimension: 3)
-out_steps = 1+stats['num_steps']- burn_in_steps # adding EOS
+out_steps = 1+stats['num_steps']- inp_steps # adding EOS
 
 
 # tf Graph input
-X = tf.placeholder("float", [None, burn_in_steps, num_input])
+X = tf.placeholder("float", [None, inp_steps, num_input])
 Y = tf.placeholder("float", [None, out_steps, num_input])
 
 # Decoder output
 Z = tf.placeholder("float", [None, out_steps, num_input])
 
-def Model(enc_inps, dec_inps, is_training):
-
-    # Prepare data shape to match `rnn` function requirements
-    # Current data input shape: (batch_size, inp_steps, n_input)
-    # Required shape: 'inp_steps' tensors list of shape (batch_size, n_input)
-
-    # Unstack to get a list of 'inp_steps' tensors of shape (batch_size, n_input)
-    # enc_inps = tf.unstack(enc_inps, inp_steps, 1)
-
-    # def lstm_cell():
-    #     return tf.contrib.rnn.BasicLSTMCell(config.hidden_size,forget_bias=1.0)
-
-    # cell = tf.contrib.rnn.MultiRNNCell(
-    #     [lstm_cell() for _ in range(config.num_layers)])
-    def hornn_cell():
-        return HighOrderRNNCell(config.hidden_size, config.num_lags, config.num_orders)
-        
-    cell = tf.contrib.rnn.MultiRNNCell(
-        [hornn_cell() for _ in range(config.num_layers)])
-
-    with tf.variable_scope("Encoder", reuse=None):
-        enc_outs, enc_states = tensor_rnn_with_feed_prev(cell, enc_inps, True, config)
-
-    with tf.variable_scope("Decoder", reuse=None):
-        config.burn_in_steps = 0
-        dec_outs, dec_states =  tensor_rnn_with_feed_prev(cell, dec_inps, is_training, config, enc_states)
-    
-    return dec_outs
-
+Model = globals()[FLAGS.model]
 with tf.name_scope("Train"):
     with tf.variable_scope("Model", reuse=None):
-        train_pred = Model(X, Y, True)
+        train_pred = Model(X, Y, True, config)
 with tf.name_scope("Test"):
     with tf.variable_scope("Model", reuse=True):
-        test_pred = Model(X, Y, False)
+        test_pred = Model(X, Y, False, config)
 
 
 # Define loss and optimizer
 loss_op = tf.sqrt(tf.reduce_mean(tf.squared_difference(train_pred, Z)))
-optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
+optimizer = tf.train.RMSPropOptimizer(learning_rate=config.learning_rate)
 train_op = optimizer.minimize(loss_op)
 
 # Write summary

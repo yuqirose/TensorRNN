@@ -35,7 +35,7 @@ class MatrixRNNCell(RNNCell):
     def __call__(self, inputs, states, scope=None):
         """Now we have multiple states, state->states"""
 
-        with vs.variable_scope(scope or "tensor_rnn_cell"):
+        with vs.variable_scope(scope or "matrix_rnn_cell"):
             output = tensor_network_linear( inputs, states, self._num_units, True, scope=scope)
             new_state = self._activation(output)
         if self._state_is_tuple:
@@ -69,7 +69,7 @@ class HighOrderRNNCell(RNNCell):
     def __call__(self, inputs, states, scope=None):
         """Now we have multiple states, state->states"""
 
-        with vs.variable_scope(scope or "tensor_rnn_cell"):
+        with vs.variable_scope(scope or "highorder_rnn_cell"):
             output = tensor_network_highorder( inputs, states, self._num_units, self._num_orders,True, scope=scope)
             new_state = self._activation(output)
         if self._state_is_tuple:
@@ -131,7 +131,7 @@ class MTRNNCell(RNNCell):
     def __call__(self, inputs, states, scope=None):
         """Now we have multiple states, state->states"""
 
-        with vs.variable_scope(scope or "tensor_rnn_cell"):
+        with vs.variable_scope(scope or "multi_tensor_rnn_cell"):
             output = tensor_network_mtrnn( inputs, states, self._num_units,self._rank_vals, self._num_freq,True, scope=scope)
             # dense = tf.contrib.layers.fully_connected(output, self._num_units, activation_fn=None, scope=scope)
             # output = tf.contrib.layers.batch_norm(output, center=True, scale=True, 

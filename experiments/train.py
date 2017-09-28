@@ -30,8 +30,6 @@ handle 9 sequences for every sample.
 # Command line arguments 
 flags = tf.flags
 flags.DEFINE_string("model", "TRNN", "Model used for learning.")
-flags.DEFINE_string("data_path", "./data.npy",
-          "Where the training/test data is stored.")
 flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/log/RNN/",
           "Model output directory.")
 
@@ -39,8 +37,8 @@ flags.DEFINE_bool("use_error_prop", True,
                   "Feed previous output as input in RNN")
 flags.DEFINE_integer("hidden_size", 16, "hidden layer size")
 flags.DEFINE_float("learning_rate", 1e-2, "learning rate")
-flags.DEFINE_integer("num_steps",10,"Training sequence length")
-flags.DEFINE_integer("num_test_steps", 10,"Testing sequence length")
+flags.DEFINE_integer("num_steps",20,"Training sequence length")
+
 
 FLAGS = flags.FLAGS
 
@@ -52,7 +50,6 @@ config.use_error_prop = FLAGS.use_error_prop
 config.hidden_size = FLAGS.hidden_size
 config.learning_rate = FLAGS.learning_rate
 config.num_steps = FLAGS.num_steps
-config.num_test_steps = FLAGS.num_test_steps
 
 training_steps = config.training_steps
 display_step = 200
@@ -61,7 +58,7 @@ num_test_steps = config.num_test_steps
 batch_size = config.batch_size
 
 # Construct dataset
-dataset, stats = read_data_sets(FLAGS.data_path, num_steps, num_test_steps)
+dataset, stats = read_data_sets("./lorenz.npy", num_steps, num_steps)
 
 # Network Parameters
 num_input = stats['num_input'] # dataset data input (time series dimension: 3)
@@ -69,7 +66,7 @@ num_input = stats['num_input'] # dataset data input (time series dimension: 3)
 # Print exp settings
 print('='*80) 
 
-print('|data set|', FLAGS.data_path, '|batch size|', batch_size, '|learn rate|', FLAGS.learning_rate)
+print('|model|', FLAGS.model, '|batch size|', batch_size, '|learn rate|', FLAGS.learning_rate)
 
 print('_'*80)
 print('|train steps|', num_steps, '|test steps|', num_test_steps, '|error prop|', config.use_error_prop )

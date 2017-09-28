@@ -134,7 +134,7 @@ class DataSetS2S(object):
         #outs = data[:,1:num_steps+1,:]
         enc_inps = data[:,:num_steps, :]
         dec_inps = np.insert(data[:,num_steps:,:], 0, EOS, axis=1)
-        dec_outs = np.insert(data[:,num_steps:,:], -1, EOS, axis=1)
+        dec_outs = np.insert(data[:,num_steps:,:], data.shape[1]-num_steps, EOS, axis=1)
 
         assert enc_inps.shape[0] == dec_outs.shape[0], (
                 'inps.shape: %s outs.shape: %s' % (inps.shape, outs.shape))
@@ -229,9 +229,9 @@ def read_data_sets(data_path,
 
     train_options = dict(num_steps=n_steps, seed=seed)
     test_options = dict(num_steps=n_test_steps, seed=seed)
-    train = DataSetS2S(train_data, **train_options)
-    valid = DataSetS2S(valid_data, **train_options)
-    test = DataSetS2S(test_data, **test_options)
+    train = DataSet(train_data, **train_options)
+    valid = DataSet(valid_data, **train_options)
+    test = DataSet(test_data, **test_options)
 
     stats ={}
     stats['num_examples'] = data.shape[0]

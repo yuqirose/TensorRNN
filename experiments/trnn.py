@@ -45,8 +45,6 @@ class HighOrderRNNCell(RNNCell):
         self._num_units = num_units
         self._num_lags = num_lags
         self._num_orders = num_orders
-    #rank of the tensor, tensor-train model is order+1
-        self._state_is_tuple= state_is_tuple
         self._activation = activation
 
     @property
@@ -91,16 +89,16 @@ class HighOrderLSTMCell(RNNCell):
         sigmoid = tf.sigmoid
         # Parameters of gates are concatenated into one multiply for efficiency.
         if self._state_is_tuple:
-          #c, h = state
-          hs = ()
-          for state in states:
+            #c, h = state
+            hs = ()
+            for state in states:
             # every state is a tuple of (c,h)
-            c, h = state
-            hs += (h,)
+                c, h = state
+                hs += (h,)
         else:
-           #c, h = array_ops.split(value=state, num_or_size_splits=2, axis=1)
-           hs = ()
-           for state in states:
+             #c, h = array_ops.split(value=state, num_or_size_splits=2, axis=1)
+            hs = ()
+            for state in states:
                 c, h = array_ops.split(value=state, num_or_size_splits=2, axis=1)
                 hs += (h,)
 
@@ -115,9 +113,9 @@ class HighOrderLSTMCell(RNNCell):
         new_h = self._activation(new_c) * sigmoid(o)
 
         if self._state_is_tuple:
-          new_state = LSTMStateTuple(new_c, new_h)
+            new_state = LSTMStateTuple(new_c, new_h)
         else:
-          new_state = array_ops.concat([new_c, new_h], 1)
+            new_state = array_ops.concat([new_c, new_h], 1)
         return new_h, new_state
 
 class EinsumTensorRNNCell(RNNCell):
@@ -191,12 +189,17 @@ def rnn_with_feed_prev(cell, inputs, is_training, config, initial_state=None):
     sample_prob = config.sample_prob # scheduled sampling probability
 
     feed_prev = not is_training if config.use_error_prop else False
-    is_sample = is_training and sample_prob > 0 
+    is_sample = is_training and initial_state is not None # decoder  
 
-    if feed_prev:
-        print("Creating model @ not training  --> Feeding output back into input.")
+    if is_sample:
+        print("Creating model @ training  --> Using scheduled sampling.")
     else:
-        print("Creating model @ training  input = ground truth each timestep.")
+        print("Creating model @ training  --> Not using scheduled sampling.")
+    
+    if feed_prev:
+        print(' '*30+" --> Feeding output back into input.")
+    else:
+        print(' '*30+" --> Feeding ground truth into input.")
 
     with tf.variable_scope("rnn") as varscope:
         if varscope.caching_device is None:
@@ -212,7 +215,7 @@ def rnn_with_feed_prev(cell, inputs, is_training, config, initial_state=None):
         # phased lstm input
         inp_t = tf.expand_dims(tf.range(1,batch_size+1), 1)
 
-        dist = Bernoulli(probs=sample_prob)
+        dist = Bernoulli(probs=config.sample_prob)
         samples = dist.sample(sample_shape=num_steps)
         # with tf.Session() as sess:
         #     print('bernoulli',samples.eval())
@@ -221,23 +224,30 @@ def rnn_with_feed_prev(cell, inputs, is_training, config, initial_state=None):
         state = initial_state
 
         for time_step in range(num_steps):
-
+            print('time_step', time_step)
             if time_step > 0:
                 tf.get_variable_scope().reuse_variables()
 
             inp = inputs[:, time_step, :]
+            
             if is_sample and time_step > 0: 
                 with tf.variable_scope(tf.get_variable_scope(), reuse=True):
-                    inp = tf.cond(tf.cast(samples[time_step], tf.bool), lambda:fully_connected(cell_output, input_size, activation_fn=tf.sigmoid), \
-                        lambda:tf.identity(inp) )
+                    inp = tf.cond(tf.cast(samples[time_step], tf.bool),  lambda:tf.identity(inp) , \
+                       lambda:fully_connected(cell_output, input_size, activation_fn=tf.sigmoid))
+                    
+                    
             if feed_prev and prev is not None and time_step >= burn_in_steps:
                 with tf.variable_scope(tf.get_variable_scope(), reuse=True):
                     inp = fully_connected(prev, input_size,  activation_fn=tf.sigmoid)
-                    print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
+                    #print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
 
             if isinstance(cell._cells[0], tf.contrib.rnn.PhasedLSTMCell):
                 (cell_output, state) = cell((inp_t, inp), state)
             else:
+                with tf.Session() as sess:
+                    print('time_step', time_step)
+                    print('input shape', inp.get_shape())
+                    print('state shape', state[0].get_shape())
                 (cell_output, state) = cell(inp, state)
 
             prev = cell_output
@@ -555,14 +565,18 @@ def tensor_rnn_with_feed_prev(cell, inputs, is_training, config, initial_states=
     #tuple of 2-d tensor (batch_size, s)
     outputs = []
     prev = None
-    sample_prob = config.sample_prob # scheduled sampling probability
     feed_prev = not is_training if config.use_error_prop else False
-    is_sample = is_training and sample_prob > 0 
+    is_sample = is_training and initial_states is not None
 
-    if feed_prev:
-        print("Creating model @ not training --> Feeding output back into input.")
+    if is_sample:
+        print("Creating model @ training  --> Using scheduled sampling.")
     else:
-        print("Creating model @ training --> input = ground truth each timestep.")
+        print("Creating model @ training  --> Not using scheduled sampling.")
+    
+    if feed_prev:
+        print(' '*30+" --> Feeding output back into input.")
+    else:
+        print(' '*30+" --> Feeding ground truth into input.")
 
     with tf.variable_scope("tensor_rnn") as varscope:
         if varscope.caching_device is None:
@@ -574,10 +588,11 @@ def tensor_rnn_with_feed_prev(cell, inputs, is_training, config, initial_states=
         input_size = int(inputs_shape[2])
         output_size = cell.output_size
         burn_in_steps =  config.burn_in_steps
-
-        dist = Bernoulli(probs=sample_prob)
+        
+        # Scheduled sampling
+        dist = Bernoulli(probs=config.sample_prob)
         samples = dist.sample(sample_shape=num_steps)
-
+        
         if initial_states is None:
             initial_states =[]
             for lag in range(config.num_lags):
@@ -594,13 +609,13 @@ def tensor_rnn_with_feed_prev(cell, inputs, is_training, config, initial_states=
 
             if is_sample and time_step > 0: 
                 with tf.variable_scope(tf.get_variable_scope(), reuse=True):
-                    inp = tf.cond(tf.cast(samples[time_step], tf.bool), lambda:fully_connected(cell_output, input_size, activation_fn=tf.sigmoid), \
-                        lambda:tf.identity(inp) )
-
+                    inp = tf.cond(tf.cast(samples[time_step], tf.bool),  lambda:tf.identity(inp) , \
+                       lambda:fully_connected(cell_output, input_size, activation_fn=tf.sigmoid))
+                    
             if feed_prev and prev is not None and time_step >= burn_in_steps:
                 with tf.variable_scope(tf.get_variable_scope(), reuse=True):
                     inp = fully_connected(cell_output, input_size, activation_fn=tf.sigmoid)
-                    print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
+                    #print("t", time_step, ">=", burn_in_steps, "--> feeding back output into input.")
 
             states = _list_to_states(states_list)
             """input tensor is [batch_size, num_steps, input_size]"""

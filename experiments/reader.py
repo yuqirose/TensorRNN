@@ -229,9 +229,9 @@ def read_data_sets(data_path,
 
     train_options = dict(num_steps=n_steps, seed=seed)
     test_options = dict(num_steps=n_test_steps, seed=seed)
-    train = DataSet(train_data, **train_options)
-    valid = DataSet(valid_data, **train_options)
-    test = DataSet(test_data, **test_options)
+    train = DataSetS2S(train_data, **train_options)
+    valid = DataSetS2S(valid_data, **train_options)
+    test = DataSetS2S(test_data, **test_options)
 
     stats ={}
     stats['num_examples'] = data.shape[0]

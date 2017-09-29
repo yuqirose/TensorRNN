@@ -16,6 +16,6 @@ class TrainConfig(object):
   num_freq = 2
   training_steps = 5000
   keep_prob = 1.0 # dropout
-  sample_prob = 0.0 # sample predictions
-  batch_size = 32
-  use_error_prop = False
+  sample_prob = 1.0 # sample ground true
+  batch_size = 100
+  use_error_prop = True

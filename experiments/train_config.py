@@ -14,8 +14,8 @@ class TrainConfig(object):
   num_orders = 2 # tensor prod order
   rank_vals= [2]
   num_freq = 2
-  training_steps = 5000
+  training_steps = 10000
   keep_prob = 1.0 # dropout
-  sample_prob = 1.0 # sample ground true
-  batch_size = 100
+  sample_prob = 0.0 # sample ground true
+  batch_size = 50
   use_error_prop = True

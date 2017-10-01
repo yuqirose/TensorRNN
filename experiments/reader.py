@@ -206,7 +206,7 @@ class DataSetS2S(object):
             self._index_in_epoch += batch_size
             end = self._index_in_epoch
             return self._enc_inps[start:end], self._dec_inps[start:end], self._dec_outs[start:end]
-def read_data_sets(data_path, 
+def read_data_sets(data_path, s2s=False,
                                 n_steps = 10,
                                 n_test_steps = 20,
                                 val_size = 0.1, 
@@ -229,9 +229,14 @@ def read_data_sets(data_path,
 
     train_options = dict(num_steps=n_steps, seed=seed)
     test_options = dict(num_steps=n_test_steps, seed=seed)
-    train = DataSetS2S(train_data, **train_options)
-    valid = DataSetS2S(valid_data, **train_options)
-    test = DataSetS2S(test_data, **test_options)
+    if s2s == True:
+        train = DataSetS2S(train_data, **train_options)
+        valid = DataSetS2S(valid_data, **train_options)
+        test = DataSetS2S(test_data, **test_options)
+    else:
+        train = DataSet(train_data, **train_options)
+        valid = DataSet(valid_data, **train_options)
+        test = DataSet(test_data, **test_options)     
 
     stats ={}
     stats['num_examples'] = data.shape[0]

@@ -29,8 +29,8 @@ handle 9 sequences for every sample.
 
 # Command line arguments 
 flags = tf.flags
-flags.DEFINE_string("model", "HOLSTM", "Model used for learning.")
-flags.DEFINE_string("save_path", "/Users/roseyu/Documents/Python/log/RNN/",
+flags.DEFINE_string("model", "LSTM", "Model used for learning.")
+flags.DEFINE_string("save_path", "./log/holstm/",
           "Model output directory.")
 
 flags.DEFINE_bool("use_error_prop", True,
@@ -84,16 +84,7 @@ with tf.name_scope("Train"):
         # Define train loss 
         train_loss = tf.sqrt(tf.reduce_mean(tf.squared_difference(train_pred, Y)))
     tf.summary.scalar('loss', train_loss)
-
-# Construct valid model
-with tf.name_scope("Valid"):
-    # tf Graph train input
-    X_valid = tf.placeholder("float", [None, num_steps, num_input])
-    Y_valid = tf.placeholder("float", [None, num_steps, num_input])
-    with tf.variable_scope("Model", reuse=True):
-        valid_pred = Model(X_valid, True, config)
-        # Define train loss 
-        valid_loss = tf.sqrt(tf.reduce_mean(tf.squared_difference(valid_pred, Y_valid)))
+    
 # Construct test model
 with tf.name_scope("Test"):
     # tf Graph test input
@@ -143,7 +134,7 @@ with tf.Session() as sess:
     # Calculate accuracy for valid inps
     valid_data = dataset.validation.inps.reshape((-1, num_steps, num_input))
     valid_label = dataset.validation.outs
-    va_loss = sess.run(valid_loss, feed_dict={X_valid: valid_data, Y_valid: valid_label})
+    va_loss = sess.run(test_loss, feed_dict={X_test: valid_data, Y_test: valid_label})
     print("Validation Loss:", va_loss)
 
     # Fetch test prediction

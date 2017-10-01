@@ -224,7 +224,6 @@ def rnn_with_feed_prev(cell, inputs, is_training, config, initial_state=None):
         state = initial_state
 
         for time_step in range(num_steps):
-            print('time_step', time_step)
             if time_step > 0:
                 tf.get_variable_scope().reuse_variables()
 
@@ -244,10 +243,6 @@ def rnn_with_feed_prev(cell, inputs, is_training, config, initial_state=None):
             if isinstance(cell._cells[0], tf.contrib.rnn.PhasedLSTMCell):
                 (cell_output, state) = cell((inp_t, inp), state)
             else:
-                with tf.Session() as sess:
-                    print('time_step', time_step)
-                    print('input shape', inp.get_shape())
-                    print('state shape', state[0].get_shape())
                 (cell_output, state) = cell(inp, state)
 
             prev = cell_output
@@ -294,7 +289,7 @@ def tensor_network_highorder(inputs, states, output_size, num_orders, bias, bias
     # each coordinate of hidden state is independent- parallel
     num_lags = len(states)
     batch_size = tf.shape(inputs)[0]
-    state_size = output_size #hidden layer size
+    state_size = states[0].get_shape()[1].value #hidden layer size
     total_state_size = (state_size * num_lags + 1 )
 
     states_tensor  = nest.flatten(states)
@@ -540,9 +535,8 @@ def _shift (input_list, new_item):
     """Update lag number of states"""
     output_list = copy.copy(input_list)
     output_list = deque(output_list)
-    output_list.append(new_item)
-    output_list.rotate(1) # The deque is now: [3, 1, 2]
-    output_list.popleft() # deque == [2, 3]
+    output_list.append(new_item) # deque = [1, 2, 3]
+    output_list.popleft() # deque =[2, 3]
     return output_list
 
 def _list_to_states(states_list):

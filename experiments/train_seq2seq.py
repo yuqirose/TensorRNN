@@ -20,12 +20,14 @@ from train_config import *
 
 
 flags = tf.flags
-flags.DEFINE_string("model", "HORNN",
+flags.DEFINE_string("model", "LSTM",
           "Model used for learning.")
 flags.DEFINE_string("save_path", "./log/lstm/",
           "Model output directory.")
 flags.DEFINE_bool("use_error_prop", True,
                   "Feed previous output as input in RNN")
+flags.DEFINE_bool("use_sched_samp", False,
+                  "Use scheduled sampling in training")
 flags.DEFINE_integer("hidden_size", 8, "hidden layer size")
 flags.DEFINE_float("learning_rate", 1e-2, "learning rate")
 flags.DEFINE_integer("rank", 2, "rank for tt decomposition")
@@ -47,8 +49,8 @@ config.rank_vals = [FLAGS.rank]
 
 # Scheduled sampling
 # = tf.Variable(0.0, trainable=False)
-config.sample_prob = tf.get_variable("sample_prob", shape=(), initializer=tf.zeros_initializer())
-
+if FLAGS.use_sched_samp:
+    config.sample_prob = tf.get_variable("sample_prob", shape=(), initializer=tf.zeros_initializer())
 sampling_burn_in = 400
 
 # Training Parameters
@@ -58,7 +60,7 @@ display_step = 200
 inp_steps = config.burn_in_steps
 
 # Read Dataset
-dataset, stats = read_data_sets("./lorenz.npy", inp_steps, inp_steps)
+dataset, stats = read_data_sets("./lorenz.npy", True, inp_steps, inp_steps)
 
 # Network Parameters
 num_input = stats['num_input']  # dataset data input (time series dimension: 3)
@@ -91,7 +93,8 @@ train_op = optimizer.minimize(train_loss)
 eps_min = 0.1 # minimal prob
 
 # Write summary
-tf.summary.scalar('loss', train_loss)
+tf.summary.scalar('train_loss', train_loss)
+tf.summary.scalar('test_loss', test_loss)
 
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()
@@ -103,7 +106,7 @@ hist_loss =[]
 with tf.Session() as sess:
     # Merge all the summaries and write them out to /tmp/mnist_logs (by default)
     merged = tf.summary.merge_all()
-    train_writer = tf.summary.FileWriter(FLAGS.save_path + '/train',sess.graph)
+    summary_writer = tf.summary.FileWriter(FLAGS.save_path,sess.graph)
 
     # Run the initializer
     sess.run(init)    
@@ -117,8 +120,8 @@ with tf.Session() as sess:
             summary, loss = sess.run([merged,train_loss], feed_dict={X: batch_x,Y: batch_y, Z:batch_z})
             run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
             run_metadata = tf.RunMetadata()
-            train_writer.add_run_metadata(run_metadata, 'step%03d' % step)
-            train_writer.add_summary(summary, step)
+            summary_writer.add_run_metadata(run_metadata, 'step%03d' % step)
+            summary_writer.add_summary(summary, step)
             print("Step " + str(step) + ", Minibatch Loss= " + \
                   "{:.4f}".format(loss) )
             
@@ -136,8 +139,8 @@ with tf.Session() as sess:
                 break
           
             #Update sampling prob
-            if step > sampling_burn_in:
-                sample_prob = max(eps_min, 1.0-step/training_steps)
+            if FLAGS.use_sched_samp and step > sampling_burn_in:
+                sample_prob = max(eps_min, 1.0-step/(2*training_steps))
                 sess.run(tf.assign(config.sample_prob, sample_prob))
                 print('Sampling prob:', sample_prob)
 

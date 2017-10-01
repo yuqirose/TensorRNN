@@ -14,11 +14,11 @@ def LSTM(enc_inps, dec_inps, is_training, config):
     # Define a lstm cell with tensorflow
     def lstm_cell():
         return tf.contrib.rnn.BasicLSTMCell(config.hidden_size,forget_bias=1.0, reuse=None)
-    if is_training and config.keep_prob < 1:
-        cell = tf.contrib.rnn.DropoutWrapper(
-          lstm_cell(), output_keep_prob=config.keep_prob)
+    #if is_training and config.keep_prob < 1:
+    #    cell = tf.contrib.rnn.DropoutWrapper(
+    #      lstm_cell(), output_keep_prob=config.keep_prob)
     cell = tf.contrib.rnn.MultiRNNCell(
-        [cell for _ in range(config.num_layers)])
+        [lstm_cell() for _ in range(config.num_layers)])
 
     # Get encoder output
     with tf.variable_scope("Encoder", reuse=None):
@@ -100,6 +100,22 @@ def HORNN(enc_inps, dec_inps, is_training, config):
         dec_outs, dec_states = tensor_rnn_with_feed_prev(cell, dec_inps, is_training, config, enc_states) 
     return dec_outs    
 
+def HOLSTM(enc_inps, dec_inps, is_training, config):
+    def holstm_cell():
+        return HighOrderLSTMCell(config.hidden_size,config.num_lags, config.num_orders)
+    cell = holstm_cell()
+    if is_training and config.keep_prob < 1:
+        cell = tf.contrib.rnn.DropoutWrapper(
+          cell, output_keep_prob=config.keep_prob)        
+    cell = tf.contrib.rnn.MultiRNNCell(
+        [cell for _ in range(config.num_layers)])
+    with tf.variable_scope("Encoder", reuse=None):
+        enc_outs, enc_states = tensor_rnn_with_feed_prev(cell, enc_inps, True, config)
+
+    with tf.variable_scope("Decoder", reuse=None):
+        config.burn_in_steps = 0
+        dec_outs, dec_states = tensor_rnn_with_feed_prev(cell, dec_inps, is_training, config, enc_states) 
+    return dec_outs    
 
 def TRNN(enc_inps, dec_inps, is_training, config):
     def trnn_cell():

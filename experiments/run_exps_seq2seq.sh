@@ -27,16 +27,16 @@ burn_in_steps=5 # just for naming purposes
 for exp in lorenz #climate traffic 
 do
 base_path=/var/tmp/tensorRNN/log/$exp/$start_time
-    for model in LSTM TRNN 
+    for model in HOLSTM LSTM 
     do
-	for hidden_size in 8 16 32
+	for hidden_size in 8 16 32 
         do
-	    for learning_rate in 1e-2 
+	    for learning_rate in 1e-1 1e-2 1e-3
 	    do
-            save_path=${base_path}/$model/$hidden_size/
+            save_path=${base_path}/$model/$hidden_size/$learning_rate/
             echo $save_path
             mkdir -p $save_path
-            python train_seq2seq.py --model=$model --rank=$rank --save_path=$save_path --hidden_size=$hidden_size --learning_rate=$learning_rate   
+            python train_seq2seq.py --model=$model --save_path=$save_path --hidden_size=$hidden_size --learning_rate=$learning_rate   
             done
         done
     done

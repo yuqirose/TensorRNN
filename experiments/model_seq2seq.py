@@ -4,6 +4,7 @@ from __future__ import print_function
 import tensorflow as tf
 from tensorflow.contrib import rnn
 from trnn import *
+from trnn_imply import *
 
 def LSTM(enc_inps, dec_inps, is_training, config):
 
@@ -82,6 +83,22 @@ def MRNN(enc_inps, dec_inps, is_training, config):
         dec_outs, dec_states = tensor_rnn_with_feed_prev(cell, dec_inps, is_training, config, enc_states) 
     return dec_outs    
 
+def MLSTM(enc_inps, dec_inps, is_training, config):
+    def mlstm_cell():
+        return MatrixLSTMCell(config.hidden_size,config.num_lags)
+    cell = mlstm_cell()
+    if is_training and config.keep_prob < 1:
+        cell = tf.contrib.rnn.DropoutWrapper(
+          cell, output_keep_prob=config.keep_prob)        
+    cell = tf.contrib.rnn.MultiRNNCell(
+        [cell for _ in range(config.num_layers)])
+    with tf.variable_scope("Encoder", reuse=None):
+        enc_outs, enc_states = tensor_rnn_with_feed_prev(cell, enc_inps, True, config)
+
+    with tf.variable_scope("Decoder", reuse=None):
+        config.burn_in_steps = 0
+        dec_outs, dec_states = tensor_rnn_with_feed_prev(cell, dec_inps, is_training, config, enc_states) 
+    return dec_outs  
 
 def HORNN(enc_inps, dec_inps, is_training, config):
     def hornn_cell():
@@ -134,6 +151,21 @@ def TRNN(enc_inps, dec_inps, is_training, config):
         dec_outs, dec_states = tensor_rnn_with_feed_prev(cell, dec_inps, is_training, config, enc_states) 
     return dec_outs    
 
+def TLSTM(enc_inps, dec_inps, is_training, config):
+    def tlstm_cell():
+        return TensorLSTMCell(config.hidden_size, config.num_lags, config.rank_vals)
+    cell= tlstm_cell() 
+    if is_training and config.keep_prob < 1:
+        cell = tf.contrib.rnn.DropoutWrapper(
+          cell, output_keep_prob=config.keep_prob)        
+    cell = tf.contrib.rnn.MultiRNNCell(
+        [cell for _ in range(config.num_layers)])
+    with tf.variable_scope("Encoder", reuse=None):
+        enc_outs, enc_states = tensor_rnn_with_feed_prev(cell, enc_inps, True, config)
+    with tf.variable_scope("Decoder", reuse=None):
+        config.burn_in_steps = 0
+        dec_outs, dec_states = tensor_rnn_with_feed_prev(cell, dec_inps, is_training, config, enc_states) 
+    return dec_outs   
 
 def MTRNN(enc_inps, dec_inps, is_training, config):
     def mtrnn_cell():

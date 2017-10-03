@@ -32,8 +32,7 @@ def normalize_columns(arr):
         return arr
     if np.ndim(arr) ==3:
         for i in range(arr.shape[0]):
-            arr[i,:,:] = _norm_col(arr[i,:,:])
-        
+            arr[i,:,:] = _norm_col(arr[i,:,:])       
     else:
         arr = _norm_col(arr)
     return arr
@@ -53,7 +52,7 @@ def normalize_columns(arr):
         for i in range(arr.shape[0]):
             arr[i,:,:], stats_arr[i,:,:] = _norm_col(arr[i,:,:])
     else:
-        arr = _norm_col(arr)
+        arr, stats_arr = _norm_col(arr)
     return arr, stats_arr
 
 def denormalize_colums(arr, stats_arr):

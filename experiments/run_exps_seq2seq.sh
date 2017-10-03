@@ -27,11 +27,11 @@ burn_in_steps=5 # just for naming purposes
 for exp in lorenz #climate traffic 
 do
 base_path=/var/tmp/tensorRNN/log/$exp/$start_time
-    for model in LSTM 
+    for model in TLSTM 
     do
-	for hidden_size in 32
+	for hidden_size in 32 64 128 
         do
-	    for learning_rate in 1e-2   
+	    for learning_rate in 1e-3   
 	    do
             save_path=${base_path}/$model/$hidden_size/$learning_rate-decay/
             echo $save_path

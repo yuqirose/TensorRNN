@@ -17,7 +17,7 @@ import numpy
 
 # Import dataset data
 from reader import read_data_sets
-from model import RNN, MRNN, TRNN, MTRNN, LSTM, PLSTM, HOLSTM
+from model import *
 from train_config import *
 
 '''
@@ -29,6 +29,8 @@ handle 9 sequences for every sample.
 
 # Command line arguments 
 flags = tf.flags
+flags.DEFINE_string("data_path", "../data/holstm/",
+          "Data input directory.")
 flags.DEFINE_string("model", "LSTM", "Model used for learning.")
 flags.DEFINE_string("save_path", "./log/holstm/",
           "Model output directory.")

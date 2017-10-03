@@ -4,6 +4,7 @@ from __future__ import print_function
 import tensorflow as tf
 from tensorflow.contrib import rnn
 from trnn import *
+from trnn_imply import *
 
 def LSTM(inputs, is_training, config):
 
@@ -21,6 +22,30 @@ def LSTM(inputs, is_training, config):
     # Get lstm cell output
     outputs, state  = rnn_with_feed_prev(cell, inputs, is_training, config)
     return outputs
+
+def MLSTM(inputs, is_training, config):
+    def mlstm_cell():
+        return MatrixLSTMCell(config.hidden_size,config.num_lags)
+    cell = mlstm_cell()
+    if is_training and config.keep_prob < 1:
+        cell = tf.contrib.rnn.DropoutWrapper(
+          cell, output_keep_prob=config.keep_prob)        
+    cell = tf.contrib.rnn.MultiRNNCell(
+        [cell for _ in range(config.num_layers)])
+    outputs, state = tensor_rnn_with_feed_prev(cell, inputs, is_training, config) 
+    return outputs  
+
+def TLSTM(inputs, is_training, config):
+    def tlstm_cell():
+        return TensorLSTMCell(config.hidden_size, config.num_lags, config.rank_vals)
+    cell= tlstm_cell() 
+    if is_training and config.keep_prob < 1:
+        cell = tf.contrib.rnn.DropoutWrapper(
+          cell, output_keep_prob=config.keep_prob)        
+    cell = tf.contrib.rnn.MultiRNNCell(
+        [cell for _ in range(config.num_layers)])
+    outputs, state = tensor_rnn_with_feed_prev(cell, inputs, is_training, config) 
+    return outputs  
 
 def PLSTM(inputs, is_training, config):
     def rnn_cell():

@@ -30,7 +30,7 @@ flags.DEFINE_bool("use_sched_samp", False,
                   "Use scheduled sampling in training")
 flags.DEFINE_integer("hidden_size", 8, "hidden layer size")
 flags.DEFINE_float("learning_rate", 1e-2, "learning rate")
-flags.DEFINE_float("decay_rate", 0.9, "learning rate")
+flags.DEFINE_float("decay_rate", 0.8, "learning rate")
 flags.DEFINE_integer("rank", 2, "rank for tt decomposition")
 
 FLAGS = flags.FLAGS

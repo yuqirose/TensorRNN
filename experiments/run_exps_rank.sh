@@ -12,8 +12,8 @@ t="$(echo ${t} | tr ':' '-')"
 d=$(datestamp)
 d=$(echo ${d} | tr '/' '-')
 
-start_time="$d-$t"
-#start_time=09-29-17-22-36-36
+#start_time="$d-$t"
+start_time=10-01-17-18-37-00
 use_error_prop=True #--use_error_prop
 
 #data_path=../../../data/lorenz_series.pkl
@@ -29,9 +29,9 @@ do
 base_path=/var/tmp/tensorRNN/log/$exp/$start_time
     for model in TLSTM   
     do
-	for hidden_size in 4 8 16     
+	for hidden_size in 8 16 32     
         do
-	    for rank in 2 4 8 16
+	    for rank in 4
 	    do
             save_path=${base_path}/$model/$hidden_size/$rank/
             echo $save_path

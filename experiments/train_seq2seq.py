@@ -30,6 +30,7 @@ flags.DEFINE_bool("use_sched_samp", False,
                   "Use scheduled sampling in training")
 flags.DEFINE_integer("hidden_size", 8, "hidden layer size")
 flags.DEFINE_float("learning_rate", 1e-2, "learning rate")
+flags.DEFINE_float("decay_rate", 0.9, "learning rate")
 flags.DEFINE_integer("rank", 2, "rank for tt decomposition")
 
 FLAGS = flags.FLAGS
@@ -45,6 +46,7 @@ config = TrainConfig()
 config.use_error_prop = FLAGS.use_error_prop
 config.hidden_size = FLAGS.hidden_size
 config.learning_rate = FLAGS.learning_rate
+config.decay_rate = FLAGS.decay_rate
 config.rank_vals = [FLAGS.rank]
 
 # Scheduled sampling
@@ -86,8 +88,13 @@ with tf.name_scope("Test"):
 # Define loss and optimizer
 train_loss = tf.sqrt(tf.reduce_mean(tf.squared_difference(train_pred, Z)))
 test_loss = tf.sqrt(tf.reduce_mean(tf.squared_difference(test_pred, Z)))
-optimizer = tf.train.RMSPropOptimizer(learning_rate=config.learning_rate)
-train_op = optimizer.minimize(train_loss)
+# Exponential learning rate decay 
+global_step = tf.Variable(0, trainable=False)
+starter_learning_rate = config.learning_rate
+learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
+                                           2000, config.decay_rate, staircase=True)
+optimizer = tf.train.RMSPropOptimizer(learning_rate)
+train_op = optimizer.minimize(train_loss,global_step=global_step)
 
 # Scheduled sampling params
 eps_min = 0.1 # minimal prob
@@ -95,6 +102,7 @@ eps_min = 0.1 # minimal prob
 # Write summary
 tf.summary.scalar('train_loss', train_loss)
 tf.summary.scalar('test_loss', test_loss)
+tf.summary.scalar('learning_rate', learning_rate)
 
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()

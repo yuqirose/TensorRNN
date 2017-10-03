@@ -37,6 +37,35 @@ def normalize_columns(arr):
     else:
         arr = _norm_col(arr)
     return arr
+
+def normalize_columns(arr):
+    def _norm_col(arr):
+        rows, cols = arr.shape
+        stats = np.zeros((2, cols))
+        for col in range(cols):
+            arr_col = arr[:,col]
+            stats[0,col] = arr_col.min()
+            stats[1,col] = arr_col.max()
+            arr[:,col] = (arr_col - arr_col.min() )/ (arr_col.max()- arr_col.min()) 
+        return arr, stats
+    if np.ndim(arr) ==3:
+        stats_arr = np.zeros((arr.shape[0],2,arr.shape[2]))
+        for i in range(arr.shape[0]):
+            arr[i,:,:], stats_arr[i,:,:] = _norm_col(arr[i,:,:])
+    else:
+        arr = _norm_col(arr)
+    return arr, stats_arr
+
+def denormalize_colums(arr, stats_arr):
+    def _denorm_col(arr, stats):
+        rows, cols = arr.shape
+        for col in range(cols):
+            arr_col = arr[:,col]
+            arr[:,col] = arr_col * (stats[1,col]- stats[0,col]) +  stats[0,col]
+        return arr
+    for i in range(arr.shape[0]):
+        arr[i,:,:]  = _denorm_col(arr[i,:,:], stats_arr[i,:])
+    return arr
                     
 class DataSet(object):
 
@@ -206,6 +235,7 @@ class DataSetS2S(object):
             self._index_in_epoch += batch_size
             end = self._index_in_epoch
             return self._enc_inps[start:end], self._dec_inps[start:end], self._dec_outs[start:end]
+        
 def read_data_sets(data_path, s2s=False,
                                 n_steps = 10,
                                 n_test_steps = 20,
@@ -221,7 +251,7 @@ def read_data_sets(data_path, s2s=False,
 
     # Normalize the data
     print("normalize to (0-1)")
-    data = normalize_columns(data)
+    data, _ = normalize_columns(data)
     ntest = int(round(len(data) * (1.0 - test_size)))
     nval = int(round(len(data[:ntest]) * (1.0 - val_size)))
 

@@ -22,6 +22,8 @@ from train_config import *
 flags = tf.flags
 flags.DEFINE_string("model", "LSTM",
           "Model used for learning.")
+flags.DEFINE_string("data_path", "/home/roseyu/data/tensorRNN/",
+          "Data input directory.")
 flags.DEFINE_string("save_path", "./log/lstm/",
           "Model output directory.")
 flags.DEFINE_bool("use_error_prop", True,
@@ -62,7 +64,7 @@ display_step = 200
 inp_steps = config.burn_in_steps
 
 # Read Dataset
-dataset, stats = read_data_sets("./lorenz.npy", True, inp_steps, inp_steps)
+dataset, stats = read_data_sets(FLAGS.data_path, True, inp_steps, inp_steps)
 
 # Network Parameters
 num_input = stats['num_input']  # dataset data input (time series dimension: 3)
@@ -100,9 +102,9 @@ train_op = optimizer.minimize(train_loss,global_step=global_step)
 eps_min = 0.1 # minimal prob
 
 # Write summary
-tf.summary.scalar('train_loss', train_loss)
-tf.summary.scalar('test_loss', test_loss)
-tf.summary.scalar('learning_rate', learning_rate)
+train_summary = tf.summary.scalar('train_loss', train_loss)
+valid_summary = tf.summary.scalar('valid_loss', test_loss)
+lr_summary = tf.summary.scalar('learning_rate', learning_rate)
 
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()
@@ -137,7 +139,9 @@ with tf.Session() as sess:
             valid_enc_inps = dataset.validation.enc_inps.reshape((-1, inp_steps, num_input))
             valid_dec_inps = dataset.validation.dec_inps.reshape((-1, out_steps, num_input))
             valid_dec_outs = dataset.validation.dec_outs.reshape((-1, out_steps, num_input))
-            va_loss = sess.run(test_loss, feed_dict={X: valid_enc_inps, Y: valid_dec_inps, Z: valid_dec_outs})
+            va_sum, va_loss = sess.run([valid_summary,test_loss], \
+                                       feed_dict={X: valid_enc_inps, Y: valid_dec_inps, Z: valid_dec_outs})
+            summary_writer.add_summary(va_sum, step) 
             print("Validation Loss:", va_loss)
             
             # Overfitting

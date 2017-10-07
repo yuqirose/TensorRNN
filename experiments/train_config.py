@@ -1,4 +1,3 @@
-
 class TrainConfig(object):
   """Tiny config, for testing."""
   init_scale = 0.1

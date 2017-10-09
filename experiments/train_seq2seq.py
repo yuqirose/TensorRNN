@@ -30,7 +30,9 @@ flags.DEFINE_bool("use_error_prop", True,
                   "Feed previous output as input in RNN")
 flags.DEFINE_bool("use_sched_samp", False,
                   "Use scheduled sampling in training")
-flags.DEFINE_integer("hidden_size", 8, "hidden layer size")
+flags.DEFINE_integer("burn_in_steps", 12, "burn in steps")
+flags.DEFINE_integer("test_steps", 8, "hidden layer size")
+flags.DEFINE_integer("hidden_size", 64, "hidden layer size")
 flags.DEFINE_float("learning_rate", 1e-2, "learning rate")
 flags.DEFINE_float("decay_rate", 0.8, "learning rate")
 flags.DEFINE_integer("rank", 2, "rank for tt decomposition")
@@ -46,6 +48,8 @@ handle 9 sequences for every sample.
 # Training Parameters
 config = TrainConfig()
 config.use_error_prop = FLAGS.use_error_prop
+config.burn_in_steps = FLAGS.burn_in_steps
+config.test_steps = FLAGS.test_steps
 config.hidden_size = FLAGS.hidden_size
 config.learning_rate = FLAGS.learning_rate
 config.decay_rate = FLAGS.decay_rate
@@ -62,13 +66,14 @@ training_steps = config.training_steps
 batch_size = config.batch_size
 display_step = 200
 inp_steps = config.burn_in_steps
+test_steps = config.test_steps
 
 # Read Dataset
-dataset, stats = read_data_sets(FLAGS.data_path, True, inp_steps, inp_steps)
+dataset, stats = read_data_sets(FLAGS.data_path, True, inp_steps, test_steps)
 
 # Network Parameters
 num_input = stats['num_input']  # dataset data input (time series dimension: 3)
-out_steps = 1+stats['num_steps']- inp_steps # adding EOS
+out_steps = test_steps+1 # adding EOS
 
 
 # tf Graph input

@@ -28,11 +28,11 @@ for exp in traffic
 do
 data_path=/home/qiyu/data/${exp}_s2s.npy
 base_path=/tmp/tensorRNN/log/$exp/$start_time
-    for model in LSTM 
+    for model in TLSTM MLSTM LSTM 
     do
 	for learning_rate in 1e-3 
         do
-	    for test_steps in 1 3 7 23  
+	    for test_steps in 1 3 9 15 23  
 	    do
             test_steps_traffic=$(($test_steps * 12))
             save_path=${base_path}/$model/lr-$learning_rate/ts-$test_steps_traffic/

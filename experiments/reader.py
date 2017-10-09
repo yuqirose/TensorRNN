@@ -23,55 +23,44 @@ def slide_window(a, window):
     out = examples[1:]
     return inp, out
 
-def normalize_columns(arr):
-    def _norm_col(arr):
-        rows, cols = arr.shape
-        for col in range(cols):
-            arr_col = arr[:,col]
-            arr[:,col] = (arr_col - arr_col.min() )/ (arr_col.max()- arr_col.min())
-        return arr
-    if np.ndim(arr) ==3:
-        for i in range(arr.shape[0]):
-            arr[i,:,:] = _norm_col(arr[i,:,:])       
-    else:
-        arr = _norm_col(arr)
-    return arr
 
 def normalize_columns(arr):
     def _norm_col(arr):
-        rows, cols = arr.shape
-        stats = np.zeros((2, cols))
-        for col in range(cols):
-            arr_col = arr[:,col]
-            stats[0,col] = arr_col.min()
-            stats[1,col] = arr_col.max()
-            arr[:,col] = (arr_col - arr_col.min() )/ (arr_col.max()- arr_col.min()) 
+        stats = np.zeros((2,))
+        stats[0] = arr.min()
+        stats[1] = arr.max()
+        if abs(stats[0] - stats[1]) < 1e-10:
+            pass 
+        else:
+            arr = (arr - arr.min() ) / (arr.max() - arr.min()) 
         return arr, stats
-    if np.ndim(arr) ==3:
-        stats_arr = np.zeros((arr.shape[0],2,arr.shape[2]))
-        for i in range(arr.shape[0]):
-            arr[i,:,:], stats_arr[i,:,:] = _norm_col(arr[i,:,:])
-    else:
-        arr, stats_arr = _norm_col(arr)
-    return arr, stats_arr
+    # Normalize each feature dimension
+    n_dim = arr.shape[-1]
+    stats = np.zeros((2,n_dim))
+    if np.ndim(arr) ==2:
+        for d in range(n_dim):
+            arr[:,d], stats[:,d]= _norm_col(arr[:,d])
+    elif np.ndim(arr)==3:
+        for d in range(n_dim):
+            arr[:,:,d], stats[:,d] = _norm_col(arr[:,:,d])  
+    return arr, stats
 
-def denormalize_colums(arr, stats_arr):
+def denormalize_colums(arr, stats):
     def _denorm_col(arr, stats):
-        rows, cols = arr.shape
-        for col in range(cols):
-            arr_col = arr[:,col]
-            arr[:,col] = arr_col * (stats[1,col]- stats[0,col]) +  stats[0,col]
+        arr  = arr  * (stats[1]- stats[0]) +  stats[0]
         return arr
-    for i in range(arr.shape[0]):
-        arr[i,:,:]  = _denorm_col(arr[i,:,:], stats_arr[i,:])
+    
+    n_dim = arr.shape[-1]
+    for d in range(n_dim):
+        arr[:,:,d]  = _denorm_col(arr[:,:,d], stats[:,d])
     return arr
                     
 class DataSet(object):
 
     def __init__(self,
-                             data,
-                             num_steps,
-                             seed=None):
+                     data,
+                     num_steps,
+                     seed=None):
         """Construct a DataSet.
         Seed arg provides for convenient deterministic testing.
         """
@@ -149,6 +138,7 @@ class DataSetS2S(object):
     def __init__(self,
                      data,
                      num_steps,
+                     num_test_steps=None,
                      seed=None):
         """Construct a DataSet.
         Seed arg provides for convenient deterministic testing.
@@ -160,9 +150,13 @@ class DataSetS2S(object):
         #inps, outs = slide_window(data, num_steps)
         #inps = data[:,:num_steps,:]
         #outs = data[:,1:num_steps+1,:]
+        
+        time_len = data.shape[1]
+        if num_test_steps is None:
+            num_test_steps=  time_len-num_steps 
         enc_inps = data[:,:num_steps, :]
-        dec_inps = np.insert(data[:,num_steps:,:], 0, EOS, axis=1)
-        dec_outs = np.insert(data[:,num_steps:,:], data.shape[1]-num_steps, EOS, axis=1)
+        dec_inps = np.insert(data[:,num_steps:num_steps+num_test_steps,:], 0, EOS, axis=1)
+        dec_outs = np.insert(data[:,num_steps:num_steps+num_test_steps,:], num_test_steps, EOS, axis=1)
 
         assert enc_inps.shape[0] == dec_outs.shape[0], (
                 'inps.shape: %s outs.shape: %s' % (inps.shape, outs.shape))
@@ -235,9 +229,8 @@ class DataSetS2S(object):
             end = self._index_in_epoch
             return self._enc_inps[start:end], self._dec_inps[start:end], self._dec_outs[start:end]
         
-def read_data_sets(data_path, s2s=False,
-                                n_steps = 10,
-                                n_test_steps = 20,
+def read_data_sets(data_path, s2s, n_steps,
+                                n_test_steps = None,
                                 val_size = 0.1, 
                                 test_size = 0.1, 
                                 seed=None):
@@ -256,16 +249,15 @@ def read_data_sets(data_path, s2s=False,
 
     train_data, valid_data, test_data = data[:nval, ], data[nval:ntest, ], data[ntest:,]
 
-    train_options = dict(num_steps=n_steps, seed=seed)
-    test_options = dict(num_steps=n_test_steps, seed=seed)
+    train_options = dict(num_steps=n_steps, num_test_steps=n_test_steps, seed=seed)
     if s2s == True:
         train = DataSetS2S(train_data, **train_options)
         valid = DataSetS2S(valid_data, **train_options)
-        test = DataSetS2S(test_data, **test_options)
+        test = DataSetS2S(test_data, **train_options)
     else:
         train = DataSet(train_data, **train_options)
         valid = DataSet(valid_data, **train_options)
-        test = DataSet(test_data, **test_options)     
+        test = DataSet(test_data, **train_options)     
 
     stats ={}
     stats['num_examples'] = data.shape[0]

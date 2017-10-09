@@ -60,7 +60,7 @@ num_test_steps = config.num_test_steps
 batch_size = config.batch_size
 
 # Construct dataset
-dataset, stats = read_data_sets("./data.npy", num_steps, num_steps)
+dataset, stats = read_data_sets(FLAGS.data_path, num_steps, num_steps)
 
 # Network Parameters
 num_input = stats['num_input'] # dataset data input (time series dimension: 3)

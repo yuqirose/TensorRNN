@@ -10,8 +10,8 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 from tensorflow.contrib.learn.python.learn.datasets import base
 from tensorflow.python.framework import random_seed
 
-# end of sequences
-EOS = 0
+# start of sequences
+SOS = 0
 
 def slide_window(a, window):
     """ Extract examples from time series"""
@@ -155,8 +155,9 @@ class DataSetS2S(object):
         if num_test_steps is None:
             num_test_steps=  time_len-num_steps 
         enc_inps = data[:,:num_steps, :]
-        dec_inps = np.insert(data[:,num_steps:num_steps+num_test_steps,:], 0, EOS, axis=1)
-        dec_outs = np.insert(data[:,num_steps:num_steps+num_test_steps,:], num_test_steps, EOS, axis=1)
+        dec_inps = np.insert(data[:,num_steps:num_steps+num_test_steps-1,:], 0, SOS, axis=1)
+        #dec_outs = np.insert(data[:,num_steps:num_steps+num_test_steps,:], num_test_steps, EOS, axis=1)
+        dec_outs = data[:,num_steps:num_steps+num_test_steps,:]
 
         assert enc_inps.shape[0] == dec_outs.shape[0], (
                 'inps.shape: %s outs.shape: %s' % (inps.shape, outs.shape))

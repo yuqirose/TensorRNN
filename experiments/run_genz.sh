@@ -26,7 +26,7 @@ burn_in_steps=5 # just for naming purposes
 
 for exp in f1 f2 f3 f4 f5 f6
 do
-base_path=/var/tmp/tensorRNN/log/$exp/$start_time
+base_path=/var/tmp/tensorRNN/log/genz/$exp/$start_time
 data_path=/home/roseyu/data/tensorRNN/${exp}.npy
     for model in TLSTM LSTM
     do
@@ -34,7 +34,7 @@ data_path=/home/roseyu/data/tensorRNN/${exp}.npy
         do
 	    for learning_rate in $learning_rate   
 	    do
-            save_path=${base_path}/genz-$exp/$model/
+            save_path=${base_path}/$model/
             echo $save_path
             mkdir -p $save_path
             python train_seq2seq.py --model=$model --data_path=$data_path --save_path=$save_path --hidden_size=$hidden_size --learning_rate=$learning_rate --rank=$rank 

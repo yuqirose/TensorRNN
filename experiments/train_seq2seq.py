@@ -73,7 +73,7 @@ dataset, stats = read_data_sets(FLAGS.data_path, True, inp_steps, test_steps)
 
 # Network Parameters
 num_input = stats['num_input']  # dataset data input (time series dimension: 3)
-out_steps = test_steps+1 # adding EOS
+out_steps = test_steps
 
 
 # tf Graph input

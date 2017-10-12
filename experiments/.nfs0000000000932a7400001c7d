@@ -19,7 +19,7 @@ use_error_prop=True #--use_error_prop
 #data_path=./lorenz_even_50.npy
 #chaotic_ts_mat.pkl  chaotic_ts.pkl  lorenz_series_mat.pkl  lorenz_series.pkl  traffic_9sensors.pkl  ushcn_CA.pkl
 
-hidden_size=16
+hidden_size=32
 rank=4
 learning_rate=1e-3
 burn_in_steps=12 # 1 hour burn in

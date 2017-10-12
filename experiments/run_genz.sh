@@ -24,10 +24,10 @@ rank=4
 learning_rate=1e-3
 burn_in_steps=5 # just for naming purposes
 
-for exp in f1 f2 f3 f4 f5 f6
+for exp in f3 f5
 do
-base_path=/var/tmp/tensorRNN/log/genz/$exp/$start_time
-data_path=/home/roseyu/data/tensorRNN/${exp}.npy
+base_path=/tmp/tensorRNN/log/genz/$exp/$start_time
+data_path=/home/qiyu/data/${exp}.npy
     for model in TLSTM LSTM
     do
 	for hidden_size in 32 

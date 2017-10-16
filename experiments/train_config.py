@@ -7,8 +7,6 @@ class TrainConfig(object):
   hidden_size = 16 # dim of h
   num_layers = 2
   burn_in_steps = 12 
-  num_steps = 20 # deprecated 
-  test_steps = 20 # deprecated
   horizon = 1
   num_lags = 3 # num prev hiddens
   num_orders = 2 # tensor prod order

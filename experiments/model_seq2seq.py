@@ -184,3 +184,20 @@ def MTRNN(enc_inps, dec_inps, is_training, config):
         dec_outs, dec_states = tensor_rnn_with_feed_prev(cell, dec_inps, is_training, config, enc_states) 
     return dec_outs    
 
+
+def HOALSTM(enc_inps, dec_inps, is_training, config):
+    def hoalstm_cell():
+        return HighOrderAugLSTMCell(config.hidden_size,config.num_lags, config.num_orders)
+    cell = hoalstm_cell()
+    if is_training and config.keep_prob < 1:
+        cell = tf.contrib.rnn.DropoutWrapper(
+          cell, output_keep_prob=config.keep_prob)        
+    cell = tf.contrib.rnn.MultiRNNCell(
+        [cell for _ in range(config.num_layers)])
+    with tf.variable_scope("Encoder", reuse=None):
+        enc_outs, enc_states = tensor_rnn_with_feed_prev(cell, enc_inps, True, config)
+
+    with tf.variable_scope("Decoder", reuse=None):
+        config.burn_in_steps = 0
+        dec_outs, dec_states = tensor_rnn_with_feed_prev(cell, dec_inps, is_training, config, enc_states) 
+    return dec_outs  

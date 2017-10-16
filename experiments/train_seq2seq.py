@@ -20,9 +20,9 @@ from train_config import *
 
 
 flags = tf.flags
-flags.DEFINE_string("model", "LSTM",
+flags.DEFINE_string("model", "HOALSTM",
           "Model used for learning.")
-flags.DEFINE_string("data_path", "/home/roseyu/data/tensorRNN/",
+flags.DEFINE_string("data_path", "./data.npy",
           "Data input directory.")
 flags.DEFINE_string("save_path", "./log/lstm/",
           "Model output directory.")
@@ -32,7 +32,7 @@ flags.DEFINE_bool("use_sched_samp", False,
                   "Use scheduled sampling in training")
 flags.DEFINE_integer("burn_in_steps", 12, "burn in steps")
 flags.DEFINE_integer("test_steps", None, "test steps size")
-flags.DEFINE_integer("hidden_size", 64, "hidden layer size")
+flags.DEFINE_integer("hidden_size", 8, "hidden layer size")
 flags.DEFINE_float("learning_rate", 1e-2, "learning rate")
 flags.DEFINE_float("decay_rate", 0.8, "learning rate")
 flags.DEFINE_integer("rank", 2, "rank for tt decomposition")
@@ -49,7 +49,6 @@ handle 9 sequences for every sample.
 config = TrainConfig()
 config.use_error_prop = FLAGS.use_error_prop
 config.burn_in_steps = FLAGS.burn_in_steps
-config.test_steps = FLAGS.test_steps
 config.hidden_size = FLAGS.hidden_size
 config.learning_rate = FLAGS.learning_rate
 config.decay_rate = FLAGS.decay_rate
@@ -66,7 +65,8 @@ training_steps = config.training_steps
 batch_size = config.batch_size
 display_step = 200
 inp_steps = config.burn_in_steps
-test_steps = config.test_steps
+test_steps = FLAGS.test_steps
+
 
 # Read Dataset
 print('inp steps', inp_steps, 'out steps', test_steps)
@@ -74,7 +74,11 @@ dataset, stats = read_data_sets(FLAGS.data_path, True, inp_steps, test_steps)
 
 # Network Parameters
 num_input = stats['num_input']  # dataset data input (time series dimension: 3)
+num_steps = stats['num_steps']
+
 out_steps = test_steps
+if test_steps is None:
+    out_steps = num_steps - inp_steps
 
 
 # tf Graph input

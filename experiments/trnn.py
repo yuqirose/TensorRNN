@@ -164,6 +164,63 @@ class HighOrderLSTMCell(RNNCell):
             new_state = array_ops.concat([new_c, new_h], 1)
         return new_h, new_state
 
+
+class HighOrderAugLSTMCell(RNNCell):
+    """LSTM cell with high-order interactions of hidden states
+       With augmented states [X, h], explictly consider the high-order input 
+    """
+    def __init__(self, num_units, num_lags, num_orders, forget_bias=1.0, state_is_tuple=True, activation=tanh, reuse=None):
+        super(HighOrderAugLSTMCell, self).__init__(_reuse=reuse)
+        self._num_units = num_units
+        self._num_lags = num_lags
+        self._num_orders = num_orders
+        self._forget_bias = forget_bias
+        self._state_is_tuple= state_is_tuple
+        self._activation = activation
+
+    @property
+    def state_size(self):
+        return (LSTMStateTuple(self._num_units, self._num_units)
+                if self._state_is_tuple else 2 * self._num_units)
+
+    @property
+    def output_size(self):
+        return self._num_units
+
+    def __call__(self, inputs, states, scope=None):
+        """Now we have multiple states, state->states"""
+        sigmoid = tf.sigmoid
+        # Parameters of gates are concatenated into one multiply for efficiency.
+        if self._state_is_tuple:
+            #c, h = state
+            hs = ()
+            for state in states:
+            # every state is a tuple of (c,h)
+                c, h = state
+                hs += (h,)
+        else:
+             #c, h = array_ops.split(value=state, num_or_size_splits=2, axis=1)
+            hs = ()
+            for state in states:
+                c, h = array_ops.split(value=state, num_or_size_splits=2, axis=1)
+                hs += (h,)
+
+        # concat = _linear([inputs, h], 4 * self._num_units, True)
+        output_size = 4 * self._num_units
+        concat = tensor_network_aug(inputs, hs, output_size, self._num_orders, True)
+        # i = input_gate, j = new_input, f = forget_gate, o = output_gate
+        i, j, f, o = array_ops.split(value=concat, num_or_size_splits=4, axis=1)
+
+        new_c = (
+            c * sigmoid(f + self._forget_bias) + sigmoid(i) * self._activation(j))
+        new_h = self._activation(new_c) * sigmoid(o)
+
+        if self._state_is_tuple:
+            new_state = LSTMStateTuple(new_c, new_h)
+        else:
+            new_state = array_ops.concat([new_c, new_h], 1)
+        return new_h, new_state
+        
 class EinsumTensorRNNCell(RNNCell):
     """RNN cell with high order correlations with tensor contraction"""
     def __init__(self, num_units, num_lags, rank_vals, activation=tanh, reuse=None):
@@ -456,6 +513,31 @@ def tensor_network_tt_einsum(inputs, states, output_size, rank_vals, bias, bias_
 
     return nn_ops.bias_add(res,biases)
 
+def tensor_network_aug(inputs, states, output_size, num_orders, bias, bias_start=0.0):
+    """tensor network [inputs, states]-> output with tensor models"""
+    # each coordinate of hidden state is independent- parallel
+    num_lags = len(states)
+    batch_size = tf.shape(inputs)[0]
+    state_size = states[0].get_shape()[1].value #hidden layer size
+    inp_size = inputs.get_shape()[1].value
+    total_state_size = (inp_size +  state_size * num_lags + 1 )
+
+    states = (inputs,) +states  # concatenate the [x, h] 
+
+
+    states_tensor  = nest.flatten(states)
+    #total_inputs = [inputs]
+    total_inputs = []
+    states_vector = tf.concat(states, 1)
+    states_vector = tf.concat( [states_vector, tf.ones([batch_size, 1])], 1)
+    """form high order state tensor"""
+    states_tensor = states_vector
+    for order in range(num_orders-1):
+        states_tensor = _outer_product(batch_size, states_tensor, states_vector)
+    states_tensor= tf.reshape(states_tensor, [-1,total_state_size**num_orders] )
+    total_inputs.append(states_tensor)
+    output = _linear(total_inputs, output_size, True)
+    return output
 
 def tensor_network_mtrnn(inputs, states, output_size, rank_vals, num_freq, bias, bias_start=0.0):
     "states to output mapping for multi-resolution tensor rnn"

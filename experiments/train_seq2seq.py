@@ -31,7 +31,7 @@ flags.DEFINE_bool("use_error_prop", True,
 flags.DEFINE_bool("use_sched_samp", False,
                   "Use scheduled sampling in training")
 flags.DEFINE_integer("burn_in_steps", 12, "burn in steps")
-flags.DEFINE_integer("test_steps", 8, "hidden layer size")
+flags.DEFINE_integer("test_steps", None, "test steps size")
 flags.DEFINE_integer("hidden_size", 64, "hidden layer size")
 flags.DEFINE_float("learning_rate", 1e-2, "learning rate")
 flags.DEFINE_float("decay_rate", 0.8, "learning rate")
@@ -69,6 +69,7 @@ inp_steps = config.burn_in_steps
 test_steps = config.test_steps
 
 # Read Dataset
+print('inp steps', inp_steps, 'out steps', test_steps)
 dataset, stats = read_data_sets(FLAGS.data_path, True, inp_steps, test_steps)
 
 # Network Parameters

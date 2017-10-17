@@ -409,12 +409,14 @@ def tensor_train_contraction(states_tensor, cores):
     num_orders = len(cores)
     # first factor
     x = "z" + ijk[:num_orders] # "z" is the batch dimension
-    # print mat_core.get_shape().as_list()
+    
+    # print(mat_core.get_shape().as_list())
 
     _s3 = x[:1] + x[2:] + "ab"
     einsum = "aib," + x + "->" + _s3
     x = _s3
-    # print "order", i, einsum
+
+    # print("einsum", einsum, cores[0].get_shape().as_list, states_tensor.get_shape().as_list)
 
     out_h = tf.einsum(einsum, cores[0], states_tensor)
     # print(out_h.name, out_h.get_shape().as_list())
@@ -529,7 +531,8 @@ def tensor_network_aug(inputs, states, output_size, rank_vals, bias, bias_start=
     mat_size = mat_ps[-1]
     mat = vs.get_variable("weights", mat_size) # h_z x h_z... x output_size
 
-    states = (inputs,) +states  # concatenate the [x, h] 
+    states = (inputs,) + states  # concatenate the [x, h] 
+    
     states_tensor  = nest.flatten(states)
     #total_inputs = [inputs]
     states_vector = tf.concat(states, 1)
@@ -538,7 +541,8 @@ def tensor_network_aug(inputs, states, output_size, rank_vals, bias, bias_start=
     states_tensor = states_vector
     for order in range(num_orders-1):
         states_tensor = _outer_product(batch_size, states_tensor, states_vector)
-    states_tensor= tf.reshape(states_tensor, [-1,total_state_size**num_orders] )
+    
+    # states_tensor= tf.reshape(states_tensor, [-1,total_state_size**num_orders] )
 
     cores = []
     for i in range(num_orders):
@@ -546,7 +550,7 @@ def tensor_network_aug(inputs, states, output_size, rank_vals, bias, bias_start=
         mat_core = tf.slice(mat, [mat_ps[i]], [mat_ps[i + 1] - mat_ps[i]])
         mat_core = tf.reshape(mat_core, [mat_ranks[i], total_state_size, mat_ranks[i + 1]])   
         cores.append(mat_core)
-        
+    
     res = tensor_train_contraction(states_tensor, cores)
     if not bias:
         return res

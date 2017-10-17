@@ -185,10 +185,10 @@ def MTRNN(enc_inps, dec_inps, is_training, config):
     return dec_outs    
 
 
-def HOALSTM(enc_inps, dec_inps, is_training, config):
-    def hoalstm_cell():
-        return HighOrderAugLSTMCell(config.hidden_size,config.num_lags, config.num_orders)
-    cell = hoalstm_cell()
+def TALSTM(enc_inps, dec_inps, is_training, config):
+    def talstm_cell():
+        return TensorAugLSTMCell(config.hidden_size,config.num_lags, config.rank_vals)
+    cell = talstm_cell()
     if is_training and config.keep_prob < 1:
         cell = tf.contrib.rnn.DropoutWrapper(
           cell, output_keep_prob=config.keep_prob)        

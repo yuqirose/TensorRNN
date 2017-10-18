@@ -16,7 +16,7 @@ start_time="$d-$t"
 #start_time=10-08-17-22-31-34
 use_error_prop=True #--use_error_prop
 
-data_path=/home/qiyu/data/lorenz_even_50_init.npy
+data_path=/home/qiyu/data/lorenz_even_50.npy
 #chaotic_ts_mat.pkl  chaotic_ts.pkl  lorenz_series_mat.pkl  lorenz_series.pkl  traffic_9sensors.pkl  ushcn_CA.pkl
 
 hidden_size=16

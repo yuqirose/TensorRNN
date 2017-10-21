@@ -30,7 +30,7 @@ for hidden_size in 16 32
 do
 #data_path=/home/qiyu/data/${exp}_s2s.npy
 base_path=/tmp/tensorRNN/log/$exp/$start_time
-    for model in MLSTM LSTM 
+    for model in TLSTM MLSTM LSTM 
     do
 	for learning_rate in 1e-2 1e-3 1e-4
         do

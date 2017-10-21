@@ -191,4 +191,4 @@ with tf.Session() as sess:
     # Save config file
     with open(save_path+"config.out", 'w') as f:
         f.write('hidden_size:'+ str(config.hidden_size)+'\t'+ 'learning_rate:'+ str(config.learning_rate)+ '\n')
-        f.write('train_error:'+ str(loss) +'\t'+ 'test_error:'+ str(test_vals["loss"]) +'\n')
+        f.write('train_error:'+ str(loss) +'\t'+ 'valid_error:' + str(va_loss) + '\t'+ 'test_error:'+ str(test_vals["loss"]) +'\n')

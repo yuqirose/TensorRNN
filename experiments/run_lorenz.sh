@@ -16,7 +16,7 @@ start_time="$d-$t"
 #start_time=10-08-17-22-31-34
 use_error_prop=True #--use_error_prop
 
-data_path=/home/qiyu/data/lorenz_even_50.npy
+data_path=/home/qiyu/data/lorenz_even.npy
 #chaotic_ts_mat.pkl  chaotic_ts.pkl  lorenz_series_mat.pkl  lorenz_series.pkl  traffic_9sensors.pkl  ushcn_CA.pkl
 
 hidden_size=16
@@ -28,13 +28,13 @@ for exp in lorenz
 do
 #data_path=/home/qiyu/data/${exp}_s2s.npy
 base_path=/tmp/tensorRNN/log/$exp/$start_time
-  for hidden_size in 8 16 32 
+  for hidden_size in 8 16  
   do
     for model in TALSTM 
     do
 	for learning_rate in 1e-3 
         do
-	    for test_steps in 15 45
+	    for test_steps in 20 40 60 80 
 	    do
             #test_steps_traffic=$(($test_steps * 12))
             save_path=${base_path}/$model/hz-$hidden_size/ts-$test_steps/
@@ -47,4 +47,4 @@ base_path=/tmp/tensorRNN/log/$exp/$start_time
   done
 done
 
-cp $(pwd)/run_exps_seq2seq.sh ${base_path}/run_exps_seq2seq.sh
+cp $(pwd)/run_lorenz.sh ${base_path}/run_lorenz.sh

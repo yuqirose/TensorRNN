@@ -20,7 +20,7 @@ from train_config import *
 
 
 flags = tf.flags
-flags.DEFINE_string("model", "TALSTM",
+flags.DEFINE_string("model", "TLSTM",
           "Model used for learning.")
 flags.DEFINE_string("data_path", "./data.npy",
           "Data input directory.")
@@ -33,7 +33,7 @@ flags.DEFINE_bool("use_sched_samp", False,
 flags.DEFINE_integer("burn_in_steps", 12, "burn in steps")
 flags.DEFINE_integer("test_steps", None, "test steps size")
 flags.DEFINE_integer("hidden_size", 8, "hidden layer size")
-flags.DEFINE_float("learning_rate", 1e-2, "learning rate")
+flags.DEFINE_float("learning_rate", 1e-3, "learning rate")
 flags.DEFINE_float("decay_rate", 0.8, "learning rate")
 flags.DEFINE_integer("rank", 2, "rank for tt decomposition")
 

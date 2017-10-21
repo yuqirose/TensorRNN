@@ -25,11 +25,11 @@ learning_rate=1e-4
 burn_in_steps=5 # just for naming purposes
 test_steps=95
 
-for exp in f1 
+for exp in f3 
 do
 base_path=/tmp/tensorRNN/log/genz/$exp/$start_time
 data_path=/home/qiyu/data/${exp}.npy
-    for model in TLSTM 
+    for model in TLSTM LSTM 
     do
 	for hidden_size in 8 16 
         do

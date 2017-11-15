@@ -20,7 +20,7 @@ from train_config import *
 
 
 flags = tf.flags
-flags.DEFINE_string("model", "TALSTM",
+flags.DEFINE_string("model", "TLSTM",
           "Model used for learning.")
 flags.DEFINE_string("data_path", "./data.npy",
           "Data input directory.")

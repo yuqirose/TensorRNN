@@ -33,7 +33,7 @@ flags.DEFINE_bool("use_sched_samp", False,
 flags.DEFINE_integer("burn_in_steps", 12, "burn in steps")
 flags.DEFINE_integer("test_steps", None, "test steps size")
 flags.DEFINE_integer("hidden_size", 8, "hidden layer size")
-flags.DEFINE_float("learning_rate", 1e-2, "learning rate")
+flags.DEFINE_float("learning_rate", 1e-3, "learning rate")
 flags.DEFINE_float("decay_rate", 0.8, "learning rate")
 flags.DEFINE_integer("rank", 2, "rank for tt decomposition")
 
@@ -191,4 +191,4 @@ with tf.Session() as sess:
     # Save config file
     with open(save_path+"config.out", 'w') as f:
         f.write('hidden_size:'+ str(config.hidden_size)+'\t'+ 'learning_rate:'+ str(config.learning_rate)+ '\n')
-        f.write('train_error:'+ str(loss) +'\t'+ 'test_error:'+ str(test_vals["loss"]) +'\n')
+        f.write('train_error:'+ str(loss) +'\t'+ 'valid_error:' + str(va_loss) + '\t'+ 'test_error:'+ str(test_vals["loss"]) +'\n')

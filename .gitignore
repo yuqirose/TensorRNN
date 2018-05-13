@@ -1,5 +1,6 @@
 *.pyc
 *.swp
+experiments/.nsf*
 experiments/result
 experiments/*.npy
 experiments/log

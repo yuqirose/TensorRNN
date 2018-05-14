@@ -7,30 +7,33 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 
 from tensorflow.contrib.learn.python.learn.datasets import base
 from tensorflow.python.framework import random_seed
-
 import h5py
+
+
+# start of sequences
+SOS = 0
 
 class MNISTDataSet(object):
     def __init__(self,
                      data,
                      input_steps,
-                     output_steps=None,
+                     output_steps,
                      seed=None):
         """Construct a DataSet.
         Seed arg provides for convenient deterministic testing.
         """
-        self.data_ = data
+        self.data_ = data # N x H x W
         self.num_examples_ = data.shape[0]
-        self.seq_length_ = 20
-        self.image_size_ = 28
+        self.input_steps_ = input_steps
+        self.output_steps_ = output_steps
+        self.seq_length_ = input_steps + output_steps
+        self.image_size_ = data.shape[-1]
         self.num_digits_ = 2
-
+        self.digit_size_ = 28
+        self.step_length_ = 12 #trajectory speed
+        self.frame_size_ = self.image_size_ ** 2
         self._epochs_completed = 0
         self._index_in_epoch = 0
-
-        self._enc_inps = enc_inps
-        self._dec_inps = dec_inps
-        self._dec_outs = dec_outs
 
         self.indices_ = np.arange(self.num_examples_)
 
@@ -46,22 +49,22 @@ class MNISTDataSet(object):
         # #dec_outs = np.insert(data[:,input_steps:input_steps+output_steps,:], output_steps, EOS, axis=1)
         # dec_outs = data[:,input_steps:input_steps+output_steps,:] 
 
-        assert enc_inps.shape[0] == dec_outs.shape[0], (
-                'inps.shape: %s outs.shape: %s' % (inps.shape, outs.shape))
+        # assert enc_inps.shape[0] == dec_outs.shape[0], (
+        #         'inps.shape: %s outs.shape: %s' % (inps.shape, outs.shape))
 
     @property
     def enc_inps(self):
-        return self._enc_inps
+        return self.enc_inps_
     @property
     def dec_inps(self):
-        return self._dec_inps
+        return self.dec_inps_
     @property
     def dec_outs(self):
-        return self._dec_outs
+        return self.dec_outs_
 
     @property
     def num_examples(self):
-        return self._num_examples
+        return self.num_examples_
 
     @property
     def epochs_completed(self):
@@ -114,17 +117,17 @@ class MNISTDataSet(object):
         return np.maximum(a, b)
         #return b
 
-    def gen_video(self, ind, video_size=batch_size_):
-        start_y, start_x = self.gen_trajectory(self.batch_size_ * self.num_digits_)
+    def gen_video(self, ind, data_size):
+        start_y, start_x = self.gen_trajectory(data_size * self.num_digits_)
         
         # minibatch data
-        data = np.zeros((self.batch_size_, self.seq_length, self.image_size_, self.image_size_), dtype=np.float32)
+        data = np.zeros((data_size, self.seq_length_, self.image_size_, self.image_size_), dtype=np.float32)
         
-        for j in xrange(self.batch_size_):
+        for j in xrange(data_size):
             for n in xrange(self.num_digits_):
              
                 # get a digit from dataset
-                digit_image = self.data_[ind, :, :]   
+                digit_image = self.data_[ind, :]   
                 # generate video
                 for i in xrange(self.seq_length_):
                     top    = start_y[i, j * self.num_digits_ + n]
@@ -142,13 +145,13 @@ class MNISTDataSet(object):
         # Shuffle for the first epoch
         if self._epochs_completed == 0 and start == 0 and shuffle:
             np.random.shuffle(self.indices_)
-            batch_video = self.gen_video(self.indices_[start], self.batch_size)
+            batch_video = self.gen_video(self.indices_[start], batch_size)
             # self._enc_inps = self.enc_inps[perm0]
             # self._dec_inps = self.dec_inps[perm0]
             # self._dec_outs = self.dec_outs[perm0]
 
         # Go to the next epoch
-        if start + batch_size > self._num_examples:
+        if start + batch_size > self.num_examples_:
             # Finished epoch
             self._epochs_completed += 1
             # Get the rest examples in this epoch
@@ -171,7 +174,7 @@ class MNISTDataSet(object):
             new_num_examples= self._index_in_epoch
             batch_video_new_part = self.gen_video(self.indices_[start], new_num_examples)
 
-            batch_video = np.concatenate((batch_video_rest_part,, batch_video_new_part), axis=0)
+            batch_video = np.concatenate((batch_video_rest_part, batch_video_new_part), axis=0)
 
             # enc_inps_new_part = self._enc_inps[start:end]
             # dec_inps_new_part = self._dec_inps[start:end]
@@ -182,13 +185,13 @@ class MNISTDataSet(object):
             #        np.concatenate((dec_outs_rest_part, dec_outs_new_part), axis=0)
         else:
             self._index_in_epoch += batch_size
-            batch_video = self.gen_video(self.indices_[start], self.batch_size)
+            batch_video = self.gen_video(self.indices_[start], batch_size)
 
-        self._enc_inps = batch_video[:,:self.input_steps,:]
-        self._dec_inps = np.insert(batch_video[:, self.input_stes:self.seq_length-1,:], 0, SOS, axis=1) 
-        self._dec_outs = batch_video[:, self.input_stes:self.seq_length,:]
+        self.enc_inps_ = batch_video[:,:self.input_steps_,:].reshape(-1, self.input_steps_, self.frame_size_)
+        self.dec_inps_ = np.insert(batch_video[:, self.input_steps_:self.seq_length_-1,:], 0, SOS, axis=1).reshape(-1, self.output_steps_, self.frame_size_) 
+        self.dec_outs_ = batch_video[:, self.input_steps_:self.seq_length_,:].reshape(-1, self.output_steps_, self.frame_size_) 
 
-        return self._enc_inps, self._dec_inps, self._dec_outs
+        return self.enc_inps_, self.dec_inps_, self.dec_outs_
 
     def DisplayData(self, data, rec=None, fut=None, fig=1, case_id=0, output_file=None):
         output_file1 = None
@@ -199,7 +202,7 @@ class MNISTDataSet(object):
             output_file1 = '%s_original%s' % (name, ext)
             output_file2 = '%s_recon%s' % (name, ext)
         
-        # get data
+        # get data: T x H x W
         data = data[case_id, :].reshape(-1, self.image_size_, self.image_size_)
         # get reconstruction and future sequences if exist
         if rec is not None:
@@ -244,14 +247,15 @@ class MNISTDataSet(object):
             plt.pause(0.1)
         
 
-def read_data_sets(data_path, n_steps,
-                                n_test_steps = None,
+def read_data_sets(data_path, input_steps,
+                                output_steps,
                                 val_size = 0.1, 
                                 test_size = 0.1, 
                                 seed=None):
     print("loading time series ...")
+    image_size = 28
     f = h5py.File('/Users/roseyu/Documents/Python/TensorRNN/datasets/mnist.h5')
-    data = f['train'].value.reshape(-1, 28*28)
+    data = f['train'].value.reshape(-1, image_size, image_size)
 
     # Expand the dimension if univariate time series
     if (np.ndim(data)==1):
@@ -266,7 +270,7 @@ def read_data_sets(data_path, n_steps,
 
     train_data, valid_data, test_data = data[:nval, ], data[nval:ntest, ], data[ntest:,]
 
-    train_options = dict(input_steps=n_steps, output_steps=n_test_steps, seed=seed)
+    train_options = dict(input_steps=input_steps, output_steps=output_steps, seed=seed)
     
     train = MNISTDataSet(train_data, **train_options)
     valid = MNISTDataSet(valid_data, **train_options)
@@ -275,7 +279,6 @@ def read_data_sets(data_path, n_steps,
 
     stats ={}
     stats['num_examples'] = data.shape[0]
-    stats['input_steps'] = data.shape[1]
-    stats['num_input'] = data.shape[-1]
+    stats['num_input'] = image_size**2
 
     return base.Datasets(train=train, validation=valid, test=test), stats

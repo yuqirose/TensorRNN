@@ -137,7 +137,7 @@ with tf.Session() as sess:
         sess.run(train_op, feed_dict={X: batch_x, Y: batch_y, Z:batch_z})
         if step % display_step == 0 or step == 1:
             # Calculate batch loss 
-            summary, loss = sess.run([merged,train_loss], feed_dict={X: batch_x,Y: batch_y, Z:batch_z})
+            summary, loss = sess.run([merged,train_loss], feed_dict={X: batch_x,Y: batch_y, Z:batch_z, keep_prob: 0.5})
             run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
             run_metadata = tf.RunMetadata()
             summary_writer.add_run_metadata(run_metadata, 'step%03d' % step)
@@ -150,7 +150,7 @@ with tf.Session() as sess:
             valid_dec_inps = dataset.validation.dec_inps.reshape((-1, out_steps, num_input))
             valid_dec_outs = dataset.validation.dec_outs.reshape((-1, out_steps, num_input))
             va_sum, va_loss = sess.run([valid_summary,test_loss], \
-                                       feed_dict={X: valid_enc_inps, Y: valid_dec_inps, Z: valid_dec_outs})
+                                       feed_dict={X: valid_enc_inps, Y: valid_dec_inps, Z: valid_dec_outs, keep_prob: 1.0})
             summary_writer.add_summary(va_sum, step) 
             print("Validation Loss:", va_loss)
             
@@ -180,7 +180,7 @@ with tf.Session() as sess:
         "pred":test_pred,
         "loss":test_loss
     }
-    test_vals = sess.run(fetches, feed_dict={X: test_enc_inps, Y: test_dec_inps, Z: test_dec_outs})
+    test_vals = sess.run(fetches, feed_dict={X: test_enc_inps, Y: test_dec_inps, Z: test_dec_outs, keep_prob: 1.0})
     print("Testing Loss:", test_vals["loss"])
 
     # Save the variables to disk.

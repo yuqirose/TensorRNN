@@ -169,6 +169,11 @@ def tensor_rnn_with_feed_prev(cell, inputs, is_training, config, initial_states=
             """input tensor is [batch_size, num_steps, input_size]"""
             (cell_output, state)=cell(inp, states)
 
+            # dropout 
+            # keep_prob = tf.placeholder(tf.float32)
+            keep_prob = 0.5
+            cell_output = tf.nn.dropout(cell_output, keep_prob)
+
             states_list = _shift(states_list, state)
 
             prev = cell_output

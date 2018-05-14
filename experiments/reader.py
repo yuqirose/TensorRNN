@@ -266,4 +266,3 @@ def read_data_sets(data_path, s2s, n_steps,
     stats['num_input'] = data.shape[-1]
 
     return base.Datasets(train=train, validation=valid, test=test), stats
-

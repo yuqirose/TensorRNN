@@ -151,11 +151,11 @@ class MNISTDataSet(object):
             # self._dec_outs = self.dec_outs[perm0]
 
         # Go to the next epoch
-        if start + batch_size > self.num_examples_:
+        if start + batch_size >= self.num_examples_:
             # Finished epoch
             self._epochs_completed += 1
             # Get the rest examples in this epoch
-            rest_num_examples = self._num_examples - start
+            rest_num_examples = self.num_examples_ - start
             batch_video_rest_part = self.gen_video(self.indices_[start], rest_num_examples)
             # enc_inps_rest_part = self._enc_inps[start:self._num_examples]
             # dec_inps_rest_part = self._dec_inps[start:self._num_examples]
@@ -163,7 +163,7 @@ class MNISTDataSet(object):
             # Shuffle the data
             if shuffle:
                 np.random.shuffle(self.indices_)
-                batch_video = self.gen_video(self.indices_[start]) 
+                batch_video = self.gen_video(self.indices_[start], batch_size) 
                 # self._enc_inps = self.enc_inps[perm]
                 # self._dec_inps = self.dec_inps[perm]
                 # self._dec_outs = self.dec_outs[perm]
@@ -173,7 +173,6 @@ class MNISTDataSet(object):
             self._index_in_epoch = batch_size - rest_num_examples
             new_num_examples= self._index_in_epoch
             batch_video_new_part = self.gen_video(self.indices_[start], new_num_examples)
-
             batch_video = np.concatenate((batch_video_rest_part, batch_video_new_part), axis=0)
 
             # enc_inps_new_part = self._enc_inps[start:end]
@@ -254,7 +253,7 @@ def read_data_sets(data_path, input_steps,
                                 seed=None):
     print("loading time series ...")
     image_size = 28
-    f = h5py.File('/Users/roseyu/Documents/Python/TensorRNN/datasets/mnist.h5')
+    f = h5py.File(data_path)
     data = f['train'].value.reshape(-1, image_size, image_size)
 
     # Expand the dimension if univariate time series

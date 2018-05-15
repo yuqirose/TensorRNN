@@ -8,11 +8,11 @@ class TrainConfig(object):
   num_layers = 2
   burn_in_steps = 12 
   horizon = 1
-  num_lags = 3 # num prev hiddens
+  num_lags = 2 # num prev hiddens
   num_orders = 2 # tensor prod order
   rank_vals= [2]
   num_freq = 2
-  training_steps = int(1e4)
+  training_steps = int(100)
   keep_prob = 1.0 # dropout
   sample_prob = 0.0 # sample ground true
   batch_size = 20

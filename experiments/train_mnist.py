@@ -111,8 +111,8 @@ valid_summary = tf.summary.scalar('valid_loss', test_loss)
 lr_summary = tf.summary.scalar('learning_rate', learning_rate)
 
 # Plot summary for predictions
-train_true_summary = tf.summary.image("train_true", tf.reshape(Z[0], [out_steps, image_size, image_size, 1]))
-train_pred_summary = tf.summary.image("train_pred", tf.reshape(train_pred[0],[out_steps, image_size, image_size, 1]))
+train_true_summary = tf.summary.image("train_true", tf.reshape(Z[0], [out_steps, image_size, image_size, 1]), out_steps)
+train_pred_summary = tf.summary.image("train_pred", tf.reshape(train_pred[0],[out_steps, image_size, image_size, 1]), out_steps)
 
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()
@@ -121,7 +121,10 @@ saver = tf.train.Saver()
 
 hist_loss =[]
 # Start training
-with tf.Session() as sess:
+sess_config=tf.ConfigProto()
+sess_config.gpu_options.allow_growth=True
+
+with tf.Session(config=sess_config) as sess:
     # Merge all the summaries and write them out to /tmp/mnist_logs (by default)
     merged = tf.summary.merge_all()
     summary_writer = tf.summary.FileWriter(FLAGS.save_path,sess.graph)

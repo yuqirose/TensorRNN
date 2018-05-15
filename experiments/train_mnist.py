@@ -32,6 +32,7 @@ flags.DEFINE_bool("use_sched_samp", False,
 flags.DEFINE_integer("burn_in_steps", 10, "burn in steps")
 flags.DEFINE_integer("test_steps", 10, "test steps size")
 flags.DEFINE_integer("hidden_size", 8, "hidden layer size")
+flags.DEFINE_integer("batch_size", 20, "batch size")
 flags.DEFINE_float("learning_rate", 1e-3, "learning rate")
 flags.DEFINE_float("decay_rate", 0.8, "learning rate")
 flags.DEFINE_integer("rank", 2, "rank for tt decomposition")
@@ -49,6 +50,7 @@ config = TrainConfig()
 config.use_error_prop = FLAGS.use_error_prop
 config.burn_in_steps = FLAGS.burn_in_steps
 config.hidden_size = FLAGS.hidden_size
+config.batch_size = FLAGS.batch_size
 config.learning_rate = FLAGS.learning_rate
 config.decay_rate = FLAGS.decay_rate
 config.rank_vals = [FLAGS.rank]
@@ -60,7 +62,7 @@ if FLAGS.use_sched_samp:
 sampling_burn_in = 400
 
 # Training Parameters
-training_steps = config.training_steps
+training_epochs = config.training_epochs
 batch_size = config.batch_size
 display_step = 200
 inp_steps = config.burn_in_steps
@@ -130,10 +132,11 @@ with tf.Session(config=sess_config) as sess:
 
     # Run the initializer
     sess.run(init)    
-    
-    for step in range(training_steps):
+    step = 0
+    epoch =0
+    while(epoch < training_epochs):
         batch_x, batch_y, batch_z = dataset.train.next_batch(batch_size)
-        dataset.train.display_data(batch_z)
+        #dataset.train.display_data(batch_z)
 
         # Run optimization op (backprop)
         sess.run(train_op, feed_dict={X: batch_x, Y: batch_y, Z:batch_z})
@@ -142,9 +145,9 @@ with tf.Session(config=sess_config) as sess:
             summary, loss = sess.run([merged,train_loss], feed_dict={X: batch_x,Y: batch_y, Z:batch_z})
             run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
             run_metadata = tf.RunMetadata()
-            summary_writer.add_run_metadata(run_metadata, 'step%03d' % step)
+            summary_writer.add_run_metadata(run_metadata,'step%03d' % step)
             summary_writer.add_summary(summary, step)
-            print("Step " + str(step) + ", Minibatch Loss= " + \
+            print("Epoch " + str(epoch) + ", Step " + str(step) + ", Minibatch Loss= " + \
                   "{:.4f}".format(loss) )
             
             # Calculate validation
@@ -165,7 +168,9 @@ with tf.Session(config=sess_config) as sess:
                 sample_prob = max(eps_min, 1.0-step/(2*training_steps))
                 sess.run(tf.assign(config.sample_prob, sample_prob))
                 print('Sampling prob:', sample_prob)
-
+     
+        epoch = dataset.train.epochs_completed
+        step = step + 1 
     print("Optimization Finished!")
 
     # Calculate accuracy for test datasets

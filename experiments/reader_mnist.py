@@ -8,6 +8,8 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 from tensorflow.contrib.learn.python.learn.datasets import base
 from tensorflow.python.framework import random_seed
 import h5py
+import matplotlib.pyplot as plt
+
 
 
 # start of sequences
@@ -18,6 +20,7 @@ class MNISTDataSet(object):
                      data,
                      input_steps,
                      output_steps,
+                     image_size,
                      seed=None):
         """Construct a DataSet.
         Seed arg provides for convenient deterministic testing.
@@ -27,10 +30,10 @@ class MNISTDataSet(object):
         self.input_steps_ = input_steps
         self.output_steps_ = output_steps
         self.seq_length_ = input_steps + output_steps
-        self.image_size_ = data.shape[-1]
-        self.num_digits_ = 2
+        self.image_size_ = image_size
+        self.num_digits_ = 1
         self.digit_size_ = 28
-        self.step_length_ = 12 #trajectory speed
+        self.step_length_ = 0.1 #trajectory speed
         self.frame_size_ = self.image_size_ ** 2
         self._epochs_completed = 0
         self._index_in_epoch = 0
@@ -192,7 +195,7 @@ class MNISTDataSet(object):
 
         return self.enc_inps_, self.dec_inps_, self.dec_outs_
 
-    def DisplayData(self, data, rec=None, fut=None, fig=1, case_id=0, output_file=None):
+    def display_data(self, data, rec=None, fut=None, fig=1, case_id=0, output_file=None):
         output_file1 = None
         output_file2 = None
         
@@ -203,6 +206,7 @@ class MNISTDataSet(object):
         
         # get data: T x H x W
         data = data[case_id, :].reshape(-1, self.image_size_, self.image_size_)
+        seq_length = data.shape[0]
         # get reconstruction and future sequences if exist
         if rec is not None:
             rec = rec[case_id, :].reshape(-1, self.image_size_, self.image_size_)
@@ -218,8 +222,8 @@ class MNISTDataSet(object):
         # create figure for original sequence
         plt.figure(2*fig, figsize=(20, 1))
         plt.clf()
-        for i in xrange(self.seq_length_):
-            plt.subplot(num_rows, self.seq_length_, i+1)
+        for i in xrange(seq_length):
+            plt.subplot(num_rows,seq_length, i+1)
             plt.imshow(data[i, :, :], cmap=plt.cm.gray, interpolation="nearest")
             plt.axis('off')
         plt.draw()
@@ -252,9 +256,10 @@ def read_data_sets(data_path, input_steps,
                                 test_size = 0.1, 
                                 seed=None):
     print("loading time series ...")
-    image_size = 28
+    digit_size = 28
+    image_size = 56
     f = h5py.File(data_path)
-    data = f['train'].value.reshape(-1, image_size, image_size)
+    data = f['train'].value.reshape(-1, digit_size, digit_size)
 
     # Expand the dimension if univariate time series
     if (np.ndim(data)==1):
@@ -269,7 +274,7 @@ def read_data_sets(data_path, input_steps,
 
     train_data, valid_data, test_data = data[:nval, ], data[nval:ntest, ], data[ntest:,]
 
-    train_options = dict(input_steps=input_steps, output_steps=output_steps, seed=seed)
+    train_options = dict(input_steps=input_steps, output_steps=output_steps, image_size=image_size, seed=seed)
     
     train = MNISTDataSet(train_data, **train_options)
     valid = MNISTDataSet(valid_data, **train_options)

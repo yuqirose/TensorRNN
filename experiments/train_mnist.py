@@ -21,7 +21,7 @@ from train_config import *
 flags = tf.flags
 flags.DEFINE_string("model", "TLSTM",
           "Model used for learning.")
-flags.DEFINE_string("data_path", "./data.npy",
+flags.DEFINE_string("data_path", "../datasets/mnist.h5",
           "Data input directory.")
 flags.DEFINE_string("save_path", "./log/lstm/",
           "Model output directory.")
@@ -29,7 +29,7 @@ flags.DEFINE_bool("use_error_prop", True,
                   "Feed previous output as input in RNN")
 flags.DEFINE_bool("use_sched_samp", False,
                   "Use scheduled sampling in training")
-flags.DEFINE_integer("burn_in_steps", 5, "burn in steps")
+flags.DEFINE_integer("burn_in_steps", 10, "burn in steps")
 flags.DEFINE_integer("test_steps", 10, "test steps size")
 flags.DEFINE_integer("hidden_size", 8, "hidden layer size")
 flags.DEFINE_float("learning_rate", 1e-3, "learning rate")
@@ -74,7 +74,7 @@ dataset, stats = read_data_sets(FLAGS.data_path, inp_steps, test_steps)
 # Network Parameters
 num_input = stats['num_input']  # dataset data input (time series dimension: 3)
 out_steps = test_steps
-image_size = 28
+image_size = int(np.sqrt(num_input))
 
 # tf Graph input
 X = tf.placeholder("float", [None, inp_steps, num_input], name="enc_inps")
@@ -116,7 +116,6 @@ train_pred_summary = tf.summary.image("train_pred", tf.reshape(train_pred[0],[ou
 
 # Initialize the variables (i.e. assign their default value)
 init = tf.global_variables_initializer()
-
 saver = tf.train.Saver()
 
 hist_loss =[]
@@ -134,6 +133,7 @@ with tf.Session(config=sess_config) as sess:
     
     for step in range(training_steps):
         batch_x, batch_y, batch_z = dataset.train.next_batch(batch_size)
+        dataset.train.display_data(batch_z)
 
         # Run optimization op (backprop)
         sess.run(train_op, feed_dict={X: batch_x, Y: batch_y, Z:batch_z})

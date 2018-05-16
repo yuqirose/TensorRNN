@@ -12,15 +12,15 @@ t="$(echo ${t} | tr ':' '-')"
 d=$(datestamp)
 d=$(echo ${d} | tr '/' '-')
 
-start_time="$d-$t"
+start_time="debug" #"$d-$t"
 use_error_prop=True #--use_error_prop
 
 data_path=/home/qiyu/TensorRNN/datasets/mnist.h5
 
 batch_size=80
-hidden_size=16
-rank=2
-learning_rate=1e-3
+hidden_size=128
+rank=1
+learning_rate=1e-2
 burn_in_steps=5 # 1 hour burn in
 
 for exp in mnist

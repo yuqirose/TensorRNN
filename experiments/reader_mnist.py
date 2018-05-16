@@ -257,7 +257,7 @@ def read_data_sets(data_path, input_steps,
                                 seed=None):
     print("loading time series ...")
     digit_size = 28
-    image_size = 56
+    image_size = 32
     f = h5py.File(data_path)
     data = f['train'].value.reshape(-1, digit_size, digit_size)
 

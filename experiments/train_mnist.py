@@ -174,7 +174,7 @@ with tf.Session(config=sess_config) as sess:
     print("Optimization Finished!")
 
     # Calculate accuracy for test datasets
-    test_x, test_y, test_z = dataset.test.next_batch(batch_size)
+    test_x, test_y, test_z = dataset.test.next_batch(batch_size, shuffle=False)
     
     # Fetch the predictions 
     fetches = {

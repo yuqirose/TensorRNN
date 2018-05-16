@@ -33,7 +33,7 @@ class MNISTDataSet(object):
         self.image_size_ = image_size
         self.num_digits_ = 1
         self.digit_size_ = 28
-        self.step_length_ = 0.1 #trajectory speed
+        self.step_length_ = 0.4 #trajectory speed
         self.frame_size_ = self.image_size_ ** 2
         self._epochs_completed = 0
         self._index_in_epoch = 0

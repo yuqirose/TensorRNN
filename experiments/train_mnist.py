@@ -88,6 +88,9 @@ Model = globals()[FLAGS.model]
 with tf.name_scope("Train"):
     with tf.variable_scope("Model", reuse=None):
         train_pred = Model(X, Y, True,  config)
+with tf.name_scope("Valid"):
+    with tf.variable_scope("Model", reuse=True):
+        valid_pred = Model(X, Y, False,  config)
 with tf.name_scope("Test"):
     with tf.variable_scope("Model", reuse=True):
         test_pred = Model(X, Y, False,  config)
@@ -95,6 +98,7 @@ with tf.name_scope("Test"):
 
 # Define loss and optimizer
 train_loss = tf.sqrt(tf.reduce_mean(tf.squared_difference(train_pred, Z)))
+valid_loss = tf.sqrt(tf.reduce_mean(tf.squared_difference(valid_pred, Z)))
 test_loss = tf.sqrt(tf.reduce_mean(tf.squared_difference(test_pred, Z)))
 # Exponential learning rate decay 
 global_step = tf.Variable(0, trainable=False)
@@ -109,7 +113,8 @@ eps_min = 0.1 # minimal prob
 
 # Write summary for losses
 train_summary = tf.summary.scalar('train_loss', train_loss)
-valid_summary = tf.summary.scalar('valid_loss', test_loss)
+valid_summary = tf.summary.scalar('valid_loss', valid_loss)
+test_summary = tf.summary.scalar('test_loss', test_loss)
 lr_summary = tf.summary.scalar('learning_rate', learning_rate)
 
 # Plot summary for predictions
@@ -152,7 +157,7 @@ with tf.Session(config=sess_config) as sess:
             
             # Calculate validation
             valid_batch_x, valid_batch_y, valid_batch_z = dataset.validation.next_batch(batch_size)
-            va_sum, va_loss = sess.run([valid_summary,test_loss], \
+            va_sum, va_loss = sess.run([valid_summary,valid_loss], \
                                        feed_dict={X: valid_batch_x, Y: valid_batch_y, Z: valid_batch_z})
             summary_writer.add_summary(va_sum, step) 
             print("Validation Loss:", va_loss)
@@ -174,17 +179,24 @@ with tf.Session(config=sess_config) as sess:
     print("Optimization Finished!")
 
     # Calculate accuracy for test datasets
-    test_x, test_y, test_z = dataset.test.next_batch(batch_size, shuffle=False)
+    test_vals_loss = 1000
+    step =0
+    while dataset.test.epochs_completed<1:
+        test_x, test_y, test_z = dataset.test.next_batch(batch_size, shuffle=False)
     
-    # Fetch the predictions 
-    fetches = {
-        "true":Z,
-        "pred":test_pred,
-        "loss":test_loss
-    }
-    test_vals = sess.run(fetches, feed_dict={X: test_x, Y: test_y, Z: test_z})
-    print("Testing Loss:", test_vals["loss"])
-
+        # Fetch the predictions 
+        fetches = {
+            "true":Z,
+            "pred":test_pred,
+            "loss":test_loss
+        }
+        test_vals_batch = sess.run(fetches, feed_dict={X: test_x, Y: test_y, Z: test_z})
+        if test_vals_batch["loss"]<test_vals_loss:
+            test_vals = test_vals_batch
+            test_vals_loss = test_vals_batch["loss"]
+            print("Batch "+str(step)+ ",Testing Loss:", test_vals_batch["loss"])
+        step += 1
+    print("Test Loss:",test_vals_loss)
     # Save the variables to disk.
     save_path = saver.save(sess, FLAGS.save_path)
     print("Model saved in file: %s" % save_path)

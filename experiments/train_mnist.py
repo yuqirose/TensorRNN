@@ -141,7 +141,7 @@ with tf.Session(config=sess_config) as sess:
     epoch =0
     while(epoch < training_epochs):
         batch_x, batch_y, batch_z = dataset.train.next_batch(batch_size)
-        #dataset.train.display_data(batch_z)
+        dataset.train.display_data(batch_z)
 
         # Run optimization op (backprop)
         sess.run(train_op, feed_dict={X: batch_x, Y: batch_y, Z:batch_z})

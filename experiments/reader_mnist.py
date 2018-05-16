@@ -232,8 +232,9 @@ class MNISTDataSet(object):
             plt.savefig(output_file1, bbox_inches='tight')
 
         # create figure for reconstuction and future sequences
-        plt.figure(2*fig+1, figsize=(20, 1))
-        plt.clf()
+        if rec is not None or fut is not None:
+            plt.figure(2*fig+1, figsize=(20, 1))
+            plt.clf()
         for i in xrange(self.seq_length_):
             if rec is not None and i < enc_seq_length:
                 plt.subplot(num_rows, self.seq_length_, i + 1)
@@ -257,7 +258,7 @@ def read_data_sets(data_path, input_steps,
                                 seed=None):
     print("loading time series ...")
     digit_size = 28
-    image_size = 32
+    image_size = 64
     f = h5py.File(data_path)
     data = f['train'].value.reshape(-1, digit_size, digit_size)
 
@@ -286,3 +287,15 @@ def read_data_sets(data_path, input_steps,
     stats['num_input'] = image_size**2
 
     return base.Datasets(train=train, validation=valid, test=test), stats
+
+
+
+# visualize the data
+# data_path = "../datasets/mnist.h5"
+# inp_steps = 10
+# test_steps = 20
+# batch_size = 5
+# dataset, stats = read_data_sets(data_path, inp_steps, test_steps)
+# batch_x, batch_y, batch_z = dataset.train.next_batch(batch_size)
+# dataset.train.display_data(batch_z)
+# plt.show()
